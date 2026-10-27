@@ -384,7 +384,7 @@ function generate50Bosses() {
       atk,
       def,
       crit: 0.05 + Math.min(0.20, stage * 0.003),
-      image: info.img,
+      image: `assets/bosses/boss_${stage}.svg`,
       introQuote: info.quote,
       rewards: {
         exp: rewardsExp,

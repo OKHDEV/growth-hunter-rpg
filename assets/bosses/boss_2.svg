@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Background Radial Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#083344"/>
+      <stop offset="100%" stop-color="#030712"/>
+    </radialGradient>
+
+    <!-- Golden Armor Gradient -->
+    <linearGradient id="goldArmorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+
+    <!-- Celestial Wing Gradient -->
+    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#451a03" stop-opacity="0.95"/>
+    </linearGradient>
+
+    <!-- Runeblade Gradient -->
+    <linearGradient id="bladeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0f2fe"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#082f49"/>
+    </linearGradient>
+
+    <!-- Neon Glow Filter -->
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.75"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="400" height="400" fill="url(#bgGrad)"/>
+
+  <!-- Zone Pattern & Vignette Ring -->
+  <circle cx="200" cy="180" r="170" fill="none" stroke="#06b6d4" stroke-width="1" opacity="0.15"/>
+  <circle cx="200" cy="180" r="150" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-dasharray="4 8" opacity="0.25"/>
+
+  <!-- Wings / Aura / Background FX -->
+  <g id="auraWings" filter="url(#shadow)">
+    
+      <circle cx="200" cy="180" r="110" fill="none" stroke="#06b6d4" stroke-width="2" stroke-dasharray="8 6" opacity="0.35"/>
+      <circle cx="200" cy="180" r="85" fill="none" stroke="#06b6d4" stroke-width="1.5" opacity="0.25"/>
+      <ellipse cx="200" cy="190" rx="90" ry="100" fill="#06b6d4" opacity="0.08" filter="url(#glow)"/>
+    
+  </g>
+
+  <!-- Character Group Scaled and Centered -->
+  <g id="character" transform="translate(46.8, 42.12) scale(0.766)" filter="url(#shadow)">
+    <!-- Horns / Crests -->
+    <g id="horns">
+      
+      <line x1="185" y1="125" x2="165" y2="80" stroke="#06b6d4" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="165" cy="80" r="5" fill="#22d3ee" filter="url(#glow)"/>
+      <line x1="215" y1="125" x2="235" y2="80" stroke="#06b6d4" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="235" cy="80" r="5" fill="#22d3ee" filter="url(#glow)"/>
+    
+    </g>
+
+    <!-- Torso & Armor -->
+    <g id="torso">
+      
+      <!-- Zone 1 Slouching Torso -->
+      <path d="M 160,195 Q 200,185 240,195 L 255,290 Q 200,310 145,290 Z" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>
+      <!-- Center emblem -->
+      <circle cx="200" cy="235" r="14" fill="#0f172a" stroke="#06b6d4" stroke-width="2"/>
+      <path d="M 194,235 L 206,235 M 200,229 L 200,241" stroke="#22d3ee" stroke-width="2.5"/>
+    
+    </g>
+
+    <!-- Head & Mask -->
+    <g id="head">
+      
+      <!-- Zone 1 Sloth/Dopamine Head -->
+      <ellipse cx="200" cy="155" rx="38" ry="34" fill="#1e293b" stroke="#06b6d4" stroke-width="2"/>
+      <!-- Drooping mouth or sneaky grin -->
+      <path d="M 188,172 Q 200,168 212,172" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round"/>
+    
+    </g>
+
+    <!-- Glowing Eyes -->
+    <g id="eyes">
+      
+      <ellipse cx="187" cy="150" rx="8" ry="6" fill="#050811" stroke="#22d3ee" stroke-width="2"/>
+      <circle cx="187" cy="150" r="3" fill="#22d3ee" filter="url(#glow)"/>
+      <ellipse cx="213" cy="150" rx="8" ry="6" fill="#050811" stroke="#22d3ee" stroke-width="2"/>
+      <circle cx="213" cy="150" r="3" fill="#22d3ee" filter="url(#glow)"/>
+    
+    </g>
+
+    <!-- Weapon / Relic -->
+    <g id="weapon">
+      
+      <!-- Glowing Smartphone -->
+      <rect x="260" y="190" width="30" height="52" rx="4" fill="#030712" stroke="#06b6d4" stroke-width="2"/>
+      <rect x="264" y="196" width="22" height="40" rx="2" fill="#22d3ee" filter="url(#glow)"/>
+    
+    </g>
+  </g>
+
+  <!-- Stage Badge & Tier Banner Overlay -->
+  <g id="stageBadge" transform="translate(16, 16)">
+    <rect width="90" height="26" rx="13" fill="#090d16" stroke="#06b6d4" stroke-width="1.5"/>
+    <text x="45" y="18" fill="#22d3ee" font-family="sans-serif" font-size="12" font-weight="900" text-anchor="middle" letter-spacing="1">
+      STAGE 2
+    </text>
+  </g>
+
+  <g id="zoneBadge" transform="translate(290, 16)">
+    <rect width="94" height="26" rx="6" fill="#090d16" stroke="#475569" stroke-width="1"/>
+    <text x="337" y="17" fill="#94a3b8" font-family="sans-serif" font-size="11" font-weight="700" text-anchor="middle">
+      Zone 1 
+    </text>
+  </g>
+
+  <!-- Bottom Name Banner -->
+  <g id="nameBanner" transform="translate(0, 340)">
+    <rect width="400" height="60" fill="#090d16" opacity="0.88"/>
+    <line x1="0" y1="0" x2="400" y2="0" stroke="#06b6d4" stroke-width="2" opacity="0.6"/>
+    <text x="200" y="26" fill="#ffffff" font-family="sans-serif" font-size="16" font-weight="800" text-anchor="middle">
+      숏폼의 환영귀, 스크롤러
+    </text>
+    <text x="200" y="46" fill="#22d3ee" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle" opacity="0.9">
+      Phantom Scroller
+    </text>
+  </g>
+</svg>
