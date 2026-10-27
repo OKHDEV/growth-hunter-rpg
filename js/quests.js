@@ -13,6 +13,42 @@ class QuestManager {
   init() {
     this.renderCategoryTabs();
     this.renderQuestList();
+    this.startDailyResetCountdown();
+  }
+
+  startDailyResetCountdown() {
+    const update = () => {
+      const el = document.getElementById('questResetCountdown');
+      if (!el) return;
+
+      const now = new Date();
+      // Next midnight (00:00:00 tomorrow)
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+      const diffMs = nextMidnight - now;
+
+      if (diffMs <= 0) {
+        state.checkDailyReset();
+        this.renderQuestList();
+        if (typeof ui !== 'undefined') ui.updateHeaderAndStats();
+        if (typeof ui !== 'undefined' && ui.showToast) {
+          ui.showToast("🌅 자정(00:00)이 되어 일일 퀘스트가 새롭게 갱신되었습니다!", "success");
+        }
+        return;
+      }
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+      const hStr = String(hours).padStart(2, '0');
+      const mStr = String(mins).padStart(2, '0');
+      const sStr = String(secs).padStart(2, '0');
+
+      el.textContent = `${hStr}시간 ${mStr}분 ${sStr}초 남음 (자정 00:00 초기화)`;
+    };
+
+    update();
+    setInterval(update, 1000);
   }
 
   setCategory(cat) {

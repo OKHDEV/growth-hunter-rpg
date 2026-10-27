@@ -10,14 +10,16 @@ class GameState {
 
   setupAutoSaveHooks() {
     // Save when leaving page, switching tabs, or locking phone
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('beforeunload', () => this.save());
       window.addEventListener('pagehide', () => this.save());
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          this.save();
-        }
-      });
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            this.save();
+          }
+        });
+      }
     }
   }
 

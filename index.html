@@ -220,6 +220,18 @@
         </button>
       </div>
 
+      <!-- Daily Reset Countdown Badge Bar -->
+      <div class="quest-reset-badge-bar">
+        <div class="reset-left">
+          <span class="reset-icon-pulse">⏳</span>
+          <span class="reset-label">일일 퀘스트 자정(00:00) 초기화까지:</span>
+          <strong id="questResetCountdown" class="reset-time-highlight">계산 중...</strong>
+        </div>
+        <div class="reset-right">
+          <span class="reset-sub-text">매일 24:00 자동 리셋 및 연속 달성 체크</span>
+        </div>
+      </div>
+
       <div class="quest-grid" id="questList"></div>
     </section>
 
@@ -564,17 +576,21 @@
             <input type="number" id="cqGrowth" value="10" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
           </div>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
           <div>
             <label style="font-size:12px; color:var(--text-muted);">완료 방식</label>
             <select id="cqType" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
               <option value="check">원클릭 확인</option>
-              <option value="counter">카운터 (횟수 측정)</option>
+              <option value="counter">카운터 (횟수)</option>
             </select>
           </div>
           <div>
-            <label style="font-size:12px; color:var(--text-muted);">목표 횟수 (선택)</label>
+            <label style="font-size:12px; color:var(--text-muted);">목표치</label>
             <input type="number" id="cqCount" placeholder="예: 50" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--text-muted);">단위</label>
+            <input type="text" id="cqUnit" value="회" placeholder="예: 회, 분, 세트" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
           </div>
         </div>
         <div style="display:flex; gap:10px; margin-top:12px;">

@@ -109,6 +109,15 @@ class UIManager {
       document.body.classList.remove('in-battle');
     }
 
+    const bossTabEl = document.getElementById('bossTab');
+    if (bossTabEl) {
+      if (tabId === 'bossTab' && this.currentBossZone === 6) {
+        bossTabEl.classList.add('zone-omega-theme');
+      } else {
+        bossTabEl.classList.remove('zone-omega-theme');
+      }
+    }
+
     sound.playClick();
     this.currentTab = tabId;
 
@@ -230,6 +239,15 @@ class UIManager {
   setBossZone(zoneNum) {
     sound.playClick();
     this.currentBossZone = zoneNum;
+    const bossTabEl = document.getElementById('bossTab');
+    if (bossTabEl) {
+      if (zoneNum === 6) {
+        bossTabEl.classList.add('zone-omega-theme');
+        sound.playCosmicGodIntro();
+      } else {
+        bossTabEl.classList.remove('zone-omega-theme');
+      }
+    }
     this.renderBossStageCards();
   }
 
@@ -258,18 +276,7 @@ class UIManager {
       });
     }
 
-    listContainer.innerHTML = `
-      <div class="omega-secret-banner">
-        <div class="omega-banner-content">
-          <span class="omega-pulse-tag">👑 [제51의 벽] 50단계 정복자의 최종 관문</span>
-          <h3 class="omega-banner-title">절대 거신, 오메가 크로노스 (Omega Chronos)</h3>
-          <p class="omega-banner-sub">체력 999,999 · 공격력 8,888 · 방어력 3,500 · 신장 178cm의 한계를 초월한 절대 거신</p>
-        </div>
-        <button class="btn btn-omega-challenge" onclick="ui.startBossRaid('boss_secret_omega')">
-          🔥 [찐막 최종보스] 결전의 전당 강림하기
-        </button>
-      </div>
-    `;
+    listContainer.innerHTML = '';
 
     let zoneBosses = [];
     if (this.currentBossZone === 6) {
@@ -673,20 +680,44 @@ class UIManager {
     if (customQuestForm) {
       customQuestForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const data = {
-          title: document.getElementById('cqTitle').value,
-          description: document.getElementById('cqDesc').value,
-          category: document.getElementById('cqCategory').value,
-          categoryName: document.getElementById('cqCategory').selectedOptions[0].text,
-          tier: document.getElementById('cqTier').value,
-          exp: document.getElementById('cqExp').value,
-          gold: document.getElementById('cqGold').value,
-          growthPoints: document.getElementById('cqGrowth').value,
-          type: document.getElementById('cqType').value,
-          targetCount: document.getElementById('cqCount').value,
-          unit: document.getElementById('cqUnit').value || '회'
-        };
-        quests.saveCustomQuest(data);
+        try {
+          const titleInput = document.getElementById('cqTitle');
+          const title = titleInput ? titleInput.value.trim() : '';
+          if (!title) {
+            alert('퀘스트 제목을 입력해주세요!');
+            return;
+          }
+
+          const descInput = document.getElementById('cqDesc');
+          const catSelect = document.getElementById('cqCategory');
+          const tierSelect = document.getElementById('cqTier');
+          const expInput = document.getElementById('cqExp');
+          const goldInput = document.getElementById('cqGold');
+          const growthInput = document.getElementById('cqGrowth');
+          const typeSelect = document.getElementById('cqType');
+          const countInput = document.getElementById('cqCount');
+          const unitInput = document.getElementById('cqUnit');
+
+          const data = {
+            title: title,
+            description: (descInput && descInput.value.trim()) || '나만의 현실 수련 도전과제',
+            category: catSelect ? catSelect.value : 'height',
+            categoryName: catSelect ? catSelect.selectedOptions[0].text : '신체 & 키 성장',
+            tier: tierSelect ? tierSelect.value : 'B',
+            exp: parseInt(expInput ? expInput.value : 350) || 350,
+            gold: parseInt(goldInput ? goldInput.value : 120) || 120,
+            growthPoints: parseInt(growthInput ? growthInput.value : 10) || 10,
+            type: typeSelect ? typeSelect.value : 'check',
+            targetCount: (countInput && countInput.value) ? parseInt(countInput.value) : null,
+            unit: (unitInput && unitInput.value.trim()) ? unitInput.value.trim() : '회'
+          };
+
+          quests.saveCustomQuest(data);
+          customQuestForm.reset();
+        } catch (err) {
+          console.error("Custom quest registration error:", err);
+          alert("퀘스트 등록 처리 중 오류가 발생했습니다: " + err.message);
+        }
       });
     }
   }

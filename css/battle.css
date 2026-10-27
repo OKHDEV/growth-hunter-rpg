@@ -887,12 +887,36 @@
   box-shadow: 0 0 35px rgba(245, 158, 11, 0.9);
 }
 
+/* Zone 6 & Omega Titan Majestic Arena Background */
+#bossTab.zone-omega-theme {
+  position: relative;
+  background: linear-gradient(rgba(10, 14, 26, 0.72), rgba(7, 9, 14, 0.88)),
+              url('../assets/backgrounds/colossal_arena_bg.jpg') center 25% / cover no-repeat fixed !important;
+  border: 2px solid rgba(245, 158, 11, 0.7) !important;
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  box-shadow: 0 0 80px rgba(245, 158, 11, 0.45), inset 0 0 80px rgba(0, 0, 0, 0.88);
+  animation: arenaGlowPulse 4s infinite alternate;
+}
+
+@keyframes arenaGlowPulse {
+  0% { border-color: rgba(245, 158, 11, 0.6); box-shadow: 0 0 60px rgba(245, 158, 11, 0.35); }
+  100% { border-color: rgba(239, 68, 68, 0.85); box-shadow: 0 0 100px rgba(239, 68, 68, 0.55), inset 0 0 100px rgba(0, 0, 0, 0.92); }
+}
+
+#bossTab.zone-omega-theme .boss-screen-title {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 25px rgba(245, 158, 11, 0.9);
+}
+
 /* Arena Omega Chamber Mode */
 .arena-omega-mode {
-  background: radial-gradient(circle at 50% 20%, rgba(88, 28, 135, 0.4), rgba(15, 23, 42, 0.98) 75%) !important;
-  border: 2px solid rgba(245, 158, 11, 0.6) !important;
+  position: relative;
+  background: linear-gradient(rgba(10, 14, 26, 0.70), rgba(7, 9, 14, 0.90)),
+              url('../assets/backgrounds/colossal_arena_bg.jpg') center 30% / cover no-repeat fixed !important;
+  border: 2px solid rgba(245, 158, 11, 0.85) !important;
   border-radius: var(--radius-lg);
-  box-shadow: 0 0 80px rgba(245, 158, 11, 0.35), inset 0 0 50px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 100px rgba(245, 158, 11, 0.55), inset 0 0 80px rgba(0, 0, 0, 0.9) !important;
 }
 
 .boss-card-omega {

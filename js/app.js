@@ -16,12 +16,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Support direct modal display via URL parameter (e.g. ?modal=profile or ?modal=questConfirm)
+  const zoneParam = params.get('zone');
+  if (zoneParam) {
+    ui.setBossZone(parseInt(zoneParam));
+  }
+
+  // Support direct modal display via URL parameter (e.g. ?modal=profile, ?modal=questConfirm, ?modal=customQuest)
   const modalParam = params.get('modal');
   if (modalParam === 'profile') {
     ui.openProfileModal();
   } else if (modalParam === 'questConfirm') {
     quests.promptConfirmClaim('height_rope_1000');
+  } else if (modalParam === 'customQuest') {
+    quests.openCustomQuestModal();
   }
 
   // First user interaction starts Web Audio context and ambient BGM
