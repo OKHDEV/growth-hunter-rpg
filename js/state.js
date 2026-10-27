@@ -70,6 +70,7 @@ class GameState {
         completedToday: {},
         progress: {},
         customQuests: [],
+        deletedQuestIds: [],
         history: {}
       },
       raid: {
@@ -141,6 +142,7 @@ class GameState {
         completedToday: (parsed.quests && parsed.quests.completedToday) || {},
         progress: (parsed.quests && parsed.quests.progress) || {},
         customQuests: (parsed.quests && parsed.quests.customQuests) || [],
+        deletedQuestIds: (parsed.quests && parsed.quests.deletedQuestIds) || [],
         history: (parsed.quests && parsed.quests.history) || {}
       },
       raid: {
@@ -640,6 +642,34 @@ class GameState {
     this.data.quests.customQuests.push(newQuest);
     this.save();
     return newQuest;
+  }
+
+  deleteQuest(questId) {
+    if (!questId) return false;
+
+    // Filter out if it was a custom quest
+    if (this.data.quests.customQuests) {
+      this.data.quests.customQuests = this.data.quests.customQuests.filter(q => q.id !== questId);
+    }
+
+    // Add to deletedQuestIds
+    if (!this.data.quests.deletedQuestIds) {
+      this.data.quests.deletedQuestIds = [];
+    }
+    if (!this.data.quests.deletedQuestIds.includes(questId)) {
+      this.data.quests.deletedQuestIds.push(questId);
+    }
+
+    // Clean up daily tracking if active
+    if (this.data.quests.completedToday && this.data.quests.completedToday[questId]) {
+      delete this.data.quests.completedToday[questId];
+    }
+    if (this.data.quests.progress && this.data.quests.progress[questId]) {
+      delete this.data.quests.progress[questId];
+    }
+
+    this.save();
+    return true;
   }
 }
 

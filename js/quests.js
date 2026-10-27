@@ -8,6 +8,7 @@ class QuestManager {
     this.activeCounterQuestId = null;
     this.counterCurrentValue = 0;
     this.pendingQuestId = null;
+    this.selectedDeleteQuestId = null;
   }
 
   init() {
@@ -59,7 +60,9 @@ class QuestManager {
   }
 
   getAllQuests() {
-    return [...INITIAL_QUESTS, ...state.data.quests.customQuests];
+    const deleted = (state.data && state.data.quests && state.data.quests.deletedQuestIds) || [];
+    const custom = (state.data && state.data.quests && state.data.quests.customQuests) || [];
+    return [...INITIAL_QUESTS, ...custom].filter(q => !deleted.includes(q.id));
   }
 
   renderCategoryTabs() {
@@ -418,6 +421,149 @@ class QuestManager {
     this.closeCustomQuestModal();
     this.renderQuestList();
     ui.showToast(`나만의 퀘스트 [${newQuest.title}] 등록 완료!`);
+  }
+
+  // --- Quest Deletion Modal ---
+
+  openDeleteQuestModal() {
+    sound.playClick();
+    this.selectedDeleteQuestId = null;
+    const modal = document.getElementById('deleteQuestModal');
+    const select = document.getElementById('deleteQuestSelect');
+    const previewList = document.getElementById('deleteQuestListPreview');
+    const warningBox = document.getElementById('deleteQuestWarningBox');
+
+    if (!modal) return;
+
+    if (warningBox) warningBox.classList.add('hidden');
+
+    const allQuests = this.getAllQuests();
+
+    // Populate Select Box
+    if (select) {
+      select.innerHTML = '<option value="">-- 삭제할 퀘스트를 선택하세요 --</option>';
+      allQuests.forEach(q => {
+        const isCustom = q.id.startsWith('custom_');
+        const opt = document.createElement('option');
+        opt.value = q.id;
+        opt.textContent = `${isCustom ? '⭐ [나만의 퀘스트] ' : '[기본] '}${q.title} (${q.categoryName || q.category})`;
+        select.appendChild(opt);
+      });
+    }
+
+    // Populate Quick Interactive Preview List
+    if (previewList) {
+      if (allQuests.length === 0) {
+        previewList.innerHTML = '<div style="color:#94a3b8; font-size:13px; text-align:center; padding:16px;">현재 등록된 퀘스트가 없습니다.</div>';
+      } else {
+        previewList.innerHTML = '';
+        allQuests.forEach(q => {
+          const isCustom = q.id.startsWith('custom_');
+          const item = document.createElement('div');
+          item.className = 'delete-quest-item';
+          item.id = `delItem_${q.id}`;
+          item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:10px 12px; cursor:pointer; transition:all 0.15s ease;';
+          item.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:3px; overflow:hidden;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:11px; font-weight:bold; color:${isCustom ? '#06b6d4' : '#94a3b8'};">
+                  ${isCustom ? '⭐ 나만의 퀘스트' : '기본'}
+                </span>
+                <span style="font-weight:700; color:#fff; font-size:13px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
+                  ${q.title}
+                </span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8;">
+                보상: EXP +${q.exp} | 골드 +${q.gold} | 키 성장 +${q.growthPoints || 0}
+              </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger" style="border-color:#ef4444; color:#ef4444; font-size:11px; padding:5px 10px; flex-shrink:0;">
+              선택
+            </button>
+          `;
+          item.onclick = () => this.onSelectQuestToDelete(q.id);
+          previewList.appendChild(item);
+        });
+      }
+    }
+
+    modal.classList.remove('hidden');
+  }
+
+  closeDeleteQuestModal() {
+    sound.playClick();
+    const modal = document.getElementById('deleteQuestModal');
+    if (modal) modal.classList.add('hidden');
+    this.selectedDeleteQuestId = null;
+  }
+
+  onSelectQuestToDelete(questId) {
+    if (!questId) {
+      this.selectedDeleteQuestId = null;
+      const warningBox = document.getElementById('deleteQuestWarningBox');
+      if (warningBox) warningBox.classList.add('hidden');
+      return;
+    }
+
+    sound.playClick();
+    this.selectedDeleteQuestId = questId;
+
+    const allQuests = this.getAllQuests();
+    const quest = allQuests.find(q => q.id === questId);
+    if (!quest) return;
+
+    // Sync select dropdown
+    const select = document.getElementById('deleteQuestSelect');
+    if (select && select.value !== questId) {
+      select.value = questId;
+    }
+
+    // Highlight item in list
+    document.querySelectorAll('.delete-quest-item').forEach(el => {
+      el.style.borderColor = '#334155';
+      el.style.background = '#0f172a';
+    });
+    const targetItem = document.getElementById(`delItem_${questId}`);
+    if (targetItem) {
+      targetItem.style.borderColor = '#ef4444';
+      targetItem.style.background = 'rgba(239, 68, 68, 0.14)';
+    }
+
+    // Show warning box
+    const warningBox = document.getElementById('deleteQuestWarningBox');
+    const titleEl = document.getElementById('deleteTargetTitle');
+    if (warningBox && titleEl) {
+      titleEl.textContent = `[${quest.title}]`;
+      warningBox.classList.remove('hidden');
+    }
+  }
+
+  confirmDeleteSelectedQuest() {
+    if (!this.selectedDeleteQuestId) {
+      alert("지울 퀘스트를 선택해주세요!");
+      return;
+    }
+
+    const allQuests = this.getAllQuests();
+    const quest = allQuests.find(q => q.id === this.selectedDeleteQuestId);
+    if (!quest) {
+      alert("선택한 퀘스트를 찾을 수 없습니다.");
+      return;
+    }
+
+    // User requested confirmation prompt: "진짜 삭제하겠습니까?"
+    const really = confirm(`[${quest.title}]\n\n이 퀘스트를 진짜 삭제하겠습니까?`);
+    if (!really) return;
+
+    sound.playClick();
+    state.deleteQuest(quest.id);
+
+    this.closeDeleteQuestModal();
+    this.renderQuestList();
+
+    if (typeof ui !== 'undefined' && ui.showToast) {
+      ui.showToast(`🗑️ [${quest.title}] 퀘스트가 삭제되었습니다!`, "info");
+    }
   }
 }
 

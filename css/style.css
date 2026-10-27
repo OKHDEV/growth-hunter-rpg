@@ -536,6 +536,12 @@ body {
   margin-bottom: 12px;
 }
 
+.quest-action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 /* Quest Daily Reset Countdown Bar */
 .quest-reset-badge-bar {
   display: flex;

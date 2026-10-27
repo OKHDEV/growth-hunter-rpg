@@ -233,6 +233,28 @@ body.in-battle .app-container {
     gap: 16px;
   }
 
+  /* Quest Screen Mobile Bar */
+  .quest-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .quest-action-buttons {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .quest-action-buttons button {
+    flex: 1;
+    font-size: 11px;
+    padding: 8px 6px;
+    white-space: nowrap;
+    text-align: center;
+    justify-content: center;
+  }
+
   .hunter-avatar-wrap {
     width: 180px;
     height: 230px;

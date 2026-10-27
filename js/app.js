@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     quests.openCustomQuestModal();
   } else if (modalParam === 'dateJump') {
     ui.openDateJumpModal();
+  } else if (modalParam === 'deleteQuest') {
+    ui.switchTab('questTab');
+    quests.openDeleteQuestModal();
   }
 
   // First user interaction starts Web Audio context and ambient BGM
