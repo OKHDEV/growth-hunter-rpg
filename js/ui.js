@@ -955,23 +955,47 @@ class UIManager {
     const bagContainer = document.getElementById('inventoryBag');
     if (bagContainer) {
       bagContainer.innerHTML = '';
-      const items = state.data.player.inventory;
+      const items = [...(state.data.player.inventory || [])];
 
       if (items.length === 0) {
         bagContainer.innerHTML = `<div class="empty-bag-text">보유한 장비가 없습니다. 50단계 보스를 격파하여 전설의 장비를 획득하세요!</div>`;
       } else {
+        // "좋은게 왼쪽으로 오게": Mythic(5) > Legendary(4) > Epic(3) > Rare(2) > Normal(1), then stats sum descending
+        const rarityWeights = { mythic: 5, legendary: 4, epic: 3, rare: 2, normal: 1 };
+        items.sort((a, b) => {
+          const wA = rarityWeights[a.rarity] || 1;
+          const wB = rarityWeights[b.rarity] || 1;
+          if (wB !== wA) return wB - wA;
+          const sumA = (a.stats?.atk || 0) + (a.stats?.def || 0) + (a.stats?.str || 0) + (a.stats?.gro || 0);
+          const sumB = (b.stats?.atk || 0) + (b.stats?.def || 0) + (b.stats?.str || 0) + (b.stats?.gro || 0);
+          return sumB - sumA;
+        });
+
         items.forEach(item => {
           const isEquipped = eq[item.slot] && eq[item.slot].id === item.id;
+          const rarity = item.rarity || 'normal';
           const card = document.createElement('div');
-          card.className = `bag-item-card rarity-${item.rarity} ${isEquipped ? 'is-equipped' : ''}`;
+          card.className = `bag-item-card rarity-${rarity} ${isEquipped ? 'is-equipped' : ''}`;
+
+          const rarityLabels = {
+            mythic: '✦ 신화',
+            legendary: '★ 전설',
+            epic: '◆ 에픽',
+            rare: '▲ 레어',
+            normal: '● 일반'
+          };
+          const rLabel = rarityLabels[rarity] || '일반';
 
           card.innerHTML = `
             <div class="item-header">
-              <span class="item-name">${item.name}</span>
-              <span class="item-slot-tag">${slotNames[item.slot]}</span>
+              <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                <span class="item-rarity-pill rarity-${rarity}">${rLabel}</span>
+                <span class="item-name" style="font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</span>
+              </div>
+              <span class="item-slot-tag">${slotNames[item.slot] || item.slot}</span>
             </div>
             <div class="item-stats-text">${item.statsText}</div>
-            <div class="item-action">
+            <div class="item-action" style="margin-top: 6px; display: flex; justify-content: flex-end;">
               ${isEquipped 
                 ? `<span class="badge-equipped">장착 중</span>` 
                 : `<button class="btn btn-xs btn-primary" onclick="state.equipItem(${JSON.stringify(item).replace(/"/g, '&quot;')}); ui.renderInventory(); ui.updateHeaderAndStats();">장착하기</button>`
@@ -986,23 +1010,72 @@ class UIManager {
     const titlesContainer = document.getElementById('titlesContainer');
     if (titlesContainer) {
       titlesContainer.innerHTML = '';
-      const unlocked = state.data.player.unlockedTitles;
+      const unlocked = state.data.player.unlockedTitles || [];
       const active = state.data.player.activeTitle;
 
-      unlocked.forEach(tName => {
-        const tInfo = TITLES_DATA[tName] || { name: tName, desc: '', bonusText: '' };
+      const rarityWeights = { mythic: 5, legendary: 4, epic: 3, rare: 2, normal: 1 };
+      const rarityLabels = {
+        mythic: '✦ MYTHIC 신화',
+        legendary: '★ LEGENDARY 전설',
+        epic: '◆ EPIC 에픽',
+        rare: '▲ RARE 레어',
+        normal: '● NORMAL 일반'
+      };
+
+      // Collect all registered titles from TITLES_DATA and player's unlocked list
+      const allNames = Array.from(new Set([...Object.keys(TITLES_DATA), ...unlocked]));
+      const titleCardsList = allNames.map(tName => {
+        const tInfo = (typeof getTitleMetadata === 'function' ? getTitleMetadata(tName) : (TITLES_DATA[tName] || { name: tName, desc: '', bonusText: '' }));
+        const isUnlocked = unlocked.includes(tName);
+        const isActive = (active === tName);
+        const rarity = tInfo.rarity || 'normal';
+        return {
+          tName,
+          tInfo,
+          isUnlocked,
+          isActive,
+          rarity,
+          weight: rarityWeights[rarity] || 1,
+          reqLevel: tInfo.reqLevel || 1
+        };
+      });
+
+      // "좋은게 왼쪽으로 오게": Mythic(5) > Legendary(4) > Epic(3) > Rare(2) > Normal(1)
+      // Within same rarity: Unlocked first, then higher reqLevel, then active first
+      titleCardsList.sort((a, b) => {
+        if (b.weight !== a.weight) return b.weight - a.weight;
+        if (a.isUnlocked !== b.isUnlocked) return a.isUnlocked ? -1 : 1;
+        if (b.reqLevel !== a.reqLevel) return b.reqLevel - a.reqLevel;
+        return a.tName.localeCompare(b.tName);
+      });
+
+      titleCardsList.forEach(({ tName, tInfo, isUnlocked, isActive, rarity, reqLevel }) => {
         const card = document.createElement('div');
-        const isActive = active === tName;
-        card.className = `title-card ${isActive ? 'active' : ''}`;
+        card.className = `title-card rarity-${rarity} ${isActive ? 'active' : ''} ${!isUnlocked ? 'is-locked' : ''}`;
+
+        let actionHtml = '';
+        if (isActive) {
+          actionHtml = `<span class="badge-active-pulse">★ 현재 착용 중</span>`;
+        } else if (isUnlocked) {
+          actionHtml = `<button type="button" class="btn btn-xs btn-outline-cyan" onclick="state.setActiveTitle('${tName}'); ui.renderInventory(); ui.updateHeaderAndStats();">칭호 착용</button>`;
+        } else {
+          actionHtml = `<span class="title-lock-condition">🔒 해금 조건: ${tInfo.unlockHint || '특정 업적 달성'}</span>`;
+        }
 
         card.innerHTML = `
           <div class="title-card-top">
-            <span class="title-name">${tInfo.name}</span>
-            ${isActive ? `<span class="badge-active">착용 중</span>` : ''}
+            <span class="title-rarity-badge rarity-${rarity}">${rarityLabels[rarity] || 'NORMAL'}</span>
+            <span class="title-req-badge">REQ Lv.${reqLevel}</span>
           </div>
-          <div class="title-desc">${tInfo.desc}</div>
-          <div class="title-bonus">${tInfo.bonusText}</div>
-          ${!isActive ? `<button class="btn btn-xs btn-outline-cyan" onclick="state.setActiveTitle('${tName}'); ui.renderInventory(); ui.updateHeaderAndStats();">칭호 착용</button>` : ''}
+          <div class="title-name-wrap">
+            <span class="title-name-text">${tInfo.name}</span>
+            ${isActive ? '<span class="title-equipped-dot">착용</span>' : ''}
+          </div>
+          <div class="title-desc-text">${tInfo.desc}</div>
+          <div class="title-bonus-badge">${tInfo.bonusText}</div>
+          <div class="title-card-footer">
+            ${actionHtml}
+          </div>
         `;
         titlesContainer.appendChild(card);
       });

@@ -353,20 +353,20 @@ class QuestManager {
     container.appendChild(grid);
   }
 
-  // --- View Mode 3: Day-of-Week View ---
+  // --- View Mode 3: Day-of-Week Kanban View (요일 가로 나열, 요일별 퀘스트 세로 나열) ---
   renderDayView() {
     const container = document.getElementById('questDayView');
     if (!container) return;
     container.innerHTML = '';
 
     const DAYS_CONFIG = [
-      { key: 'mon', name: '월요일', dayNum: 1 },
-      { key: 'tue', name: '화요일', dayNum: 2 },
-      { key: 'wed', name: '수요일', dayNum: 3 },
-      { key: 'thu', name: '목요일', dayNum: 4 },
-      { key: 'fri', name: '금요일', dayNum: 5 },
-      { key: 'sat', name: '토요일', dayNum: 6 },
-      { key: 'sun', name: '일요일', dayNum: 0 }
+      { key: 'mon', name: '월요일', short: '월', dayNum: 1 },
+      { key: 'tue', name: '화요일', short: '화', dayNum: 2 },
+      { key: 'wed', name: '수요일', short: '수', dayNum: 3 },
+      { key: 'thu', name: '목요일', short: '목', dayNum: 4 },
+      { key: 'fri', name: '금요일', short: '금', dayNum: 5 },
+      { key: 'sat', name: '토요일', short: '토', dayNum: 6 },
+      { key: 'sun', name: '일요일', short: '일', dayNum: 0 }
     ];
 
     const todayNum = new Date().getDay();
@@ -374,56 +374,92 @@ class QuestManager {
     const allQuestsMap = Object.fromEntries(allQuests.map(q => [q.id, q]));
     const dayQuestsData = (state.data && state.data.quests && state.data.quests.dayQuests) || {};
 
+    // 1. Quick Day-Navigation Pills Bar (가로 스크롤 보조 퀵 내비게이터)
+    const quickBar = document.createElement('div');
+    quickBar.className = 'day-quick-nav-bar';
+    DAYS_CONFIG.forEach(d => {
+      const isToday = (d.dayNum === todayNum);
+      const assigned = dayQuestsData[d.key] || [];
+      const doneCount = assigned.filter(id => !!state.data.quests.completedToday[id]).length;
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = `btn-day-quick-pill ${isToday ? 'is-today' : ''}`;
+      pill.innerHTML = `
+        <span class="pill-day-label">${d.short}요일</span>
+        ${isToday ? '<span class="pill-today-dot">● 오늘</span>' : `<span class="pill-count-dot">${doneCount}/${assigned.length}</span>`}
+      `;
+      pill.onclick = () => {
+        const col = document.getElementById(`dayCol_${d.key}`);
+        if (col) col.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        sound.playClick();
+      };
+      quickBar.appendChild(pill);
+    });
+    container.appendChild(quickBar);
+
+    // 2. Horizontal Scrollable Kanban Columns Container (가로로 쭈우욱)
+    const kanbanRow = document.createElement('div');
+    kanbanRow.className = 'day-kanban-row';
+    kanbanRow.id = 'dayKanbanRow';
+
     DAYS_CONFIG.forEach(d => {
       const isToday = (d.dayNum === todayNum);
       const assignedIds = dayQuestsData[d.key] || [];
       const questsForDay = assignedIds.map(id => allQuestsMap[id]).filter(Boolean);
       const completedCount = questsForDay.filter(q => !!state.data.quests.completedToday[q.id]).length;
 
-      const section = document.createElement('div');
-      section.className = `day-quest-card ${isToday ? 'is-today' : ''}`;
+      const col = document.createElement('div');
+      col.className = `day-quest-column ${isToday ? 'is-today' : ''}`;
+      col.id = `dayCol_${d.key}`;
 
       let itemsHtml = '';
       if (questsForDay.length === 0) {
         itemsHtml = `
-          <div class="day-empty-hint" style="grid-column: 1 / -1;">
-            이 요일에 배정된 퀘스트가 없습니다. 우측 상단의 <strong>[➕ ${d.name} 퀘스트 추가]</strong>를 눌러 요일별 루틴을 등록하세요!
+          <div class="day-empty-column-box">
+            <div style="font-size: 26px; margin-bottom: 6px;">📋</div>
+            <div style="font-size: 12px; color: #94a3b8; line-height: 1.4; margin-bottom: 12px;">
+              배정된 퀘스트가 없습니다.<br>요일별 맞춤 루틴을 등록하세요!
+            </div>
+            <button type="button" class="btn btn-xs btn-outline-cyan" onclick="quests.openDayManageModal('${d.key}')">
+              ➕ 퀘스트 배정하기
+            </button>
           </div>
         `;
       } else {
+        // Quests listed vertically (세로로 쭈우욱)
         itemsHtml = questsForDay.map(quest => {
           const isCompleted = !!state.data.quests.completedToday[quest.id];
           const tierInfo = TIER_CONFIG[quest.tier] || TIER_CONFIG.D;
 
           let actionHtml = '';
           if (isCompleted) {
-            actionHtml = `<div class="quest-done-badge" style="font-size:11px; padding:3px 8px;"><i class="icon-check">✓</i> 오늘 완료</div>`;
+            actionHtml = `<div class="quest-done-badge" style="font-size: 11px; padding: 3px 8px;"><i class="icon-check">✓</i> 오늘 완료</div>`;
           } else if (quest.type === 'counter') {
             actionHtml = `
-              <div style="display:flex; gap:6px;">
-                <button type="button" class="btn btn-sm btn-outline-cyan" style="font-size:11px; padding:4px 8px;" onclick="quests.openCounterModal('${quest.id}')">
+              <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+                <button type="button" class="btn btn-xs btn-outline-cyan" style="font-size: 11px; padding: 3px 7px;" onclick="quests.openCounterModal('${quest.id}')">
                   카운터 (${quest.targetCount}${quest.unit})
                 </button>
-                <button type="button" class="btn btn-sm btn-primary" style="font-size:11px; padding:4px 8px;" onclick="quests.promptConfirmClaim('${quest.id}')">
-                  완료 인증
+                <button type="button" class="btn btn-xs btn-primary" style="font-size: 11px; padding: 3px 8px;" onclick="quests.promptConfirmClaim('${quest.id}')">
+                  인증
                 </button>
               </div>
             `;
           } else if (quest.type === 'timer') {
             const minutes = Math.round(quest.targetSeconds / 60);
             actionHtml = `
-              <div style="display:flex; gap:6px;">
-                <button type="button" class="btn btn-sm btn-outline-cyan" style="font-size:11px; padding:4px 8px;" onclick="quests.openTimerModal('${quest.id}')">
+              <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+                <button type="button" class="btn btn-xs btn-outline-cyan" style="font-size: 11px; padding: 3px 7px;" onclick="quests.openTimerModal('${quest.id}')">
                   타이머 (${minutes}분)
                 </button>
-                <button type="button" class="btn btn-sm btn-primary" style="font-size:11px; padding:4px 8px;" onclick="quests.promptConfirmClaim('${quest.id}')">
-                  완료 인증
+                <button type="button" class="btn btn-xs btn-primary" style="font-size: 11px; padding: 3px 8px;" onclick="quests.promptConfirmClaim('${quest.id}')">
+                  인증
                 </button>
               </div>
             `;
           } else {
             actionHtml = `
-              <button type="button" class="btn btn-sm btn-primary" style="font-size:11px; padding:4px 10px;" onclick="quests.promptConfirmClaim('${quest.id}')">
+              <button type="button" class="btn btn-xs btn-primary" style="font-size: 11px; padding: 3px 10px;" onclick="quests.promptConfirmClaim('${quest.id}')">
                 완료 인증
               </button>
             `;
@@ -432,17 +468,21 @@ class QuestManager {
           return `
             <div class="day-quest-item ${isCompleted ? 'completed' : ''}">
               <div class="day-quest-item-top">
-                <div style="display:flex; align-items:center; gap:6px; min-width:0;">
-                  <span class="quest-tier-badge" style="background:${tierInfo.bg}; color:${tierInfo.color}; border: 1px solid ${tierInfo.border}; font-size:10px; padding:2px 5px; flex-shrink:0;">
+                <div style="display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1;">
+                  <span class="quest-tier-badge" style="background: ${tierInfo.bg}; color: ${tierInfo.color}; border: 1px solid ${tierInfo.border}; font-size: 10px; padding: 1px 5px; flex-shrink: 0;">
                     ${tierInfo.name}
                   </span>
-                  <strong style="color:#fff; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${quest.title}</strong>
+                  <strong style="color: #fff; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${quest.title}">
+                    ${quest.title}
+                  </strong>
                 </div>
                 <button type="button" class="day-quest-remove-btn" title="이 요일에서 제외" onclick="quests.removeQuestFromDay('${d.key}', '${quest.id}')">✕</button>
               </div>
-              <div style="font-size:11px; color:#94a3b8; line-height:1.4;">${quest.description}</div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                <span style="font-size:11px; color:#38bdf8; font-weight:700;">+${quest.exp} EXP · +${quest.gold} G</span>
+              <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                ${quest.description}
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 6px;">
+                <span style="font-size: 10.5px; color: #38bdf8; font-weight: 700; flex-shrink: 0;">+${quest.exp} EXP · +${quest.gold} G</span>
                 ${actionHtml}
               </div>
             </div>
@@ -450,24 +490,38 @@ class QuestManager {
         }).join('');
       }
 
-      section.innerHTML = `
-        <div class="day-quest-header">
-          <div class="day-header-left">
-            <span class="day-title-text">📅 ${d.name} 도전과제</span>
-            ${isToday ? '<span class="day-today-tag">🌟 오늘 수행</span>' : ''}
-            <span class="day-progress-badge">${completedCount}/${questsForDay.length} 완료</span>
+      col.innerHTML = `
+        <div class="day-column-header">
+          <div class="day-column-header-top">
+            <span class="day-column-title">
+              📅 ${d.name}
+            </span>
+            ${isToday ? '<span class="day-column-today-badge">🌟 오늘</span>' : ''}
           </div>
-          <button type="button" class="btn btn-sm btn-outline-cyan" onclick="quests.openDayManageModal('${d.key}')">
-            ➕ [${d.name}] 퀘스트 추가
-          </button>
+          <div class="day-column-header-bottom">
+            <span class="day-column-progress">${completedCount}/${questsForDay.length} 완료</span>
+            <button type="button" class="day-column-add-btn" onclick="quests.openDayManageModal('${d.key}')">
+              ➕ 퀘스트 추가
+            </button>
+          </div>
         </div>
-        <div class="day-quest-items-grid">
+        <div class="day-column-quests-list">
           ${itemsHtml}
         </div>
       `;
 
-      container.appendChild(section);
+      kanbanRow.appendChild(col);
     });
+
+    container.appendChild(kanbanRow);
+
+    // Auto-scroll to today's column after rendering
+    setTimeout(() => {
+      const todayCol = document.getElementById(`dayCol_${DAYS_CONFIG.find(d => d.dayNum === todayNum)?.key || 'mon'}`);
+      if (todayCol && kanbanRow) {
+        todayCol.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+      }
+    }, 50);
   }
 
   // --- Folder Management Modals & Actions ---
