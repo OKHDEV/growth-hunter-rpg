@@ -1,0 +1,209 @@
+/* --- Animations & Visual Polish --- */
+
+/* Screen Shakes */
+.shake-light {
+  animation: shakeLight 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.shake-medium {
+  animation: shakeMed 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.shake-heavy {
+  animation: shakeHeavy 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shakeLight {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-2px, 0, 0); }
+  40%, 60% { transform: translate3d(2px, 0, 0); }
+}
+
+@keyframes shakeMed {
+  10%, 90% { transform: translate3d(-3px, -2px, 0); }
+  20%, 80% { transform: translate3d(4px, 3px, 0); }
+  30%, 50%, 70% { transform: translate3d(-5px, -3px, 0); }
+  40%, 60% { transform: translate3d(5px, 2px, 0); }
+}
+
+@keyframes shakeHeavy {
+  10%, 90% { transform: translate3d(-6px, -4px, 0) rotate(-1deg); }
+  20%, 80% { transform: translate3d(8px, 6px, 0) rotate(1.5deg); }
+  30%, 50%, 70% { transform: translate3d(-10px, -6px, 0) rotate(-2deg); }
+  40%, 60% { transform: translate3d(9px, 5px, 0) rotate(1deg); }
+}
+
+/* Solo Leveling Blue Glow Aura */
+.hunter-aura-glow {
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+  animation: auraBreathe 3s ease-in-out infinite alternate;
+}
+
+@keyframes auraBreathe {
+  0% { box-shadow: 0 0 15px rgba(0, 229, 255, 0.2); }
+  100% { box-shadow: 0 0 35px rgba(0, 229, 255, 0.6); }
+}
+
+/* Rarity Color Themes */
+.rarity-rare {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.rarity-epic {
+  border-color: #c084fc !important;
+  box-shadow: 0 0 15px rgba(192, 132, 252, 0.3);
+}
+
+.rarity-legendary {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+}
+
+.rarity-mythic {
+  border-color: #facc15 !important;
+  box-shadow: 0 0 25px rgba(250, 204, 21, 0.5);
+}
+
+/* Equipment Grid & Inventory Styles */
+.equip-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.equip-slot-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+  text-align: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.equip-slot-card.filled {
+  border-style: solid;
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.slot-type {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.item-empty-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.item-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.item-stats {
+  font-size: 10px;
+  color: var(--cyan-neon);
+}
+
+/* Inventory Bag */
+.inventory-bag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.bag-item-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-slot-tag {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.item-stats-text {
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.badge-equipped {
+  font-size: 11px;
+  color: var(--green-growth);
+  font-weight: 700;
+}
+
+/* Title Collection */
+.titles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.title-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title-card.active {
+  border-color: var(--gold-mythic);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.title-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title-name {
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+}
+
+.title-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.title-bonus {
+  font-size: 11px;
+  color: var(--gold-mythic);
+  font-weight: 700;
+}
+
+.badge-active {
+  font-size: 11px;
+  color: var(--gold-mythic);
+  font-weight: 700;
+}

@@ -1,0 +1,512 @@
+// Game Data Definitions: High School 2nd Grade (173cm -> 178cm Realistic Growth) & 50 Epic Bosses
+
+// Quests tailored for High School Sophomore (Study, Height Growth, Dopamine Detox, Fitness)
+// Realistic Growth Points Calibration:
+// Target: 173.00 cm -> 178.00 cm (+5.00 cm = 50.0 mm).
+// Formula: 1,000 Growth Points = 0.1 cm (1.0 mm).
+// So 50,000 Growth Points = exactly +5.00 cm over months of daily grind!
+// Completing daily quests gives 5 ~ 25 Growth Points (+0.005 ~ +0.025 cm = realistic micro-stimulus).
+const INITIAL_QUESTS = [
+  // --- 1. 신체 & 키 성장 (173cm -> 178cm 고2 성장판 자극) ---
+  {
+    id: "height_rope_1000",
+    title: "[고2 키성장] 성장판 자극: 줄넘기 1,000회",
+    description: "고2 닫혀가는 성장판을 깨우는 필수 충격 루틴. 발목과 무릎을 탄력있게 튕겨주세요.",
+    category: "height",
+    categoryName: "신체 & 키 성장",
+    tier: "C",
+    exp: 280,
+    gold: 80,
+    growthPoints: 8, // +0.008 cm
+    type: "counter",
+    targetCount: 1000,
+    unit: "회",
+    icon: "zap"
+  },
+  {
+    id: "height_rope_2000",
+    title: "[고2 키성장] 한계 도약: 줄넘기 2,000회",
+    description: "성장판에 강력한 수직 자극을 가하여 178cm를 향한 뼈 성장을 촉진합니다.",
+    category: "height",
+    categoryName: "신체 & 키 성장",
+    tier: "B",
+    exp: 550,
+    gold: 160,
+    growthPoints: 16, // +0.016 cm
+    type: "counter",
+    targetCount: 2000,
+    unit: "회",
+    icon: "flame"
+  },
+  {
+    id: "height_rope_3500",
+    title: "[극악 S] 줄넘기 3,500회 극한 각성",
+    description: "보스 토벌을 위한 하체 폭발 훈련. 뼈의 골밀도와 키 성장 잠재력을 강제 개방합니다.",
+    category: "height",
+    categoryName: "신체 & 키 성장",
+    tier: "S",
+    exp: 1300,
+    gold: 400,
+    growthPoints: 30, // +0.030 cm
+    type: "counter",
+    targetCount: 3500,
+    unit: "회",
+    icon: "crown"
+  },
+  {
+    id: "height_spine_stretch",
+    title: "책상 굽은등/거북목 교정: 코브라 전신 스트레칭 25분",
+    description: "하루종일 독서실과 교실에서 짓눌린 척추뼈 사이 추간판을 펴서 숨은 키를 복원합니다.",
+    category: "height",
+    categoryName: "신체 & 키 성장",
+    tier: "C",
+    exp: 320,
+    gold: 100,
+    growthPoints: 12, // +0.012 cm
+    type: "timer",
+    targetSeconds: 1500,
+    unit: "초",
+    icon: "activity"
+  },
+  {
+    id: "height_golden_sleep",
+    title: "[핵심] 밤 11시 전 취침 & 7.5시간 딥슬립 (성장호르몬 골든타임)",
+    description: "수험생도 자야 큰다! 밤 11시~새벽 2시 사이 폭발하는 성장호르몬 피크를 사수하세요.",
+    category: "height",
+    categoryName: "신체 & 키 성장",
+    tier: "A",
+    exp: 750,
+    gold: 250,
+    growthPoints: 25, // +0.025 cm
+    type: "check",
+    icon: "moon"
+  },
+  {
+    id: "height_nutrition",
+    title: "골격 합성 영양: 칼슘 우유 500ml + 계란 2개 (단백질 30g)",
+    description: "178cm를 위한 뼈와 근육의 필수 건축자재 공급.",
+    category: "height",
+    categoryName: "신체 & 키 성장",
+    tier: "D",
+    exp: 150,
+    gold: 50,
+    growthPoints: 5, // +0.005 cm
+    type: "check",
+    icon: "coffee"
+  },
+  {
+    id: "height_basketball_jumps",
+    title: "서전트 농구 리바운드 점프 120회",
+    description: "벽 높은 곳을 향해 전력 점프. 성장판 자극과 순발력을 극대화합니다.",
+    category: "height",
+    categoryName: "신체 & 키 성장",
+    tier: "C",
+    exp: 340,
+    gold: 110,
+    growthPoints: 10,
+    type: "counter",
+    targetCount: 120,
+    unit: "회",
+    icon: "chevrons-up"
+  },
+
+  // --- 2. 도파민 디톡스 (뇌세포 및 수험 집중력 부활) ---
+  {
+    id: "detox_shorts_24h",
+    title: "[디톡스 S] 인스타 릴스 / 유튜브 쇼츠 / 틱톡 24시간 완전 금지",
+    description: "전두엽을 태우는 숏폼 알고리즘을 24시간 동안 완전히 꺼서 뇌의 도파민 수용체를 복구합니다.",
+    category: "detox",
+    categoryName: "도파민 디톡스",
+    tier: "S",
+    exp: 1000,
+    gold: 350,
+    growthPoints: 15,
+    type: "check",
+    icon: "shield-alert"
+  },
+  {
+    id: "detox_night_phone",
+    title: "취침 1시간 전 스마트폰 완전 격리 (블루라이트 차단)",
+    description: "멜라토닌 분비를 촉진해 딥슬립과 성장호르몬 분비를 유도합니다.",
+    category: "detox",
+    categoryName: "도파민 디톡스",
+    tier: "B",
+    exp: 420,
+    gold: 140,
+    growthPoints: 10,
+    type: "check",
+    icon: "eye-off"
+  },
+  {
+    id: "detox_morning_clean",
+    title: "기상 직후 1시간 폰 안 만지고 물 한잔 & 스트레칭",
+    description: "무의식적인 알람 확인 중독을 끊고 내 의지로 하루를 통제합니다.",
+    category: "detox",
+    categoryName: "도파민 디톡스",
+    tier: "C",
+    exp: 300,
+    gold: 90,
+    growthPoints: 8,
+    type: "check",
+    icon: "sunrise"
+  },
+  {
+    id: "detox_grayscale",
+    title: "스마트폰 흑백 화면 모드로 하루 보내기",
+    description: "자극적인 색감을 제거해 스마트폰 스크롤 충동을 원천 차단합니다.",
+    category: "detox",
+    categoryName: "도파민 디톡스",
+    tier: "B",
+    exp: 450,
+    gold: 150,
+    growthPoints: 10,
+    type: "check",
+    icon: "smartphone"
+  },
+
+  // --- 3. 고2 수험 & 학업 (순공 몰입) ---
+  {
+    id: "study_pure_2h",
+    title: "집중 몰입: 스마트폰 없이 순공 2시간 달성",
+    description: "딴짓 없이 오직 개념서와 문제 풀이에 집중한 120분.",
+    category: "study",
+    categoryName: "지능 & 수험",
+    tier: "C",
+    exp: 350,
+    gold: 120,
+    growthPoints: 5,
+    type: "timer",
+    targetSeconds: 7200,
+    unit: "초",
+    icon: "book"
+  },
+  {
+    id: "study_pure_5h",
+    title: "[하드코어] 주말 순공 5시간 극한 돌파",
+    description: "상위 1% 각성자를 만드는 5시간 마라톤 공부. 지능(INT) 스탯 폭발!",
+    category: "study",
+    categoryName: "지능 & 수험",
+    tier: "A",
+    exp: 950,
+    gold: 350,
+    growthPoints: 15,
+    type: "timer",
+    targetSeconds: 18000,
+    unit: "초",
+    icon: "award"
+  },
+  {
+    id: "study_wrong_notes",
+    title: "취약점 박멸: 오답노트 & 킬러문항 3개 완벽 복습",
+    description: "틀린 이유를 철저히 분석하고 메타인지를 각성시킵니다.",
+    category: "study",
+    categoryName: "지능 & 수험",
+    tier: "B",
+    exp: 480,
+    gold: 160,
+    growthPoints: 8,
+    type: "check",
+    icon: "check-circle"
+  },
+
+  // --- 4. 체력 & 헬스 (피지컬 단련) ---
+  {
+    id: "fitness_pushups_100",
+    title: "어깨 프레임 넓히기: 정자세 푸시업 100개",
+    description: "굽은 가슴을 펴고 어깨너비를 확장하는 기본 상체 운동.",
+    category: "fitness",
+    categoryName: "체력 & 근력",
+    tier: "B",
+    exp: 450,
+    gold: 150,
+    growthPoints: 10,
+    type: "counter",
+    targetCount: 100,
+    unit: "회",
+    icon: "target"
+  },
+  {
+    id: "fitness_squats_150",
+    title: "하체 지지대: 풀 스쿼트 150개",
+    description: "대퇴부 자극으로 테스토스테론 및 성장호르몬 분비 촉진.",
+    category: "fitness",
+    categoryName: "체력 & 근력",
+    tier: "B",
+    exp: 480,
+    gold: 160,
+    growthPoints: 12,
+    type: "counter",
+    targetCount: 150,
+    unit: "회",
+    icon: "crosshair"
+  },
+  {
+    id: "fitness_running_3k",
+    title: "심폐 각성: 야외 러닝 3km 완주",
+    description: "뇌에 신선한 산소를 공급하고 수험 스트레스를 태우는 심장 강화 달리기.",
+    category: "fitness",
+    categoryName: "체력 & 근력",
+    tier: "A",
+    exp: 750,
+    gold: 250,
+    growthPoints: 15,
+    type: "check",
+    icon: "navigation"
+  },
+  {
+    id: "fitness_cold_shower",
+    title: "투지 장전: 3분 찬물 샤워",
+    description: "미루는 습관을 즉시 얼려버리는 의지력 각성의 의식.",
+    category: "fitness",
+    categoryName: "체력 & 근력",
+    tier: "D",
+    exp: 200,
+    gold: 70,
+    growthPoints: 5,
+    type: "timer",
+    targetSeconds: 180,
+    unit: "초",
+    icon: "droplet"
+  }
+];
+
+// Difficulty Tier Visuals
+const TIER_CONFIG = {
+  D: { name: "D등급", color: "#94a3b8", bg: "rgba(148, 163, 184, 0.15)", border: "#475569" },
+  C: { name: "C등급", color: "#38bdf8", bg: "rgba(56, 189, 248, 0.15)", border: "#0284c7" },
+  B: { name: "B등급", color: "#34d399", bg: "rgba(52, 211, 153, 0.15)", border: "#059669" },
+  A: { name: "A등급", color: "#fbbf24", bg: "rgba(251, 191, 36, 0.15)", border: "#d97706" },
+  S: { name: "S등급", color: "#f43f5e", bg: "rgba(244, 63, 94, 0.15)", border: "#e11d48" },
+  SS: { name: "SS신화", color: "#c084fc", bg: "rgba(192, 132, 252, 0.2)", border: "#9333ea" },
+  SSS: { name: "SSS초월", color: "#facc15", bg: "rgba(250, 204, 21, 0.25)", border: "#ca8a04" }
+};
+
+// 50 High-Difficulty Bosses (Organized in 5 Zones, requiring solid daily consistency)
+const BOSS_NAMES_DATA = [
+  // Zone 1: 나태와 숏폼의 회랑 (Stage 1~10)
+  { stage: 1, name: "나태의 망령, 슬로스", sub: "Sloth Spectre", quote: "“침대 속이 따뜻하지 않나...? 영원히 일어나지 마라...”", img: "assets/bosses/boss1.jpg" },
+  { stage: 2, name: "숏폼의 환영귀, 스크롤러", sub: "Phantom Scroller", quote: "“딱 5분만 본다더니 벌써 새벽 2시로구나, 크크크...”", img: "assets/bosses/boss2.jpg" },
+  { stage: 3, name: "야식의 폭식마, 글러튼", sub: "Gluttonous Fiend", quote: "“밤 11시의 라면과 치킨... 성장은 내일로 미뤄라!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 4, name: "작심삼일의 사신, 기브업", sub: "Reaper of Surrender", quote: "“어차피 사흘이면 때려치울 거 뭐 하러 땀 흘리나?”", img: "assets/bosses/boss1.jpg" },
+  { stage: 5, name: "알고리즘의 주술사, 피드", sub: "Algorithm Sorcerer", quote: "“네 뇌의 도파민을 남김없이 흡수해주마!”", img: "assets/bosses/boss2.jpg" },
+  { stage: 6, name: "스마트폰 지박령, 블루라이트", sub: "Bluelight Demon", quote: "“망막을 태우고 멜라토닌을 소멸시키리라!”", img: "assets/bosses/boss2.jpg" },
+  { stage: 7, name: "침대 늪의 흡혈귀, 매트리스", sub: "Mattress Vampire", quote: "“천근만근 무거운 사지... 절대 침대 밖을 못 벗어난다!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 8, name: "가짜 성취의 요마, 도파민스니크", sub: "Dopamine Sneak", quote: "“게임 한 판 더 해라. 현실 따위 잊으면 그만이야.”", img: "assets/bosses/boss2.jpg" },
+  { stage: 9, name: "미루기의 군주, 프로크라스틴", sub: "Lord of Procrastination", quote: "“오늘 할 공부는 내일의 너에게 떠넘겨라!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 10, name: "도파민의 대마신, 도파미너스", sub: "High Dopamine Demon", quote: "“쾌락의 노예가 된 영혼이여, 내 영원한 데이터가 되어라!”", img: "assets/bosses/boss2.jpg" },
+
+  // Zone 2: 왜소와 중력의 협곡 (Stage 11~20)
+  { stage: 11, name: "구부정한 망령, 거북목", sub: "Turtle Neck Wraith", quote: "“숙인 고개, 굳은 목덜미... 넌 평생 땅만 쳐다볼 팔자다.”", img: "assets/bosses/boss3.jpg" },
+  { stage: 12, name: "척추 압박의 석괴, 척추만곡", sub: "Spine Compactor", quote: "“등뼈를 납작하게 으스러뜨려 키를 2cm 깎아내주마!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 13, name: "성장판 봉인귀, 에피피시스", sub: "Growth Plate Sealer", quote: "“성장판을 단단히 닫아버려 173cm에 평생 박제하겠다!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 14, name: "칼슘 결핍의 골렘, 본크러셔", sub: "Bone Crusher", quote: "“골밀도가 푸석한 뼈마디를 가루로 만들어주마!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 15, name: "수면 부족의 악령, 인섬니아", sub: "Insomnia Fiend", quote: "“성장호르몬 골든타임? 새벽 3시까지 뒤척여라!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 16, name: "라운드숄더의 족쇄, 말린어깨", sub: "Rounded Shackle", quote: "“가슴을 웅크려 왜소한 프레임 속에 영원히 갇혀라!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 17, name: "점프 저지마, 헤비앵클", sub: "Heavy Ankle Beast", quote: "“줄넘기를 뛰어봤자 발목에 쇠사슬을 감아주마!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 18, name: "운동 결핍의 점액괴, 슬라임바디", sub: "Sluggish Slime", quote: "“근육이 흐물흐물 녹아내리는 무기력의 늪!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 19, name: "골격 억압의 거인, 척추파괴수", sub: "Spine Shatterer", quote: "“똑바로 일어서지 마라! 중력의 무게 앞에 무릎 꿇어라!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 20, name: "중력과 왜소의 거신, 그라비타스", sub: "Titan of Gravity", quote: "“네 173cm의 작은 뼈대를 대지 밑으로 영원히 매장하리라!”", img: "assets/bosses/boss3.jpg" },
+
+  // Zone 3: 고교 수험과 번아웃의 마궁 (Stage 21~30)
+  { stage: 21, name: "내신 참사의 망령, 미드텀", sub: "Midterm Despair", quote: "“열심히 해봤자 4등급... 네 한계는 여기까지다!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 22, name: "모의고사 킬러마, 모크", sub: "Mock Exam Executioner", quote: "“킬러 문항 앞에서 멘탈이 바스러지는 꼴을 봐라!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 23, name: "뇌 피로의 독무, 브레인포그", sub: "Brain Fog Fogger", quote: "“머릿속이 하얘질 것이다... 아무것도 기억나지 않는다!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 24, name: "타인과의 비교귀, 콤플렉스", sub: "Inferiority Complex", quote: "“남들은 키 180에 전교권인데 넌 뭐 하고 있냐?”", img: "assets/bosses/boss4.jpg" },
+  { stage: 25, name: "공부 회피의 유혹귀, 딴짓마", sub: "Distraction Siren", quote: "“공부는 내일부터 하고 유튜브 알고리즘이나 타자꾸나.”", img: "assets/bosses/boss2.jpg" },
+  { stage: 26, name: "수면제 같은 교과서, 슬리퍼", sub: "Soporific Tome", quote: "“책만 펴면 쏟아지는 졸음... 눈을 감아라...”", img: "assets/bosses/boss1.jpg" },
+  { stage: 27, name: "시간 낭비의 도둑, 타임시프", sub: "Time Stealer", quote: "“멍때리는 사이 청춘의 하루가 또 증발했다!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 28, name: "의지력 박탈의 악마, 에디션", sub: "Willpower Eater", quote: "“오늘 계획표 지킨 거 하나도 없지? 포기해라!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 29, name: "자기합리화의 요마, 핑계귀", sub: "Excuse Fiend", quote: "“피곤하니까... 유전이니까... 온갖 핑계를 대거라!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 30, name: "무기력의 심연룡, 아비스", sub: "Dragon of Despair", quote: "“해봤자 변하지 않는다... 심연의 영원한 패배주의에 굴복하라!”", img: "assets/bosses/boss4.jpg" },
+
+  // Zone 4: 유전과 편견의 얼어붙은 빙벽 (Stage 31~40)
+  { stage: 31, name: "유전 탓의 원령, 헤레디티", sub: "Heredity Wraith", quote: "“부모님 키가 작으면 끝이야! 노력으로 키가 크겠냐?”", img: "assets/bosses/boss3.jpg" },
+  { stage: 32, name: "늦깎이 절망마, 레이트블루머", sub: "Late Bloomer Denier", quote: "“고2는 이미 뼈 다 닫혔어! 헛된 희망을 버려라!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 33, name: "불규칙 식습관의 괴수, 말뉴트리션", sub: "Malnutrition Behemoth", quote: "“끼니를 거르고 탄수화물만 채워 뼈를 굶주리게 하마!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 34, name: "골격 동결의 마녀, 본프리즈", sub: "Bone Freeze Witch", quote: "“네 173cm의 척추를 얼음처럼 딱딱하게 굳혀버리겠다!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 35, name: "수면 장애의 몽마, 나이트메어", sub: "Nightmare Incubus", quote: "“밤새 악몽에 시달리며 피로를 짊어지고 등교해라!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 36, name: "의지력 영하의 빙룡, 프로스트팽", sub: "Frostfang Wyrm", quote: "“차가운 현실의 벽 앞에서 네 오만한 열정을 얼려버리리라!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 37, name: "자세 왜곡의 골렘, 스콜리오", sub: "Scoliosis Golem", quote: "“골반이 틀어지고 다리 길이가 짝짝이가 될 것이다!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 38, name: "성장 호르몬 차단마, 소마토블록", sub: "Somato Blocker", quote: "“뇌하수체에서 뿜어져 나오는 호르몬을 완전히 가로막겠다!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 39, name: "한계 조롱의 악귀, 모커리", sub: "Mockery Demon", quote: "“네가 178cm가 된다고? 친구들이 비웃는 소리가 들리는구나!”", img: "assets/bosses/boss2.jpg" },
+  { stage: 40, name: "절망의 골격 군주, 스켈레톤 킹", sub: "Skeleton Sovereign", quote: "“뼈마디의 절규를 들어라! 넌 173cm의 껍데기를 절대 벗지 못한다!”", img: "assets/bosses/boss5.jpg" },
+
+  // Zone 5: 신장 178cm 초월과 운명의 신전 (Stage 41~50)
+  { stage: 41, name: "한계 돌파의 수문장, 게이트키퍼", sub: "Apex Gatekeeper", quote: "“여기서부터는 진짜 각성한 자만이 발을 들일 수 있다!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 42, name: "황금 비율의 심판관, 프로포션", sub: "Judge of Proportion", quote: "“173cm의 왜소함을 버리고 황금비율의 전신을 증명하라!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 43, name: "성장호르몬의 폭풍령, 소마토스톰", sub: "Somato Storm", quote: "“매일의 줄넘기와 수면으로 다져진 골격을 시험하겠다!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 44, name: "백절불굴의 투신, 인빅터스", sub: "Invictus Fighter", quote: "“수천 번의 좌절을 딛고 일어선 검격만을 인정하리라!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 45, name: "척추 기립의 대천사, 버티컬", sub: "Archangel Vertical", quote: "“구부러졌던 모든 뼈를 곧추세워 하늘을 찌르는 자태를 보이라!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 46, name: "도약의 절대 지배자, 에어본", sub: "Airborne Sovereign", quote: "“줄넘기 수만 회의 탄력으로 허공을 밟고 날아올라라!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 47, name: "175cm의 관문 수호신, 센티넬", sub: "175cm Sentinel", quote: "“첫 번째 벽, 175cm를 넘어서기 위한 피와 땀을 증명하라!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 48, name: "177cm의 환영 군주, 팬텀미라지", sub: "177cm Mirage Lord", quote: "“마지막 1cm를 앞두고 포기했던 수많은 패자들의 무덤이다!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 49, name: "황금 신장의 수호신, 에이펙스", sub: "Apex Guardian", quote: "“178cm의 완성까지 단 한 걸음... 신의 권능을 견뎌보아라!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 50, name: "한계의 절대군주, 크로노스", sub: "Supreme Overlord Chronos", quote: "“모든 핑계를 부수고 178cm의 기적을 완성하였구나, 진정한 각성자여!”", img: "assets/bosses/boss5.jpg" }
+];
+
+// Helper to construct all 50 full Boss objects with realistic hardcore scaling
+// Every single boss strictly requires ~30 days (1 full month) of daily quest completions & stat training to barely beat!
+function generate50Bosses() {
+  return BOSS_NAMES_DATA.map((info, idx) => {
+    const stage = idx + 1;
+    // Hardcore 1-month-per-boss scaling:
+    // Stage 1: Req Lv.15 (Day 1~30 grind). Player ~2,700 HP, ~290 ATK, ~140 DEF.
+    // Boss 1: 3,200 HP, 410 ATK, 70 DEF.
+    // If challenged at Day 1 (Lv.1, 700 HP), boss 2-shots player with 377+ dmg per turn!
+    const reqLevel = 15 + (stage - 1) * 12;
+    const trainingDays = stage * 30;
+    const trainingMonths = stage;
+
+    const maxHp = Math.round(3200 * Math.pow(1.15, stage - 1) + (stage - 1) * 2500);
+    const atk = Math.round(410 * Math.pow(1.135, stage - 1) + (stage - 1) * 280);
+    const def = Math.round(70 * Math.pow(1.12, stage - 1) + (stage - 1) * 75);
+
+    const rewardsExp = Math.round(350 * Math.pow(1.085, stage - 1) + stage * 90);
+    const rewardsGold = Math.round(120 * Math.pow(1.08, stage - 1) + stage * 40);
+    const growthPoints = Math.round(30 + (stage * 7.5));
+
+    const rarity = stage >= 45 ? "mythic" : (stage >= 30 ? "legendary" : (stage >= 15 ? "epic" : "rare"));
+    const slot = ["weapon", "armor", "shoes", "ring", "aura"][stage % 5];
+    const itemName = `${info.name.split(',')[0]}의 ${slot === 'weapon' ? '검격' : (slot === 'armor' ? '갑옷' : (slot === 'shoes' ? '각력화' : (slot === 'ring' ? '반지' : '오라')))}`;
+
+    return {
+      id: `boss${stage}`,
+      stage,
+      name: info.name,
+      subName: info.sub,
+      title: `Stage ${stage} Boss`,
+      recommendedLevel: reqLevel,
+      trainingDays,
+      trainingMonths,
+      maxHp,
+      atk,
+      def,
+      crit: 0.05 + Math.min(0.20, stage * 0.003),
+      image: info.img,
+      introQuote: info.quote,
+      rewards: {
+        exp: rewardsExp,
+        gold: rewardsGold,
+        growthPoints,
+        item: {
+          id: `item_stage_${stage}`,
+          slot,
+          name: itemName,
+          rarity,
+          statsText: `공격력 +${stage * 12} | 방어력 +${stage * 6} | 키 성장 가속 +${stage}%`,
+          stats: {
+            atk: stage * 12,
+            def: stage * 6,
+            str: Math.round(stage * 2.5),
+            gro: Math.round(stage * 1.8)
+          }
+        },
+        title: `${info.name.split(' ')[0]} 격파자`
+      }
+    };
+  });
+}
+
+const BOSSES_DATA = generate50Bosses();
+
+// True Ultimate Secret Final Boss (제51의 벽: 50단계 보스를 모두 깬 자에게만 열리는 절대 거신)
+const SECRET_FINAL_BOSS = {
+  id: "boss_secret_omega",
+  stage: 51,
+  name: "절대 거신, 오메가 크로노스",
+  subName: "True Ultimate Colossal God · 찐막 최종보스",
+  title: "제 51의 벽: 절대 거신",
+  recommendedLevel: 80,
+  trainingDays: 1500,
+  trainingMonths: 50,
+  maxHp: 999999,
+  atk: 8888,
+  def: 3500,
+  crit: 0.25,
+  image: "assets/bosses/boss_secret_omega.jpg",
+  introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
+  isSecretFinal: true,
+  rewards: {
+    exp: 250000,
+    gold: 100000,
+    growthPoints: 5000, // +0.50 cm 대폭 성장!
+    item: {
+      id: "item_omega_sword",
+      slot: "weapon",
+      name: "절대 거신의 멸천성검",
+      rarity: "mythic",
+      statsText: "공격력 +5,000 | 방어력 +2,500 | 전 능력치 +100",
+      stats: {
+        atk: 5000,
+        def: 2500,
+        str: 100,
+        end: 100,
+        int: 100,
+        gro: 100
+      }
+    },
+    title: "178cm 신화의 절대신"
+  }
+};
+
+BOSSES_DATA.push(SECRET_FINAL_BOSS);
+
+// Action Combat Skills
+const PLAYER_SKILLS = [
+  {
+    id: "basic_slash",
+    name: "질풍 참격 (Slash)",
+    key: "J",
+    costMp: 0,
+    desc: "기본 베기 공격. 콤보를 잇고 분노 게이지를 12% 충전합니다.",
+    type: "attack",
+    multiplier: 1.8
+  },
+  {
+    id: "rope_flurry",
+    name: "줄넘기 광속 난무 (Tempest Flurry)",
+    key: "U",
+    costMp: 25,
+    desc: "줄넘기 도약과 함께 적을 6회 연속 난도질! [신장 성장치] 비례 추가 대미지 부여.",
+    type: "attack",
+    multiplier: 4.8
+  },
+  {
+    id: "spine_breaker",
+    name: "척추 각성파 (Spine Awakening Pierce)",
+    key: "I",
+    costMp: 40,
+    desc: "척추를 곧게 펴며 적의 방어력을 50% 무시하고 큰 그로기(Groggy) 수치를 입힙니다.",
+    type: "attack",
+    multiplier: 6.5
+  },
+  {
+    id: "dopamine_shield",
+    name: "도파민 차단막 (Dopamine Cleanse)",
+    key: "O",
+    costMp: 30,
+    desc: "3초간 피해를 75% 감소시키는 실드 전개 및 MP를 35 회복합니다.",
+    type: "buff"
+  },
+  {
+    id: "ultimate_limit_break",
+    name: "[궁극기] 한계 돌파 : 신장 178cm 개화 멸신참",
+    key: "R",
+    costRage: 100,
+    desc: "분노 게이지 100% 시 발동! 시네마틱 화면 암전과 함께 전 화면을 파괴하는 극대 참격!",
+    type: "ultimate",
+    multiplier: 18.0
+  }
+];
+
+// Titles unlocked across milestones
+const TITLES_DATA = {
+  "초보 수련자 (173cm)": { name: "초보 수련자 (173cm)", desc: "178cm를 향해 첫 발을 내딛은 고2 수련자.", bonusText: "기본 칭호", stats: {} },
+  "나태 분쇄자": { name: "나태 분쇄자", desc: "Stage 1 슬로스를 격파하고 미루기를 극복한 자.", bonusText: "공격력 +15, STR +5", stats: { atk: 15, str: 5 } },
+  "도파민 정복자": { name: "도파민 정복자", desc: "Stage 10 대마신을 쓰러뜨리고 전두엽 집중력을 되찾은 자.", bonusText: "치명타율 +6%, INT +12", stats: { crit: 0.06, int: 12 } },
+  "성장판 해방자 (174cm)": { name: "성장판 해방자 (174cm)", desc: "Stage 20 그라비타스를 꺾고 척추를 세운 자.", bonusText: "키 성장 속도 +25%, DEF +40", stats: { gro: 20, def: 40 } },
+  "불굴의 수험생 (176cm)": { name: "불굴의 수험생 (176cm)", desc: "Stage 30 심연룡을 베고 번아웃을 극복한 자.", bonusText: "공격력 +80, 최대 체력 +600", stats: { atk: 80, maxHp: 600 } },
+  "골격 파괴의 거인 (177cm)": { name: "골격 파괴의 거인 (177cm)", desc: "Stage 40 스켈레톤 킹을 굴복시킨 자.", bonusText: "전 스탯 +35, 치명타율 +8%", stats: { str: 35, int: 35, end: 35, gro: 35 } },
+  "178cm 신화의 절대 각성자": { name: "178cm 신화의 절대 각성자", desc: "Stage 50 크로노스를 꺾고 178cm 목표 신장을 완벽히 쟁취한 전설.", bonusText: "전 스탯 +80, 모든 데미지 +40%", stats: { str: 80, int: 80, end: 80, gro: 80 } },
+  "178cm 신화의 절대신": { name: "178cm 신화의 절대신", desc: "제51의 벽, 절대 거신 오메가 크로노스를 굴복시키고 신의 반열에 오른 전설.", bonusText: "전 스탯 +100, 모든 공격력 +5,000, 방어력 +2,500", stats: { str: 100, int: 100, end: 100, gro: 100, atk: 5000, def: 2500 } }
+};

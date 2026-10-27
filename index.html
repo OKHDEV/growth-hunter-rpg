@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>성장형 오경호 : 고2 178cm 각성 프로젝트 (50 Boss Action RPG)</title>
+  
+  <!-- Web App Meta -->
+  <meta name="theme-color" content="#07090e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/battle.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/mobile.css">
+</head>
+<body>
+
+  <!-- Background Particle & Overlay Canvas -->
+  <canvas id="particleCanvas"></canvas>
+  <div id="screenFlashOverlay"></div>
+
+  <!-- Main App Container -->
+  <div class="app-container">
+
+    <!-- Top Header Navigation -->
+    <header class="main-header">
+      <div class="brand-wrap">
+        <div class="brand-logo-icon">⚡</div>
+        <div>
+          <h1 class="brand-title">성장형 오경호</h1>
+          <div class="brand-sub">고2 178cm 각성 프로젝트 · 50 Boss Raid</div>
+        </div>
+      </div>
+
+      <!-- Desktop Nav Buttons -->
+      <nav class="desktop-nav">
+        <button class="nav-btn active" data-tab="statusTab"><span>상태창</span></button>
+        <button class="nav-btn" data-tab="questTab"><span>일일 퀘스트</span></button>
+        <button class="nav-btn" data-tab="bossTab"><span>50단계 보스</span></button>
+        <button class="nav-btn" data-tab="inventoryTab"><span>인벤토리</span></button>
+        <button class="nav-btn" data-tab="settingsTab"><span>설정</span></button>
+      </nav>
+
+      <!-- Quick Header Stats -->
+      <div class="header-quick-stats">
+        <div class="quick-stat-badge">
+          <span class="stat-badge-title" id="hdrPlayerRank">E급 각성자</span>
+          <span class="stat-badge-val" id="hdrPlayerLevel">Lv.1</span>
+        </div>
+        <div class="quick-stat-badge">
+          <span class="stat-badge-title">골드</span>
+          <span class="stat-badge-val gold" id="hdrPlayerGold">0</span>
+        </div>
+        <div class="quick-stat-badge">
+          <span class="stat-badge-title">연속 달성</span>
+          <span class="stat-badge-val streak" id="hdrDailyStreak">1일차</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== TAB 1: STATUS DASHBOARD ==================== -->
+    <section id="statusTab" class="tab-screen">
+      <div class="status-grid">
+
+        <!-- Left: Hunter Portrait & Height Showcase -->
+        <div class="hunter-hero-card hunter-aura-glow">
+          <div class="hunter-avatar-wrap">
+            <img src="assets/player/hunter.jpg" alt="성장하는 각성자" class="hunter-avatar-img" id="hunterMainAvatar">
+            <div class="rank-badge-overlay" id="statPlayerRank">E급 각성자</div>
+          </div>
+
+          <div class="hunter-name-title">
+            <h2 class="hunter-display-name" id="statPlayerName">오경호</h2>
+            <div style="font-size: 12px; color: #94a3b8; font-weight: 600;">고등학교 2학년 (수험생 각성자)</div>
+            <div class="hunter-active-title" id="statPlayerTitle">초보 수련자 (173cm)</div>
+          </div>
+
+          <!-- Realistic Height Growth Showcase (173cm -> 178cm) -->
+          <div class="height-showcase-box">
+            <div class="height-header">
+              <span class="height-label">📏 현재 신장 (고2 키 성장)</span>
+              <span class="height-value" id="statHeightVal">173.00 cm</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-growth" id="statHeightProgress"></div>
+            </div>
+            <div class="height-sub-info">
+              <span>누적 성장치: <strong id="statGrowthPts" style="color:var(--green-growth)">0 / 50,000 pt</strong></span>
+              <span>목표: <strong style="color:var(--gold-mythic);">178.00 cm</strong></span>
+            </div>
+            <div style="font-size: 10px; color: #64748b; text-align: right;">
+              * 1,000 pt = +0.1 cm (1.0 mm) 현실적 정밀 반영
+            </div>
+          </div>
+
+          <button class="btn btn-sm btn-outline-cyan" id="btnEditProfile" onclick="ui.openProfileModal()" style="width: 100%;">
+            ✏️ 프로필 & 현재 키 / 목표 키 수정
+          </button>
+        </div>
+
+        <!-- Right: Stats, Exp & Allocation Panel -->
+        <div class="hunter-stats-panel">
+
+          <!-- Level & Exp Card -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-title" id="statPlayerLevel">LEVEL 1</span>
+              <span style="font-size: 13px; color: var(--cyan-neon);">50단계 보스 격파를 위한 일일 수련 중</span>
+            </div>
+            <div class="exp-progress-wrap">
+              <div class="exp-label-row">
+                <span>경험치 (EXP)</span>
+                <span id="statExpText">0 / 120 EXP (0.0%)</span>
+              </div>
+              <div class="progress-track" style="height: 12px;">
+                <div class="progress-fill-exp" id="statExpFill"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat Point Allocation Card -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-title">각성자 능력치 (스탯 배분)</span>
+              <span style="font-size: 13px; color: var(--gold-mythic);">
+                잔여 포인트: <strong id="statFreePoints" style="font-size:16px;">5</strong> pt
+              </span>
+            </div>
+            <div class="stats-table">
+              <div class="stat-row" data-stat="str">
+                <div class="stat-info-left">
+                  <span class="stat-name">근력 (STR)</span>
+                  <span class="stat-desc">실시간 참격 공격력 및 치명타 위력을 대폭 상승시킵니다.</span>
+                </div>
+                <div class="stat-action-right">
+                  <span class="stat-val">14</span>
+                  <button class="btn-add-stat">+</button>
+                </div>
+              </div>
+
+              <div class="stat-row" data-stat="int">
+                <div class="stat-info-left">
+                  <span class="stat-name">지능 / 집중력 (INT)</span>
+                  <span class="stat-desc">최대 마나와 스킬 대미지, 도파민 방어막 효율을 높입니다.</span>
+                </div>
+                <div class="stat-action-right">
+                  <span class="stat-val">12</span>
+                  <button class="btn-add-stat">+</button>
+                </div>
+              </div>
+
+              <div class="stat-row" data-stat="end">
+                <div class="stat-info-left">
+                  <span class="stat-name">체력 / 인내 (END)</span>
+                  <span class="stat-desc">보스의 묵직한 강타를 견디는 최대 HP와 방어력을 올립니다.</span>
+                </div>
+                <div class="stat-action-right">
+                  <span class="stat-val">14</span>
+                  <button class="btn-add-stat">+</button>
+                </div>
+              </div>
+
+              <div class="stat-row" data-stat="gro">
+                <div class="stat-info-left">
+                  <span class="stat-name" style="color:var(--green-growth)">성장 잠재력 (GRO)</span>
+                  <span class="stat-desc">178cm 성장 가속도, 퀘스트 추가 EXP, 줄넘기 난무 스킬 위력을 강화합니다.</span>
+                </div>
+                <div class="stat-action-right">
+                  <span class="stat-val" style="color:var(--green-growth)">15</span>
+                  <button class="btn-add-stat">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Derived Combat Stats Card -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-title">전투 세부 스펙</span>
+              <span style="font-size: 11px; color: var(--text-muted);">장비 및 칭호 효과 자동 합산</span>
+            </div>
+            <div class="combat-stats-grid">
+              <div class="c-stat-box">
+                <span class="c-stat-label">최대 체력 (HP)</span>
+                <span class="c-stat-val" id="statDerivedHp">700</span>
+              </div>
+              <div class="c-stat-box">
+                <span class="c-stat-label">최대 마나 (MP)</span>
+                <span class="c-stat-val" id="statDerivedMp">308</span>
+              </div>
+              <div class="c-stat-box">
+                <span class="c-stat-label">공격력 (ATK)</span>
+                <span class="c-stat-val" id="statDerivedAtk">87</span>
+              </div>
+              <div class="c-stat-box">
+                <span class="c-stat-label">방어력 (DEF)</span>
+                <span class="c-stat-val" id="statDerivedDef">45</span>
+              </div>
+              <div class="c-stat-box">
+                <span class="c-stat-label">치명타율 (CRIT)</span>
+                <span class="c-stat-val" id="statDerivedCrit">5.0%</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: QUEST SCREEN ==================== -->
+    <section id="questTab" class="tab-screen hidden">
+      <div class="quest-top-bar">
+        <div class="cat-tabs-scroll" id="questCategoryTabs"></div>
+        <button class="btn btn-sm btn-outline-cyan" onclick="quests.openCustomQuestModal()">
+          + 나만의 퀘스트 만들기
+        </button>
+      </div>
+
+      <div class="quest-grid" id="questList"></div>
+    </section>
+
+    <!-- ==================== TAB 3: 50 BOSS STAGE SELECT ==================== -->
+    <section id="bossTab" class="tab-screen hidden">
+      <div class="boss-screen-intro">
+        <h2 class="boss-screen-title">50단계 각성 보스 토벌 레이드</h2>
+        <p class="boss-screen-sub">
+          매일의 꾸준한 줄넘기, 수면, 디톡스, 수험 공부로 성장하여 50단계 보스를 차례대로 무너뜨리세요!
+        </p>
+      </div>
+
+      <!-- Zone Selector Tabs (1~10, 11~20, 21~30, 31~40, 41~50) -->
+      <div class="cat-tabs-scroll" id="bossZoneTabs" style="justify-content:center; margin-bottom: 20px;"></div>
+
+      <div class="boss-stage-grid" id="bossStageList"></div>
+    </section>
+
+    <!-- ==================== TAB 4: 1:1 TURN-BASED HARDCORE BOSS COMBAT ==================== -->
+    <section id="battleArena" class="tab-screen hidden">
+      <div class="battle-arena-wrapper">
+        
+        <!-- Arena Top Header -->
+        <div class="arena-top-bar">
+          <div class="arena-title-wrap">
+            <span class="stage-badge" id="bossStageBadge">STAGE 1 [1달 수련 필수]</span>
+            <span class="arena-headline">⚔️ 1:1 결전 맞다이 (나 한 대, 보스 한 대)</span>
+          </div>
+          <button class="btn btn-xs btn-outline-danger" onclick="battle.retreat()">퇴각하기</button>
+        </div>
+
+        <!-- Combatants Grid: Boss vs Player Deck -->
+        <div class="battle-combatants-grid">
+
+          <!-- Left: Boss Combat Card -->
+          <div class="boss-combat-card" id="bossCard">
+            <div class="boss-month-tag">⏳ 1달(30일) 매일 수련 필수 보스</div>
+
+            <!-- Boss Portrait Container (Animations happen here) -->
+            <div class="boss-portrait-container" id="bossPortraitWrap">
+              <img src="assets/bosses/boss1.jpg" alt="보스" class="boss-arena-img" id="bossImage">
+            </div>
+
+            <div class="boss-name-strip">
+              <h2 class="boss-name-text" id="bossName">Stage 1: 나태의 망령, 슬로스</h2>
+              <span class="boss-sub-text" id="bossSubName">Sloth Spectre · 권장: 1개월(30일) 수련</span>
+            </div>
+
+            <!-- Boss Health Bar -->
+            <div class="boss-health-block">
+              <div class="health-label-row">
+                <span style="color:#ff4d79; font-weight:800;">BOSS HP</span>
+                <span id="bossHpText">3,200 / 3,200 (100.0%)</span>
+              </div>
+              <div class="hp-track-boss">
+                <div class="hp-fill-boss" id="bossHpFill" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Player Deck & Single Attack Button -->
+          <div class="action-combat-deck">
+
+            <!-- Player Status & Round Badge -->
+            <div class="player-combat-card" id="playerCombatCard">
+              <div class="turn-round-badge" id="turnRoundBadge">⚔️ ROUND 1</div>
+
+              <div class="player-mini-profile">
+                <img src="assets/player/hunter.jpg" alt="헌터" class="player-mini-avatar" id="battlePlayerAvatar">
+                <div class="player-name-col">
+                  <span class="p-combat-name" id="battlePlayerName">오경호</span>
+                  <span class="p-combat-title" id="battlePlayerTitle">초보 수련자 (173cm)</span>
+                </div>
+              </div>
+
+              <!-- Player HP Gauge -->
+              <div class="gauge-group" style="margin-top: 6px;">
+                <div class="gauge-item">
+                  <div class="gauge-info">
+                    <span style="color:var(--green-growth); font-weight:800;">내 체력 (HP)</span>
+                    <span id="playerHpText">700 / 700</span>
+                  </div>
+                  <div class="gauge-track" style="height: 12px;">
+                    <div class="gauge-fill-hp" id="playerHpFill" style="width: 100%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1:1 Combat Analysis & Survival Projection -->
+              <div class="combat-trade-preview">
+                <div class="trade-row">
+                  <span id="estPlayerDmg" style="color: #38bdf8; font-weight: 700;">내 공격: ~85 dmg</span>
+                  <span id="estBossDmg" style="color: #ff4d79; font-weight: 700;">보스 반격: ~380 dmg</span>
+                </div>
+                <div class="trade-survival" id="estSurvival">
+                  ⚠️ 버틸 수 있는 턴수: 2턴 (극도로 위험! 1달 수련 필요)
+                </div>
+              </div>
+            </div>
+
+            <!-- === ONLY ONE ATTACK BUTTON PAD (나 한 대, 보스 한 대) === -->
+            <div class="one-attack-pad">
+              <button class="btn-one-attack" id="btnOneAttack" onclick="battle.executeTurnExchange()">
+                <span class="btn-main-label">💥 [턴 1] 결전의 일격 가하기</span>
+                <span class="btn-sub-label">⚔️ 나 한 대 때리고 보스 한 대 맞기 [Space / Enter / 클릭]</span>
+              </button>
+            </div>
+
+            <!-- Battle Narrative Log -->
+            <div class="battle-log-card" id="battleLogContainer"></div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: INVENTORY & TITLES ==================== -->
+    <section id="inventoryTab" class="tab-screen hidden">
+      <div class="hunter-stats-panel">
+
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <span class="panel-title">현재 장착 장비</span>
+            <span style="font-size: 11px; color: var(--text-muted);">50단계 보스 격파 시 전용 장비 획득</span>
+          </div>
+          <div class="equip-slots-grid" id="equipmentSlots"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <span class="panel-title">인벤토리 배낭</span>
+          </div>
+          <div class="inventory-bag-grid" id="inventoryBag"></div>
+        </div>
+
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <span class="panel-title">각성 칭호 도감</span>
+          </div>
+          <div class="titles-grid" id="titlesContainer"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: SETTINGS ==================== -->
+    <section id="settingsTab" class="tab-screen hidden">
+      <div class="hunter-stats-panel" style="max-width: 650px; margin: 0 auto; width:100%;">
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <span class="panel-title">사운드 & 환경 설정</span>
+          </div>
+          <div class="stats-table">
+            <div class="stat-row">
+              <span class="stat-name">배경음악 (BGM) 활성화</span>
+              <input type="checkbox" id="bgmToggle" checked style="width: 20px; height: 20px; accent-color: var(--cyan-neon);">
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">효과음 (SFX) 활성화</span>
+              <input type="checkbox" id="sfxToggle" checked style="width: 20px; height: 20px; accent-color: var(--cyan-neon);">
+            </div>
+            <div class="stat-row">
+              <span class="stat-name">마스터 볼륨</span>
+              <input type="range" id="bgmVolumeSlider" min="0" max="100" value="70" style="accent-color: var(--cyan-neon); width: 140px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card" style="border-color: rgba(0, 229, 255, 0.4); box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);">
+          <div class="panel-card-header">
+            <span class="panel-title" style="color: var(--cyan-neon);">🛡️ 데이터 영구 보존 & 백업 복원 센터</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">
+            수행한 퀘스트, 누적 키 성장(173cm→178cm), 스탯, 50단계 보스 토벌 기록이 브라우저 및 2중 미러링 백업에 실시간 저장되어 절대 날아가지 않습니다.
+          </p>
+
+          <div id="saveStatusIndicator" style="padding: 10px 14px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; font-size: 13px; color: #34d399; margin-bottom: 16px;">
+            🟢 <strong>실시간 자동 보존 활성화</strong> (2중 미러링 보호)
+          </div>
+
+          <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">
+            💾 기기 변경 / 브라우저 청소 대비 수동 백업
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+            <button type="button" class="btn btn-sm btn-outline-cyan" id="btnExportSaveFile" style="padding: 10px 6px; font-size: 11px;">
+              📥 세이브 파일(JSON) 다운로드
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-cyan" id="btnExportSaveCode" style="padding: 10px 6px; font-size: 11px;">
+              📋 세이브 텍스트 코드 복사
+            </button>
+          </div>
+
+          <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px;">
+            📂 이전 수련 데이터 복원하기
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+            <label class="btn btn-sm btn-outline-gold" style="padding: 10px 6px; font-size: 11px; text-align: center; cursor: pointer; margin: 0; display:flex; align-items:center; justify-content:center;">
+              📁 JSON 파일 불러오기
+              <input type="file" id="fileInputImport" accept=".json" style="display: none;">
+            </label>
+            <button type="button" class="btn btn-sm btn-outline-gold" id="btnImportSaveCode" style="padding: 10px 6px; font-size: 11px;">
+              📝 텍스트 코드 입력 복원
+            </button>
+          </div>
+
+          <div style="border-top: 1px dashed rgba(239, 68, 68, 0.3); padding-top: 14px;">
+            <div style="font-size: 12px; color: #ef4444; font-weight: 700; margin-bottom: 6px;">
+              ⚠️ 데이터 초기화 (주의)
+            </div>
+            <button type="button" class="btn btn-xs btn-outline-danger" id="btnResetData" style="width: 100%; padding: 10px;">
+              데이터 전체 초기화 (처음부터 다시 시작)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /app-container -->
+
+  <!-- ==================== MOBILE BOTTOM NAVIGATION ==================== -->
+  <nav class="mobile-nav-bar">
+    <button class="mobile-nav-btn active" data-tab="statusTab">
+      <span class="icon">👤</span>
+      <span>상태창</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="questTab">
+      <span class="icon">📜</span>
+      <span>퀘스트</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="bossTab">
+      <span class="icon">⚔️</span>
+      <span>50보스</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="inventoryTab">
+      <span class="icon">🎒</span>
+      <span>인벤토리</span>
+    </button>
+    <button class="mobile-nav-btn" data-tab="settingsTab">
+      <span class="icon">⚙️</span>
+      <span>설정</span>
+    </button>
+  </nav>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- 1. Interactive Counter Modal (줄넘기, 푸시업 등) -->
+  <div id="questCounterModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: var(--cyan-neon); box-shadow: 0 0 35px var(--cyan-glow);">
+      <h3 id="counterModalTitle" style="color:var(--cyan-neon); font-size:18px;">줄넘기 카운터</h3>
+      <div id="counterModalTarget" style="font-size:13px; color:var(--text-muted);">목표: 1,000 회</div>
+      
+      <div id="counterModalCurrent" style="font-size: 64px; font-weight: 900; color: #fff; margin: 10px 0;">0</div>
+
+      <div class="progress-track" style="height: 12px;">
+        <div id="counterModalBar" class="progress-fill-growth" style="width: 0%;"></div>
+      </div>
+
+      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:10px 0;">
+        <button class="btn btn-sm btn-outline-cyan" onclick="quests.incrementCounter(1)">+1회</button>
+        <button class="btn btn-sm btn-outline-cyan" onclick="quests.incrementCounter(10)">+10회</button>
+        <button class="btn btn-sm btn-outline-cyan" onclick="quests.incrementCounter(50)">+50회</button>
+        <button class="btn btn-sm btn-outline-cyan" onclick="quests.incrementCounter(100)">+100회</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="quests.resetCounter()">초기화</button>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn btn-primary" style="flex:1; padding:12px;" onclick="quests.finishCounter()">
+          완료 및 보상 수령
+        </button>
+        <button class="btn btn-outline-cyan" style="padding:12px;" onclick="quests.closeCounterModal()">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Interactive Timer Modal -->
+  <div id="questTimerModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: #3b82f6; box-shadow: 0 0 35px rgba(59, 130, 246, 0.4);">
+      <h3 id="timerModalTitle" style="color:#38bdf8; font-size:18px;">집중 타이머</h3>
+      <div id="timerModalClock" style="font-size: 54px; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; margin: 15px 0;">00:00:00</div>
+
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button id="timerStartBtn" class="btn btn-primary" style="padding:12px 24px;" onclick="quests.startTimer()">시작</button>
+        <button id="timerPauseBtn" class="btn btn-outline-cyan hidden" style="padding:12px 24px;" onclick="quests.pauseTimer()">일시정지</button>
+        <button class="btn btn-outline-cyan" style="padding:12px 20px;" onclick="quests.finishTimer()">완료 인증</button>
+        <button class="btn btn-outline-danger" style="padding:12px;" onclick="quests.closeTimerModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Custom Quest Creator Modal -->
+  <div id="customQuestModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: var(--purple-arcane); max-width: 500px; text-align: left;">
+      <h3 style="color:var(--purple-arcane); font-size: 20px; font-weight: 800; text-align: center;">
+        + 나만의 현실 도전과제 생성
+      </h3>
+      <form id="customQuestForm" style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">퀘스트 제목</label>
+          <input type="text" id="cqTitle" required placeholder="예: 영어 단어 50개 암기, 서전트 점프 100회" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; font-family:inherit;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">퀘스트 설명</label>
+          <input type="text" id="cqDesc" placeholder="퀘스트의 목적과 보람" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; font-family:inherit;">
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label style="font-size:12px; color:var(--text-muted);">카테고리</label>
+            <select id="cqCategory" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; font-family:inherit;">
+              <option value="height">신체 & 키 성장</option>
+              <option value="detox">도파민 디톡스</option>
+              <option value="study">지능 & 수험</option>
+              <option value="fitness">체력 & 운동</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--text-muted);">난이도 등급</label>
+            <select id="cqTier" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; font-family:inherit;">
+              <option value="D">D등급 (쉬움)</option>
+              <option value="C">C등급 (보통)</option>
+              <option value="B" selected>B등급 (어려움)</option>
+              <option value="A">A등급 (고난도)</option>
+              <option value="S">S등급 (극악)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+          <div>
+            <label style="font-size:11px; color:var(--text-muted);">EXP</label>
+            <input type="number" id="cqExp" value="350" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:var(--text-muted);">골드</label>
+            <input type="number" id="cqGold" value="120" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+          </div>
+          <div>
+            <label style="font-size:11px; color:var(--text-muted);">키 성장치</label>
+            <input type="number" id="cqGrowth" value="10" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label style="font-size:12px; color:var(--text-muted);">완료 방식</label>
+            <select id="cqType" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+              <option value="check">원클릭 확인</option>
+              <option value="counter">카운터 (횟수 측정)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--text-muted);">목표 횟수 (선택)</label>
+            <input type="number" id="cqCount" placeholder="예: 50" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:12px;">
+          <button type="submit" class="btn btn-primary" style="flex:1; padding:12px;">퀘스트 등록</button>
+          <button type="button" class="btn btn-outline-cyan" style="padding:12px;" onclick="quests.closeCustomQuestModal()">취소</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Ultimate Cutscene Overlay -->
+  <div id="ultimateCutscene" class="ultimate-cutscene-overlay hidden">
+    <div class="ultimate-cutscene-text">
+      한 계 돌 파<br>
+      <span style="font-size:24px; color:var(--cyan-neon);">신 장 1 7 8 c m 개 화 멸 신 참</span>
+    </div>
+    <div class="ultimate-rune-circle"></div>
+  </div>
+
+  <!-- 5. Level Up Modal -->
+  <div id="levelUpModal" class="result-modal-overlay hidden">
+    <div class="result-card victory-card">
+      <div style="font-size: 14px; letter-spacing: 2px; color: var(--gold-mythic); font-weight: 800;">
+        [SYSTEM : 각성자의 레벨이 상승했습니다]
+      </div>
+      <div class="victory-grade-stamp" id="lvlUpNewLevel" style="font-size: 38px;">LEVEL 2</div>
+      <p style="color: #cbd5e1; font-size: 14px;">
+        매일의 일관된 수련으로 육체의 한계가 확장되었습니다!
+      </p>
+      <div class="rewards-grid-box">
+        <div class="reward-stat-line">
+          <span style="color:var(--gold-mythic);">스탯 포인트 획득:</span>
+          <span id="lvlUpFreePoints" style="color:#fff; font-weight:800;">+5 STAT POINTS</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%; padding:14px; font-size:16px;" onclick="ui.closeLevelUpModal()">
+        능력치 배분하러 가기
+      </button>
+    </div>
+  </div>
+
+  <!-- 6. Boss Victory Modal -->
+  <div id="victoryModal" class="result-modal-overlay hidden">
+    <div class="result-card victory-card">
+      <div class="victory-grade-stamp" id="victoryGrade">SSS</div>
+      <h2 class="result-title">STAGE CLEAR!</h2>
+      <div style="font-size: 15px; color: var(--cyan-neon); font-weight: 800;" id="victoryBossName">보스 이름</div>
+
+      <div class="rewards-grid-box">
+        <div class="reward-stat-line">
+          <span>경험치 보상:</span>
+          <span id="victoryExp" style="color:var(--cyan-neon);">+0 EXP</span>
+        </div>
+        <div class="reward-stat-line">
+          <span>획득 골드:</span>
+          <span id="victoryGold" style="color:var(--gold-mythic);">+0 G</span>
+        </div>
+        <div class="reward-stat-line">
+          <span>키 성장치:</span>
+          <span id="victoryGrowth" style="color:var(--green-growth);">+0 pt</span>
+        </div>
+        <div class="reward-stat-line">
+          <span>해금 칭호:</span>
+          <span id="victoryDropTitle" style="color:var(--gold-mythic); font-weight:800;">[칭호]</span>
+        </div>
+        <div id="victoryDropItem"></div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; padding:14px; font-size:16px;" onclick="ui.closeVictoryModal()">
+        전리품 획득 & 복귀
+      </button>
+    </div>
+  </div>
+
+  <!-- 7. Boss Defeat Modal -->
+  <div id="defeatModal" class="result-modal-overlay hidden">
+    <div class="result-card defeat-card">
+      <div style="font-size: 48px;">💀</div>
+      <h2 class="result-title" style="color:#ef4444;">HUNTER DEFEATED</h2>
+      <div style="font-size: 14px; color: var(--text-muted);" id="defeatBossName">보스 이름</div>
+      <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+        “한 단계 보스를 깨기 위해선 한 달간의 꾸준한 현실 수련이 필요하다.”<br>
+        매일의 줄넘기, 스트레칭, 골든타임 수면, 순공 퀘스트를 완료해 레벨과 스탯을 더 올리고 [패링 & 회피] 타이밍을 익혀 다시 도전하세요!
+      </p>
+      <div style="display:flex; gap:10px; width:100%;">
+        <button class="btn btn-primary" style="flex:1; padding:12px;" onclick="ui.closeDefeatModal()">
+          현실 수련하러 가기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Edit Profile Modal (Base Height 173cm, Target Height 178cm) -->
+  <div id="profileEditModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: var(--cyan-neon); text-align:left;">
+      <h3 style="color:var(--cyan-neon); text-align:center;">각성자 프로필 설정</h3>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">헌터 닉네임</label>
+          <input type="text" id="editNameInput" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">현재 기본 신장 (cm)</label>
+          <input type="number" step="0.1" id="editHeightInput" value="173.0" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--text-muted);">최종 목표 신장 (cm)</label>
+          <input type="number" step="0.1" id="editTargetHeightInput" value="178.0" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn btn-primary" id="btnSaveProfile" onclick="ui.saveProfile()" style="flex:1; padding:12px;">저장하기</button>
+          <button class="btn btn-outline-cyan" id="btnCloseProfileModal" onclick="ui.closeProfileModal()" style="padding:12px;">취소</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Honest Quest Pledge Confirmation Modal -->
+  <div id="questConfirmModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: var(--gold-mythic); box-shadow: 0 0 35px var(--gold-glow); text-align: center; max-width: 440px;">
+      <div style="font-size: 38px; margin-bottom: 8px;">🤝</div>
+      <h3 style="color: var(--gold-mythic); font-size: 20px; font-weight: 800; margin-bottom: 6px;">
+        자신과의 정직한 약속
+      </h3>
+      <div id="confirmQuestTitle" style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 8px;">
+        [퀘스트 제목]
+      </div>
+      <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin-bottom: 12px;">
+        정말로 오늘 이 수련을 정직하게 완수하셨습니까?<br>
+        거짓된 완료는 당신의 실제 신체와 키를 성장시키지 못합니다.<br>
+        자신을 속이지 않는 진정한 각성자만이 178cm에 도달할 수 있습니다.
+      </p>
+      <div id="confirmQuestRewards" style="font-size: 12px; color: var(--cyan-neon); font-weight: 700; margin-bottom: 18px; padding: 8px; background: rgba(0, 229, 255, 0.08); border-radius: 6px;">
+        보상 정보
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 800;" onclick="quests.confirmPledge()">
+          네, 정직하게 완수했습니다!
+        </button>
+        <button class="btn btn-outline-cyan" style="padding: 12px;" onclick="quests.cancelPledge()">
+          아직 완수 전입니다
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer"></div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/battle.js"></script>
+  <script src="js/quests.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

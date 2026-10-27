@@ -1,0 +1,947 @@
+/* --- 3D First-Person Boxing Combat Arena Styles --- */
+
+.battle-arena-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1060px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.arena-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.arena-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stage-badge {
+  background: var(--crimson-rage);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.arena-headline {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* Battle Stage Layout: 3D Ring Stage on Left, Boxing Controls on Right */
+.battle-combatants-grid {
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 20px;
+}
+
+/* --- 3D FIRST-PERSON BOXING RING STAGE --- */
+.boxing-stage-3d-wrapper {
+  position: relative;
+  perspective: 1000px;
+  width: 100%;
+}
+
+.boss-combat-card {
+  background: radial-gradient(circle at 50% 30%, rgba(30, 41, 59, 0.95), #07090e 95%);
+  border: 2px solid rgba(239, 68, 68, 0.5);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 45px rgba(0, 0, 0, 0.9);
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-style: preserve-3d;
+  user-select: none;
+}
+
+/* 3D Directional Dodge Camera Tilts */
+.dodge-slip-left .boss-combat-card {
+  transform: translateX(45px) rotateY(9deg) rotateZ(3deg);
+}
+
+.dodge-slip-right .boss-combat-card {
+  transform: translateX(-45px) rotateY(-9deg) rotateZ(-3deg);
+}
+
+.dodge-duck .boss-combat-card {
+  transform: translateY(-50px) scale(1.05);
+}
+
+.dodge-lean-back .boss-combat-card {
+  transform: translateY(30px) scale(0.92) rotateX(6deg);
+}
+
+/* Boss Portrait & Animated Windups */
+.boss-portrait-container {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  height: 330px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.9);
+}
+
+.boss-arena-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease, filter 0.2s;
+  pointer-events: none;
+}
+
+/* Boss Windup Animations */
+.boss-arena-img.windup-left_hook {
+  transform: translateX(-35px) rotate(-6deg) scale(1.06);
+  filter: drop-shadow(0 0 25px #ff0055) saturate(1.4);
+}
+
+.boss-arena-img.windup-right_hook {
+  transform: translateX(35px) rotate(6deg) scale(1.06);
+  filter: drop-shadow(0 0 25px #ff0055) saturate(1.4);
+}
+
+.boss-arena-img.windup-straight {
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 35px #f59e0b) brightness(1.2);
+}
+
+.boss-arena-img.windup-uppercut {
+  transform: translateY(25px) scale(1.05);
+  filter: drop-shadow(0 0 25px #ff2a6d);
+}
+
+.boss-arena-img.windup-overhead {
+  transform: translateY(-25px) scale(1.08);
+  filter: drop-shadow(0 0 35px #e11d48);
+}
+
+/* --- 3D Flying Boss Fists (Punches flying into the screen!) --- */
+.boxing-3d-fist {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff4d79, #990022 75%, #000);
+  border: 4px solid #ff0055;
+  box-shadow: 0 0 45px rgba(255, 0, 85, 0.9), inset 0 0 25px #fff;
+}
+
+/* Left Hook Fist Arc */
+.boss-fist-left-hook {
+  top: 30%;
+  left: -20%;
+  animation: fistSwingLeftToRight 0.35s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+@keyframes fistSwingLeftToRight {
+  0% { transform: scale(0.6) rotate(-30deg); left: -10%; opacity: 0; }
+  40% { opacity: 1; transform: scale(1.4) rotate(0deg); }
+  100% { transform: scale(2.8) rotate(40deg); left: 75%; opacity: 0; }
+}
+
+/* Right Hook Fist Arc */
+.boss-fist-right-hook {
+  top: 30%;
+  right: -20%;
+  animation: fistSwingRightToLeft 0.35s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+@keyframes fistSwingRightToLeft {
+  0% { transform: scale(0.6) rotate(30deg); right: -10%; opacity: 0; }
+  40% { opacity: 1; transform: scale(1.4) rotate(0deg); }
+  100% { transform: scale(2.8) rotate(-40deg); right: 75%; opacity: 0; }
+}
+
+/* Straight Cross Fist Zooming directly at player's eyes! */
+.boss-fist-straight {
+  top: 35%;
+  left: 42%;
+  animation: fistZoomCenter 0.32s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes fistZoomCenter {
+  0% { transform: scale(0.4); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: scale(3.5); opacity: 0; }
+}
+
+/* Uppercut Fist */
+.boss-fist-uppercut {
+  bottom: 0%;
+  left: 42%;
+  animation: fistUppercutRise 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes fistUppercutRise {
+  0% { transform: scale(0.5); bottom: -10%; opacity: 0; }
+  50% { opacity: 1; transform: scale(1.6); }
+  100% { transform: scale(3.2); bottom: 65%; opacity: 0; }
+}
+
+/* Overhead Smash Fist */
+.boss-fist-overhead {
+  top: -15%;
+  left: 42%;
+  animation: fistOverheadCrash 0.35s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes fistOverheadCrash {
+  0% { transform: scale(0.5); top: -20%; opacity: 0; }
+  50% { opacity: 1; transform: scale(1.6); }
+  100% { transform: scale(3.2); top: 55%; opacity: 0; }
+}
+
+/* --- FIRST-PERSON PLAYER BOXING GLOVES (Foreground) --- */
+.player-gloves-overlay {
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  right: 0;
+  height: 140px;
+  pointer-events: none;
+  z-index: 80;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 45px;
+  transition: all 0.15s ease-out;
+}
+
+.boxing-glove {
+  width: 95px;
+  height: 115px;
+  background: radial-gradient(circle at 35% 30%, #38bdf8, #0284c7 65%, #082f49);
+  border: 3px solid #00e5ff;
+  border-radius: 42px 42px 26px 26px;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.5);
+  transition: transform 0.12s ease-out;
+  position: relative;
+}
+
+.boxing-glove::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: 18%;
+  right: 18%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+}
+
+.left-glove {
+  transform: rotate(12deg) translateY(20px);
+}
+
+.right-glove {
+  transform: rotate(-12deg) translateY(20px);
+}
+
+/* Player Guard Stance */
+.player-gloves-overlay.guarding .left-glove {
+  transform: translate(90px, -45px) rotate(25deg);
+  border-color: #facc15;
+  box-shadow: 0 0 35px var(--gold-glow);
+}
+
+.player-gloves-overlay.guarding .right-glove {
+  transform: translate(-90px, -45px) rotate(-25deg);
+  border-color: #facc15;
+  box-shadow: 0 0 35px var(--gold-glow);
+}
+
+/* Player Punches */
+.boxing-glove.punch-jab {
+  animation: jabPunchAnim 0.16s ease-out;
+}
+
+.boxing-glove.punch-cross {
+  animation: crossPunchAnim 0.2s ease-out;
+}
+
+@keyframes jabPunchAnim {
+  0% { transform: rotate(12deg) translateY(20px); }
+  50% { transform: scale(1.4) translate(80px, -110px) rotate(5deg); }
+  100% { transform: rotate(12deg) translateY(20px); }
+}
+
+@keyframes crossPunchAnim {
+  0% { transform: rotate(-12deg) translateY(20px); }
+  50% { transform: scale(1.6) translate(-90px, -130px) rotate(-5deg); }
+  100% { transform: rotate(-12deg) translateY(20px); }
+}
+
+/* Counter Blow Opportunity Banner */
+.counter-window-banner {
+  width: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  font-weight: 900;
+  font-size: 13px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.8);
+  animation: counterBannerFlash 0.2s infinite alternate;
+}
+
+@keyframes counterBannerFlash {
+  0% { transform: scale(0.98); filter: brightness(1); }
+  100% { transform: scale(1.02); filter: brightness(1.3); }
+}
+
+/* Real-Time Attack Charge Indicator */
+.boss-threat-charge-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.threat-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.boss-charge-track {
+  width: 100%;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 42, 109, 0.3);
+}
+
+.boss-charge-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f59e0b, #ff0055);
+  box-shadow: 0 0 12px rgba(255, 0, 85, 0.8);
+  transition: width 0.05s linear;
+}
+
+.threat-warning-text {
+  color: #ff0055;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.5px;
+  animation: blink 0.25s infinite alternate;
+}
+
+/* Boss Health Bar & Groggy Gauge */
+.boss-health-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hp-track-boss {
+  width: 100%;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hp-fill-boss {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff0055, #f59e0b);
+  box-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
+  transition: width 0.15s ease-out;
+}
+
+.groggy-track-boss {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.groggy-fill-boss {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00e5ff, #facc15);
+  transition: width 0.15s;
+}
+
+/* --- BOXING ACTION CONTROLS DECK --- */
+.action-combat-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.player-combat-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.player-mini-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.player-mini-avatar {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid var(--cyan-neon);
+  box-shadow: 0 0 10px var(--cyan-glow);
+}
+
+.player-name-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.p-combat-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.p-combat-title {
+  font-size: 11px;
+  color: var(--cyan-neon);
+}
+
+/* Combo Badge */
+.combat-combo-wrapper {
+  position: absolute;
+  top: -12px;
+  right: 16px;
+  background: linear-gradient(135deg, #ff0055, #f59e0b);
+  color: #fff;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-weight: 900;
+  font-size: 14px;
+  box-shadow: 0 0 20px rgba(255, 0, 85, 0.8);
+  z-index: 10;
+}
+
+/* Gauges */
+.gauge-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gauge-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gauge-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gauge-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gauge-fill-hp { height: 100%; width: 100%; background: linear-gradient(90deg, #10b981, #34d399); transition: width 0.15s; }
+.gauge-fill-stamina { height: 100%; width: 100%; background: linear-gradient(90deg, #0284c7, #00e5ff); transition: width 0.15s; }
+.gauge-fill-rage { height: 100%; width: 25%; background: linear-gradient(90deg, #ff2a6d, #facc15); box-shadow: 0 0 10px rgba(255, 42, 109, 0.5); transition: width 0.15s; }
+
+/* --- 3D BOXING TACTILE CONTROLS (DODGE & PUNCH PADS) --- */
+.boxing-controls-pad {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pad-section-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 4-Way Directional Dodge D-Pad */
+.dpad-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 8px;
+}
+
+.btn-dodge-dir {
+  padding: 10px 4px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid var(--cyan-neon);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  user-select: none;
+  transition: all 0.08s;
+}
+
+.btn-dodge-dir:active {
+  background: var(--cyan-neon);
+  color: #000;
+  transform: scale(0.92);
+}
+
+.btn-guard-hold {
+  grid-column: span 3;
+  padding: 12px;
+  background: linear-gradient(135deg, #0284c7, #3b82f6);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-guard-hold:active {
+  background: #facc15;
+  color: #000;
+  transform: scale(0.96);
+}
+
+/* Punch Action Buttons */
+.punch-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.btn-punch-main {
+  padding: 16px 8px;
+  border-radius: var(--radius-md);
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+  transition: all 0.05s;
+}
+
+.btn-punch-jab {
+  background: linear-gradient(135deg, #06b6d4, #0284c7);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+}
+
+.btn-punch-cross {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.5);
+}
+
+.btn-punch-main:active {
+  transform: scale(0.92);
+  filter: brightness(1.3);
+}
+
+.btn-punch-sub {
+  grid-column: span 2;
+  padding: 12px;
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-punch-sub:active {
+  transform: scale(0.95);
+}
+
+/* Ultimate Button */
+.btn-action-ult {
+  width: 100%;
+  padding: 14px;
+  background: rgba(250, 204, 21, 0.15);
+  border: 2px solid rgba(250, 204, 21, 0.3);
+  border-radius: var(--radius-sm);
+  color: #facc15;
+  font-weight: 900;
+  font-size: 13px;
+  cursor: not-allowed;
+  opacity: 0.5;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-action-ult.ready {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.4), rgba(255, 42, 109, 0.5));
+  border-color: var(--gold-mythic);
+  color: #fff;
+  cursor: pointer;
+  opacity: 1;
+  box-shadow: 0 0 30px var(--gold-glow);
+  animation: ultButtonPulse 1s infinite alternate;
+}
+
+@keyframes ultButtonPulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.02); }
+}
+
+/* Battle Narrative Log */
+.battle-log-card {
+  background: rgba(5, 7, 12, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  height: 120px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+}
+
+/* --- 1:1 TURN-BASED HARDCORE BOSS COMBAT STYLES --- */
+
+.boss-month-tag {
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.turn-round-badge {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 4px 14px;
+  border-radius: 20px;
+  letter-spacing: 1px;
+  display: inline-block;
+  align-self: flex-start;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+}
+
+.combat-trade-preview {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.trade-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.trade-survival {
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* Big Tactile Single Attack Button (나 한 대, 보스 한 대) */
+.one-attack-pad {
+  width: 100%;
+}
+
+.btn-one-attack {
+  width: 100%;
+  padding: 22px 16px;
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  border: 2px solid #fbbf24;
+  border-radius: var(--radius-md);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.3);
+  transition: all 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+}
+
+.btn-one-attack:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 45px rgba(245, 158, 11, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+.btn-one-attack:active:not(:disabled) {
+  transform: translateY(2px) scale(0.97);
+  filter: brightness(1.3);
+}
+
+.btn-one-attack:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+
+.btn-main-label {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.btn-sub-label {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.9;
+  letter-spacing: 0.2px;
+}
+
+/* --- Dynamic Combat Impact Animations --- */
+
+/* Player Strike Lunge */
+.strike-lunge {
+  animation: playerStrikeAnim 0.32s ease-out;
+}
+
+@keyframes playerStrikeAnim {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* Boss Recoil on Hit */
+.boss-recoil {
+  animation: bossRecoilAnim 0.35s ease-out;
+}
+
+@keyframes bossRecoilAnim {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(0.92) translateY(-15px); filter: brightness(2) hue-rotate(300deg); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* Boss Counter Strike Lunge */
+.boss-lunge-attack {
+  animation: bossLungeAnim 0.38s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+@keyframes bossLungeAnim {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.15) translateY(18px); filter: drop-shadow(0 0 40px #ff0055); }
+  100% { transform: scale(1); }
+}
+
+/* Player Recoil on Boss Hit */
+.player-recoil {
+  animation: playerRecoilAnim 0.35s ease-out;
+}
+
+@keyframes playerRecoilAnim {
+  0% { transform: scale(1); filter: brightness(1); }
+  35% { transform: scale(0.95) translateY(10px); filter: brightness(1.6) drop-shadow(0 0 25px #ff0055); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* --- TRUE ULTIMATE FINAL BOSS (OMEGA CHRONOS) STYLES --- */
+
+.omega-secret-banner {
+  grid-column: 1 / -1;
+  width: 100%;
+  background: radial-gradient(circle at 50% 50%, rgba(45, 15, 65, 0.95), #07090e 95%);
+  border: 2px solid #f59e0b;
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.4), inset 0 0 20px rgba(245, 158, 11, 0.15);
+  animation: omegaBannerGlow 2s infinite alternate;
+}
+
+@keyframes omegaBannerGlow {
+  0% { border-color: #f59e0b; box-shadow: 0 0 25px rgba(245, 158, 11, 0.3); }
+  100% { border-color: #ef4444; box-shadow: 0 0 45px rgba(239, 68, 68, 0.6); }
+}
+
+.omega-pulse-tag {
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.omega-banner-title {
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  margin: 2px 0;
+  text-shadow: 0 0 15px rgba(245, 158, 11, 0.8);
+}
+
+.omega-banner-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.btn-omega-challenge {
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  border: 1px solid #fbbf24;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+  transition: all 0.15s ease-out;
+  white-space: nowrap;
+}
+
+.btn-omega-challenge:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.9);
+}
+
+/* Arena Omega Chamber Mode */
+.arena-omega-mode {
+  background: radial-gradient(circle at 50% 20%, rgba(88, 28, 135, 0.4), rgba(15, 23, 42, 0.98) 75%) !important;
+  border: 2px solid rgba(245, 158, 11, 0.6) !important;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 80px rgba(245, 158, 11, 0.35), inset 0 0 50px rgba(0, 0, 0, 0.8);
+}
+
+.boss-card-omega {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 50px rgba(245, 158, 11, 0.5), inset 0 0 30px rgba(239, 68, 68, 0.3) !important;
+  animation: omegaCardAura 3s infinite alternate;
+}
+
+@keyframes omegaCardAura {
+  0% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.4); }
+  100% { box-shadow: 0 0 70px rgba(239, 68, 68, 0.8), 0 0 100px rgba(245, 158, 11, 0.5); }
+}
+
+/* Towering Colossal Portrait for Omega Titan */
+.boss-card-omega .boss-portrait-container {
+  height: 420px;
+  max-width: 580px;
+  border: 3px solid #fbbf24;
+  box-shadow: 0 0 45px rgba(245, 158, 11, 0.8);
+}
+
+.boss-card-omega .boss-name-text {
+  font-size: 24px;
+  color: #fbbf24;
+  text-shadow: 0 0 20px rgba(245, 158, 11, 0.9);
+}
+
+.btn-attack-omega {
+  background: linear-gradient(135deg, #f59e0b, #ef4444, #7c3aed) !important;
+  border-color: #facc15 !important;
+  box-shadow: 0 0 50px rgba(245, 158, 11, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.5) !important;
+  animation: omegaBtnPulse 1.2s infinite alternate;
+}
+
+@keyframes omegaBtnPulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(1.02); filter: brightness(1.25); }
+}
+
+@media (max-width: 868px) {
+  .omega-secret-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  .btn-omega-challenge {
+    width: 100%;
+  }
+  .boss-card-omega .boss-portrait-container {
+    height: 240px;
+  }
+}
