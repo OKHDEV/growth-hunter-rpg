@@ -150,7 +150,7 @@ class UIManager {
     }
 
     if (tabId === 'statusTab') this.updateHeaderAndStats();
-    if (tabId === 'questTab') quests.renderQuestList();
+    if (tabId === 'questTab') quests.renderCurrentView();
     if (tabId === 'attendanceTab') this.renderAttendanceCalendar();
     if (tabId === 'bossTab') this.renderBossStageCards();
     if (tabId === 'inventoryTab') this.renderInventory();

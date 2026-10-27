@@ -2,6 +2,10 @@
 class QuestManager {
   constructor() {
     this.currentCategory = 'all';
+    this.viewMode = 'all'; // 'all' | 'folder' | 'day'
+    this.activeFolderId = null;
+    this.managingFolderId = null;
+    this.managingDayKey = null;
     this.activeTimer = null;
     this.timerSecondsLeft = 0;
     this.timerQuestId = null;
@@ -13,7 +17,7 @@ class QuestManager {
 
   init() {
     this.renderCategoryTabs();
-    this.renderQuestList();
+    this.renderCurrentView();
     this.startDailyResetCountdown();
   }
 
@@ -52,11 +56,83 @@ class QuestManager {
     setInterval(update, 1000);
   }
 
+  updateViewModeButtons() {
+    ['btnModeAll', 'btnModeFolder', 'btnModeDay'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    });
+    if (this.viewMode === 'all') {
+      const el = document.getElementById('btnModeAll');
+      if (el) el.classList.add('active');
+    } else if (this.viewMode === 'folder') {
+      const el = document.getElementById('btnModeFolder');
+      if (el) el.classList.add('active');
+    } else if (this.viewMode === 'day') {
+      const el = document.getElementById('btnModeDay');
+      if (el) el.classList.add('active');
+    }
+  }
+
+  setViewMode(mode) {
+    this.viewMode = mode;
+    this.updateViewModeButtons();
+    sound.playClick();
+
+    const catTabs = document.getElementById('questCategoryTabs');
+    const questList = document.getElementById('questList');
+    const folderView = document.getElementById('questFolderView');
+    const dayView = document.getElementById('questDayView');
+
+    if (mode === 'all') {
+      if (catTabs) catTabs.classList.remove('hidden');
+      if (questList) questList.classList.remove('hidden');
+      if (folderView) folderView.classList.add('hidden');
+      if (dayView) dayView.classList.add('hidden');
+      this.renderCategoryTabs();
+      this.renderQuestList();
+    } else if (mode === 'folder') {
+      if (catTabs) catTabs.classList.add('hidden');
+      if (questList) questList.classList.add('hidden');
+      if (folderView) folderView.classList.remove('hidden');
+      if (dayView) dayView.classList.add('hidden');
+      this.renderFolderView();
+    } else if (mode === 'day') {
+      if (catTabs) catTabs.classList.add('hidden');
+      if (questList) questList.classList.add('hidden');
+      if (folderView) folderView.classList.add('hidden');
+      if (dayView) dayView.classList.remove('hidden');
+      this.renderDayView();
+    }
+  }
+
   setCategory(cat) {
     this.currentCategory = cat;
+    this.viewMode = 'all';
+    this.updateViewModeButtons();
+
+    const catTabs = document.getElementById('questCategoryTabs');
+    const questList = document.getElementById('questList');
+    const folderView = document.getElementById('questFolderView');
+    const dayView = document.getElementById('questDayView');
+
+    if (catTabs) catTabs.classList.remove('hidden');
+    if (questList) questList.classList.remove('hidden');
+    if (folderView) folderView.classList.add('hidden');
+    if (dayView) dayView.classList.add('hidden');
+
     this.renderCategoryTabs();
     this.renderQuestList();
     sound.playClick();
+  }
+
+  renderCurrentView() {
+    if (this.viewMode === 'folder') {
+      this.renderFolderView();
+    } else if (this.viewMode === 'day') {
+      this.renderDayView();
+    } else {
+      this.renderQuestList();
+    }
   }
 
   getAllQuests() {
@@ -87,6 +163,72 @@ class QuestManager {
     });
   }
 
+  createQuestCardElement(quest) {
+    const isCompleted = !!state.data.quests.completedToday[quest.id];
+    const tierInfo = TIER_CONFIG[quest.tier] || TIER_CONFIG.D;
+
+    const card = document.createElement('div');
+    card.className = `quest-card ${isCompleted ? 'completed' : ''} tier-${quest.tier.toLowerCase()}`;
+    card.dataset.questId = quest.id;
+
+    let actionHtml = '';
+    if (isCompleted) {
+      actionHtml = `<div class="quest-done-badge"><i class="icon-check">✓</i> 완료됨</div>`;
+    } else {
+      if (quest.type === 'counter') {
+        actionHtml = `
+          <button class="btn btn-sm btn-outline-cyan" onclick="quests.openCounterModal('${quest.id}')">
+            카운터 열기 (${quest.targetCount}${quest.unit})
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="quests.promptConfirmClaim('${quest.id}')">
+            완료 인증
+          </button>
+        `;
+      } else if (quest.type === 'timer') {
+        const minutes = Math.round(quest.targetSeconds / 60);
+        actionHtml = `
+          <button class="btn btn-sm btn-outline-cyan" onclick="quests.openTimerModal('${quest.id}')">
+            타이머 시작 (${minutes}분)
+          </button>
+          <button class="btn btn-sm btn-primary" onclick="quests.promptConfirmClaim('${quest.id}')">
+            완료 인증
+          </button>
+        `;
+      } else {
+        actionHtml = `
+          <button class="btn btn-sm btn-primary" onclick="quests.promptConfirmClaim('${quest.id}')">
+            완료 인증
+          </button>
+        `;
+      }
+    }
+
+    card.innerHTML = `
+      <div class="quest-card-header">
+        <div class="quest-badge-wrap">
+          <span class="quest-tier-badge" style="background:${tierInfo.bg}; color:${tierInfo.color}; border: 1px solid ${tierInfo.border}">
+            ${tierInfo.name}
+          </span>
+          <span class="quest-category-badge">${quest.categoryName || '도전과제'}</span>
+        </div>
+        <div class="quest-rewards-preview">
+          <span class="reward-exp">+${quest.exp} EXP</span>
+          <span class="reward-gold">+${quest.gold} G</span>
+          ${quest.growthPoints ? `<span class="reward-growth">+${quest.growthPoints} 키 성장치 (+${(quest.growthPoints / 1000 * 0.1).toFixed(3)}cm)</span>` : ''}
+        </div>
+      </div>
+      <div class="quest-card-body">
+        <h4 class="quest-title">${quest.title}</h4>
+        <p class="quest-desc">${quest.description}</p>
+      </div>
+      <div class="quest-card-footer">
+        ${actionHtml}
+      </div>
+    `;
+
+    return card;
+  }
+
   renderQuestList() {
     const listContainer = document.getElementById('questList');
     if (!listContainer) return;
@@ -109,73 +251,406 @@ class QuestManager {
     }
 
     filtered.forEach(quest => {
-      const isCompleted = !!state.data.quests.completedToday[quest.id];
-      const tierInfo = TIER_CONFIG[quest.tier] || TIER_CONFIG.D;
-
-      const card = document.createElement('div');
-      card.className = `quest-card ${isCompleted ? 'completed' : ''} tier-${quest.tier.toLowerCase()}`;
-      card.dataset.questId = quest.id;
-
-      let actionHtml = '';
-      if (isCompleted) {
-        actionHtml = `<div class="quest-done-badge"><i class="icon-check">✓</i> 완료됨</div>`;
-      } else {
-        if (quest.type === 'counter') {
-          actionHtml = `
-            <button class="btn btn-sm btn-outline-cyan" onclick="quests.openCounterModal('${quest.id}')">
-              카운터 열기 (${quest.targetCount}${quest.unit})
-            </button>
-            <button class="btn btn-sm btn-primary" onclick="quests.promptConfirmClaim('${quest.id}')">
-              완료 인증
-            </button>
-          `;
-        } else if (quest.type === 'timer') {
-          const minutes = Math.round(quest.targetSeconds / 60);
-          actionHtml = `
-            <button class="btn btn-sm btn-outline-cyan" onclick="quests.openTimerModal('${quest.id}')">
-              타이머 시작 (${minutes}분)
-            </button>
-            <button class="btn btn-sm btn-primary" onclick="quests.promptConfirmClaim('${quest.id}')">
-              완료 인증
-            </button>
-          `;
-        } else {
-          actionHtml = `
-            <button class="btn btn-sm btn-primary" onclick="quests.promptConfirmClaim('${quest.id}')">
-              완료 인증
-            </button>
-          `;
-        }
-      }
-
-      card.innerHTML = `
-        <div class="quest-card-header">
-          <div class="quest-badge-wrap">
-            <span class="quest-tier-badge" style="background:${tierInfo.bg}; color:${tierInfo.color}; border: 1px solid ${tierInfo.border}">
-              ${tierInfo.name}
-            </span>
-            <span class="quest-category-badge">${quest.categoryName}</span>
-          </div>
-          <div class="quest-rewards-preview">
-            <span class="reward-exp">+${quest.exp} EXP</span>
-            <span class="reward-gold">+${quest.gold} G</span>
-            ${quest.growthPoints ? `<span class="reward-growth">+${quest.growthPoints} 키 성장치 (+${(quest.growthPoints / 1000 * 0.1).toFixed(3)}cm)</span>` : ''}
-          </div>
-        </div>
-        <div class="quest-card-body">
-          <h4 class="quest-title">${quest.title}</h4>
-          <p class="quest-desc">${quest.description}</p>
-        </div>
-        <div class="quest-card-footer">
-          ${actionHtml}
-        </div>
-      `;
-
-      listContainer.appendChild(card);
+      listContainer.appendChild(this.createQuestCardElement(quest));
     });
 
     if (typeof ui !== 'undefined' && ui.renderAttendanceCalendar) {
       ui.renderAttendanceCalendar();
+    }
+  }
+
+  // --- View Mode 2: Folder View ---
+  renderFolderView() {
+    const container = document.getElementById('questFolderView');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const folders = (state.data && state.data.quests && state.data.quests.folders) || [];
+    if (!this.activeFolderId || !folders.some(f => f.id === this.activeFolderId)) {
+      this.activeFolderId = (folders[0] && folders[0].id) || null;
+    }
+
+    // 1. Folder Navigation / Selector Row
+    const navRow = document.createElement('div');
+    navRow.className = 'folder-tabs-row';
+
+    folders.forEach(f => {
+      const qCount = (f.questIds && f.questIds.length) || 0;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `btn-folder-pill ${f.id === this.activeFolderId ? 'active' : ''}`;
+      btn.innerHTML = `<span>${f.name}</span> <span class="folder-badge-count">${qCount}</span>`;
+      btn.onclick = () => this.selectFolder(f.id);
+      navRow.appendChild(btn);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'btn-add-folder-trigger';
+    addBtn.innerHTML = '➕ 새 폴더 추가';
+    addBtn.onclick = () => this.openCreateFolderModal();
+    navRow.appendChild(addBtn);
+
+    container.appendChild(navRow);
+
+    // 2. Active Folder Content
+    const activeFolder = folders.find(f => f.id === this.activeFolderId);
+    if (!activeFolder) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'empty-quest-state';
+      emptyDiv.style.cssText = 'padding: 40px; text-align: center;';
+      emptyDiv.innerHTML = `
+        <p style="color: #94a3b8; margin-bottom: 14px;">생성된 폴더가 없습니다. 나만의 퀘스트 폴더를 만들어 체계적으로 관리해보세요!</p>
+        <button type="button" class="btn btn-primary" onclick="quests.openCreateFolderModal()">📁 첫 폴더 만들기</button>
+      `;
+      container.appendChild(emptyDiv);
+      return;
+    }
+
+    // Detail header card
+    const headerCard = document.createElement('div');
+    headerCard.className = 'folder-detail-card';
+    const allQuests = this.getAllQuests();
+    const questsInFolder = (activeFolder.questIds || [])
+      .map(id => allQuests.find(q => q.id === id))
+      .filter(Boolean);
+
+    headerCard.innerHTML = `
+      <div class="folder-title-left">
+        <strong style="font-size: 16px; color: #fff;">📁 ${activeFolder.name}</strong>
+        <span style="font-size: 12px; color: #94a3b8;">(${questsInFolder.length}개 퀘스트 등록됨)</span>
+      </div>
+      <div class="folder-actions-right">
+        <button type="button" class="btn btn-sm btn-outline-cyan" onclick="quests.openFolderManageModal('${activeFolder.id}')">
+          ➕ 이 폴더에 퀘스트 넣기 / 관리
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger" style="border-color:#ef4444; color:#ef4444;" onclick="quests.confirmDeleteFolder('${activeFolder.id}')">
+          🗑️ 폴더 삭제
+        </button>
+      </div>
+    `;
+    container.appendChild(headerCard);
+
+    // Grid of quests inside folder
+    const grid = document.createElement('div');
+    grid.className = 'quest-grid';
+
+    if (questsInFolder.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-quest-state" style="grid-column: 1 / -1; padding: 40px; text-align: center;">
+          <p style="color: #94a3b8; margin-bottom: 14px;">이 폴더에 담긴 퀘스트가 없습니다.</p>
+          <button type="button" class="btn btn-sm btn-primary" onclick="quests.openFolderManageModal('${activeFolder.id}')">
+            ➕ 원하는 퀘스트 담기
+          </button>
+        </div>
+      `;
+    } else {
+      questsInFolder.forEach(quest => {
+        grid.appendChild(this.createQuestCardElement(quest));
+      });
+    }
+
+    container.appendChild(grid);
+  }
+
+  // --- View Mode 3: Day-of-Week View ---
+  renderDayView() {
+    const container = document.getElementById('questDayView');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const DAYS_CONFIG = [
+      { key: 'mon', name: '월요일', dayNum: 1 },
+      { key: 'tue', name: '화요일', dayNum: 2 },
+      { key: 'wed', name: '수요일', dayNum: 3 },
+      { key: 'thu', name: '목요일', dayNum: 4 },
+      { key: 'fri', name: '금요일', dayNum: 5 },
+      { key: 'sat', name: '토요일', dayNum: 6 },
+      { key: 'sun', name: '일요일', dayNum: 0 }
+    ];
+
+    const todayNum = new Date().getDay();
+    const allQuests = this.getAllQuests();
+    const allQuestsMap = Object.fromEntries(allQuests.map(q => [q.id, q]));
+    const dayQuestsData = (state.data && state.data.quests && state.data.quests.dayQuests) || {};
+
+    DAYS_CONFIG.forEach(d => {
+      const isToday = (d.dayNum === todayNum);
+      const assignedIds = dayQuestsData[d.key] || [];
+      const questsForDay = assignedIds.map(id => allQuestsMap[id]).filter(Boolean);
+      const completedCount = questsForDay.filter(q => !!state.data.quests.completedToday[q.id]).length;
+
+      const section = document.createElement('div');
+      section.className = `day-quest-card ${isToday ? 'is-today' : ''}`;
+
+      let itemsHtml = '';
+      if (questsForDay.length === 0) {
+        itemsHtml = `
+          <div class="day-empty-hint" style="grid-column: 1 / -1;">
+            이 요일에 배정된 퀘스트가 없습니다. 우측 상단의 <strong>[➕ ${d.name} 퀘스트 추가]</strong>를 눌러 요일별 루틴을 등록하세요!
+          </div>
+        `;
+      } else {
+        itemsHtml = questsForDay.map(quest => {
+          const isCompleted = !!state.data.quests.completedToday[quest.id];
+          const tierInfo = TIER_CONFIG[quest.tier] || TIER_CONFIG.D;
+
+          let actionHtml = '';
+          if (isCompleted) {
+            actionHtml = `<div class="quest-done-badge" style="font-size:11px; padding:3px 8px;"><i class="icon-check">✓</i> 오늘 완료</div>`;
+          } else if (quest.type === 'counter') {
+            actionHtml = `
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn btn-sm btn-outline-cyan" style="font-size:11px; padding:4px 8px;" onclick="quests.openCounterModal('${quest.id}')">
+                  카운터 (${quest.targetCount}${quest.unit})
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" style="font-size:11px; padding:4px 8px;" onclick="quests.promptConfirmClaim('${quest.id}')">
+                  완료 인증
+                </button>
+              </div>
+            `;
+          } else if (quest.type === 'timer') {
+            const minutes = Math.round(quest.targetSeconds / 60);
+            actionHtml = `
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn btn-sm btn-outline-cyan" style="font-size:11px; padding:4px 8px;" onclick="quests.openTimerModal('${quest.id}')">
+                  타이머 (${minutes}분)
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" style="font-size:11px; padding:4px 8px;" onclick="quests.promptConfirmClaim('${quest.id}')">
+                  완료 인증
+                </button>
+              </div>
+            `;
+          } else {
+            actionHtml = `
+              <button type="button" class="btn btn-sm btn-primary" style="font-size:11px; padding:4px 10px;" onclick="quests.promptConfirmClaim('${quest.id}')">
+                완료 인증
+              </button>
+            `;
+          }
+
+          return `
+            <div class="day-quest-item ${isCompleted ? 'completed' : ''}">
+              <div class="day-quest-item-top">
+                <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                  <span class="quest-tier-badge" style="background:${tierInfo.bg}; color:${tierInfo.color}; border: 1px solid ${tierInfo.border}; font-size:10px; padding:2px 5px; flex-shrink:0;">
+                    ${tierInfo.name}
+                  </span>
+                  <strong style="color:#fff; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${quest.title}</strong>
+                </div>
+                <button type="button" class="day-quest-remove-btn" title="이 요일에서 제외" onclick="quests.removeQuestFromDay('${d.key}', '${quest.id}')">✕</button>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; line-height:1.4;">${quest.description}</div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span style="font-size:11px; color:#38bdf8; font-weight:700;">+${quest.exp} EXP · +${quest.gold} G</span>
+                ${actionHtml}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      section.innerHTML = `
+        <div class="day-quest-header">
+          <div class="day-header-left">
+            <span class="day-title-text">📅 ${d.name} 도전과제</span>
+            ${isToday ? '<span class="day-today-tag">🌟 오늘 수행</span>' : ''}
+            <span class="day-progress-badge">${completedCount}/${questsForDay.length} 완료</span>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" onclick="quests.openDayManageModal('${d.key}')">
+            ➕ [${d.name}] 퀘스트 추가
+          </button>
+        </div>
+        <div class="day-quest-items-grid">
+          ${itemsHtml}
+        </div>
+      `;
+
+      container.appendChild(section);
+    });
+  }
+
+  // --- Folder Management Modals & Actions ---
+  selectFolder(folderId) {
+    this.activeFolderId = folderId;
+    this.renderFolderView();
+    sound.playClick();
+  }
+
+  openCreateFolderModal() {
+    const modal = document.getElementById('createFolderModal');
+    const input = document.getElementById('newFolderNameInput');
+    if (input) input.value = '';
+    if (modal) modal.classList.remove('hidden');
+    sound.playClick();
+    setTimeout(() => { if (input) input.focus(); }, 100);
+  }
+
+  closeCreateFolderModal() {
+    const modal = document.getElementById('createFolderModal');
+    if (modal) modal.classList.add('hidden');
+    sound.playClick();
+  }
+
+  confirmCreateFolder() {
+    const input = document.getElementById('newFolderNameInput');
+    const val = input ? input.value.trim() : '';
+    if (!val) {
+      alert('폴더 이름을 입력해주세요.');
+      return;
+    }
+    const created = state.createQuestFolder(val);
+    if (created) {
+      this.activeFolderId = created.id;
+      this.closeCreateFolderModal();
+      this.renderFolderView();
+      if (typeof ui !== 'undefined' && ui.showToast) {
+        ui.showToast(`📁 '${created.name}' 폴더가 생성되었습니다!`, 'success');
+      }
+    }
+  }
+
+  confirmDeleteFolder(folderId) {
+    const folders = (state.data && state.data.quests && state.data.quests.folders) || [];
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    if (confirm(`'${folder.name}' 폴더를 정말 삭제하시겠습니까?\n(폴더 안의 퀘스트 자체는 삭제되지 않습니다)`)) {
+      state.deleteQuestFolder(folderId);
+      this.activeFolderId = null;
+      this.renderFolderView();
+      if (typeof ui !== 'undefined' && ui.showToast) {
+        ui.showToast(`🗑️ '${folder.name}' 폴더가 삭제되었습니다.`, 'info');
+      }
+    }
+  }
+
+  openFolderManageModal(folderId) {
+    this.managingFolderId = folderId;
+    const folders = (state.data && state.data.quests && state.data.quests.folders) || [];
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const modal = document.getElementById('folderManageModal');
+    const title = document.getElementById('folderManageTitle');
+    const list = document.getElementById('folderManageQuestList');
+
+    if (title) title.textContent = `[${folder.name}] 퀘스트 선택`;
+    if (list) {
+      list.innerHTML = '';
+      const allQuests = this.getAllQuests();
+      allQuests.forEach(q => {
+        const isChecked = (folder.questIds || []).includes(q.id);
+        const item = document.createElement('label');
+        item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:8px; cursor:pointer;';
+        item.innerHTML = `
+          <input type="checkbox" value="${q.id}" ${isChecked ? 'checked' : ''} style="width:18px; height:18px; accent-color:#38bdf8; cursor:pointer;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:#1e293b; color:#38bdf8;">${q.categoryName || '도전과제'}</span>
+              <strong style="color:#fff; font-size:13px;">${q.title}</strong>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${q.description}</div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    if (modal) modal.classList.remove('hidden');
+    sound.playClick();
+  }
+
+  closeFolderManageModal() {
+    const modal = document.getElementById('folderManageModal');
+    if (modal) modal.classList.add('hidden');
+    sound.playClick();
+  }
+
+  saveFolderQuests() {
+    if (!this.managingFolderId) return;
+    const list = document.getElementById('folderManageQuestList');
+    if (!list) return;
+
+    const checkedInputs = list.querySelectorAll('input[type="checkbox"]:checked');
+    const checkedIds = Array.from(checkedInputs).map(cb => cb.value);
+
+    state.updateFolderQuests(this.managingFolderId, checkedIds);
+    this.closeFolderManageModal();
+    this.renderFolderView();
+    if (typeof ui !== 'undefined' && ui.showToast) {
+      ui.showToast('✅ 폴더 퀘스트가 저장되었습니다!', 'success');
+    }
+  }
+
+  // --- Day-of-Week Management Modals & Actions ---
+  openDayManageModal(dayKey) {
+    this.managingDayKey = dayKey;
+    const DAYS_CONFIG = {
+      mon: '월요일', tue: '화요일', wed: '수요일',
+      thu: '목요일', fri: '금요일', sat: '토요일', sun: '일요일'
+    };
+    const dayName = DAYS_CONFIG[dayKey] || dayKey;
+
+    const modal = document.getElementById('dayManageModal');
+    const title = document.getElementById('dayManageTitle');
+    const list = document.getElementById('dayManageQuestList');
+
+    if (title) title.textContent = `[${dayName}] 퀘스트 선택`;
+    if (list) {
+      list.innerHTML = '';
+      const allQuests = this.getAllQuests();
+      const dayData = (state.data && state.data.quests && state.data.quests.dayQuests) || {};
+      const assignedIds = dayData[dayKey] || [];
+
+      allQuests.forEach(q => {
+        const isChecked = assignedIds.includes(q.id);
+        const item = document.createElement('label');
+        item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:8px; cursor:pointer;';
+        item.innerHTML = `
+          <input type="checkbox" value="${q.id}" ${isChecked ? 'checked' : ''} style="width:18px; height:18px; accent-color:#a855f7; cursor:pointer;">
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+              <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:#1e293b; color:#c084fc;">${q.categoryName || '도전과제'}</span>
+              <strong style="color:#fff; font-size:13px;">${q.title}</strong>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${q.description}</div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    if (modal) modal.classList.remove('hidden');
+    sound.playClick();
+  }
+
+  closeDayManageModal() {
+    const modal = document.getElementById('dayManageModal');
+    if (modal) modal.classList.add('hidden');
+    sound.playClick();
+  }
+
+  saveDayQuests() {
+    if (!this.managingDayKey) return;
+    const list = document.getElementById('dayManageQuestList');
+    if (!list) return;
+
+    const checkedInputs = list.querySelectorAll('input[type="checkbox"]:checked');
+    const checkedIds = Array.from(checkedInputs).map(cb => cb.value);
+
+    state.updateDayQuests(this.managingDayKey, checkedIds);
+    this.closeDayManageModal();
+    this.renderDayView();
+    if (typeof ui !== 'undefined' && ui.showToast) {
+      ui.showToast('✅ 요일 퀘스트 배정이 저장되었습니다!', 'success');
+    }
+  }
+
+  removeQuestFromDay(dayKey, questId) {
+    state.removeQuestFromDay(dayKey, questId);
+    this.renderDayView();
+    if (typeof ui !== 'undefined' && ui.showToast) {
+      ui.showToast('해당 요일에서 퀘스트가 제외되었습니다.', 'info');
     }
   }
 
@@ -237,7 +712,7 @@ class QuestManager {
       ui.showLevelUpModal(result.expResult);
     }
 
-    this.renderQuestList();
+    this.renderCurrentView();
     ui.updateHeaderAndStats();
     if (typeof ui !== 'undefined' && ui.renderAttendanceCalendar) {
       ui.renderAttendanceCalendar();

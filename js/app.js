@@ -7,13 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Support URL hash or query param navigation (e.g., index.html?tab=bossTab or #questTab)
   const params = new URLSearchParams(window.location.search);
   const hash = window.location.hash.replace('#', '');
-  const initialTab = params.get('tab') || hash;
+  const initialTab = params.get('tab') || hash.split('_')[0];
   if (initialTab && document.getElementById(initialTab)) {
     ui.switchTab(initialTab);
     const bossId = params.get('boss');
     if (initialTab === 'battleArena' && bossId) {
       battle.startBattle(bossId);
     }
+  }
+
+  const modeParam = params.get('mode') || (hash.includes('_') ? hash.split('_')[1] : null);
+  if (modeParam && ['all', 'folder', 'day'].includes(modeParam)) {
+    quests.setViewMode(modeParam);
   }
 
   const zoneParam = params.get('zone');

@@ -71,7 +71,33 @@ class GameState {
         progress: {},
         customQuests: [],
         deletedQuestIds: [],
-        history: {}
+        history: {},
+        folders: [
+          {
+            id: 'folder_growth',
+            name: '🌱 178cm 키 성장 루틴',
+            questIds: ['height_rope_1000', 'height_rope_2000', 'height_spine_stretch', 'height_golden_sleep', 'height_nutrition']
+          },
+          {
+            id: 'folder_study',
+            name: '📚 고2 수험 & 두뇌 집중',
+            questIds: ['study_pure_2h', 'study_pure_5h', 'study_wrong_notes', 'detox_night_phone']
+          },
+          {
+            id: 'folder_fitness',
+            name: '🔥 체력 & 코어 단련',
+            questIds: ['fitness_pushups_100', 'fitness_squats_150', 'fitness_running_3k', 'fitness_cold_shower']
+          }
+        ],
+        dayQuests: {
+          mon: ['height_rope_1000', 'height_spine_stretch', 'study_pure_2h', 'height_golden_sleep'],
+          tue: ['height_rope_2000', 'height_spine_stretch', 'detox_shorts_24h', 'height_golden_sleep'],
+          wed: ['height_rope_1000', 'fitness_pushups_100', 'study_pure_2h', 'height_nutrition'],
+          thu: ['height_rope_2000', 'height_spine_stretch', 'fitness_squats_150', 'height_golden_sleep'],
+          fri: ['height_rope_1000', 'detox_night_phone', 'study_pure_5h', 'height_golden_sleep'],
+          sat: ['height_rope_3500', 'fitness_running_3k', 'height_nutrition', 'fitness_cold_shower'],
+          sun: ['height_basketball_jumps', 'height_spine_stretch', 'study_wrong_notes', 'height_golden_sleep']
+        }
       },
       raid: {
         unlockedStage: 1, // Can progress from 1 to 50
@@ -143,7 +169,13 @@ class GameState {
         progress: (parsed.quests && parsed.quests.progress) || {},
         customQuests: (parsed.quests && parsed.quests.customQuests) || [],
         deletedQuestIds: (parsed.quests && parsed.quests.deletedQuestIds) || [],
-        history: (parsed.quests && parsed.quests.history) || {}
+        history: (parsed.quests && parsed.quests.history) || {},
+        folders: (parsed.quests && Array.isArray(parsed.quests.folders) && parsed.quests.folders.length > 0)
+          ? parsed.quests.folders
+          : def.quests.folders,
+        dayQuests: (parsed.quests && parsed.quests.dayQuests && typeof parsed.quests.dayQuests === 'object')
+          ? { ...def.quests.dayQuests, ...parsed.quests.dayQuests }
+          : def.quests.dayQuests
       },
       raid: {
         ...def.raid,
@@ -156,6 +188,20 @@ class GameState {
         ...(parsed.settings || {})
       }
     };
+    // Auto-repair legacy placeholder IDs in folders and dayQuests if present
+    if (this.data.quests.folders) {
+      const hasInvalidFolder = this.data.quests.folders.some(f => (f.questIds || []).some(id => id.startsWith('q_skip')));
+      if (hasInvalidFolder) {
+        this.data.quests.folders = def.quests.folders;
+      }
+    }
+    if (this.data.quests.dayQuests) {
+      const hasInvalidDay = Object.values(this.data.quests.dayQuests).some(list => (list || []).some(id => id.startsWith('q_skip')));
+      if (hasInvalidDay) {
+        this.data.quests.dayQuests = def.quests.dayQuests;
+      }
+    }
+
     // Convert any legacy freeStatPoints to gold as requested by user
     if (this.data.player.freeStatPoints && this.data.player.freeStatPoints > 0) {
       this.data.player.gold = (this.data.player.gold || 0) + (this.data.player.freeStatPoints * 300);
@@ -691,8 +737,64 @@ class GameState {
       delete this.data.quests.progress[questId];
     }
 
+    // Clean up from folders
+    if (this.data.quests.folders) {
+      this.data.quests.folders.forEach(f => {
+        if (f.questIds) f.questIds = f.questIds.filter(id => id !== questId);
+      });
+    }
+
+    // Clean up from dayQuests
+    if (this.data.quests.dayQuests) {
+      Object.keys(this.data.quests.dayQuests).forEach(day => {
+        this.data.quests.dayQuests[day] = this.data.quests.dayQuests[day].filter(id => id !== questId);
+      });
+    }
+
     this.save();
     return true;
+  }
+
+  // --- Folder Management Methods ---
+  createQuestFolder(folderName) {
+    if (!folderName || !folderName.trim()) return null;
+    if (!this.data.quests.folders) this.data.quests.folders = [];
+    const newFolder = {
+      id: 'folder_' + Date.now(),
+      name: folderName.trim(),
+      questIds: []
+    };
+    this.data.quests.folders.push(newFolder);
+    this.save();
+    return newFolder;
+  }
+
+  deleteQuestFolder(folderId) {
+    if (!this.data.quests.folders) return;
+    this.data.quests.folders = this.data.quests.folders.filter(f => f.id !== folderId);
+    this.save();
+  }
+
+  updateFolderQuests(folderId, questIds) {
+    if (!this.data.quests.folders) return;
+    const folder = this.data.quests.folders.find(f => f.id === folderId);
+    if (folder) {
+      folder.questIds = Array.isArray(questIds) ? [...questIds] : [];
+      this.save();
+    }
+  }
+
+  // --- Day-of-Week Quest Management Methods ---
+  updateDayQuests(dayKey, questIds) {
+    if (!this.data.quests.dayQuests) this.data.quests.dayQuests = {};
+    this.data.quests.dayQuests[dayKey] = Array.isArray(questIds) ? [...questIds] : [];
+    this.save();
+  }
+
+  removeQuestFromDay(dayKey, questId) {
+    if (!this.data.quests.dayQuests || !this.data.quests.dayQuests[dayKey]) return;
+    this.data.quests.dayQuests[dayKey] = this.data.quests.dayQuests[dayKey].filter(id => id !== questId);
+    this.save();
   }
 }
 
