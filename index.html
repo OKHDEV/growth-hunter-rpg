@@ -40,6 +40,7 @@
       <nav class="desktop-nav">
         <button class="nav-btn active" data-tab="statusTab"><span>상태창</span></button>
         <button class="nav-btn" data-tab="questTab"><span>일일 퀘스트</span></button>
+        <button class="nav-btn" data-tab="attendanceTab"><span>일일 출석</span></button>
         <button class="nav-btn" data-tab="bossTab"><span>50단계 보스</span></button>
         <button class="nav-btn" data-tab="inventoryTab"><span>인벤토리</span></button>
         <button class="nav-btn" data-tab="settingsTab"><span>설정</span></button>
@@ -232,28 +233,111 @@
         </div>
       </div>
 
-      <!-- Daily Attendance Calendar Section -->
-      <div class="attendance-calendar-card" id="attendanceCard">
-        <div class="attendance-header">
-          <div class="attendance-title-wrap">
-            <span class="attendance-icon" style="font-size:22px;">📅</span>
-            <div>
-              <h3 class="attendance-title">일일 수련 출석 달력</h3>
-              <p class="attendance-sub">최초 시작일(<span id="calStartDate">2026-10-27</span>)부터 오늘까지의 수련 체크 기록</p>
-            </div>
-          </div>
-          <div class="attendance-stats-pills">
-            <span class="att-pill">누적 <strong id="attTotalDays">1</strong>일</span>
-            <span class="att-pill streak">🔥 <strong id="attStreakDays">1</strong>일 연속 달성</span>
-            <span class="att-pill success">성공률 <strong id="attSuccessRate">100%</strong></span>
+      <!-- Quick Link Banner to Full Attendance Calendar -->
+      <div class="quest-att-banner" onclick="ui.switchTab('attendanceTab')">
+        <div class="att-banner-left">
+          <span class="att-banner-icon">📅</span>
+          <div>
+            <strong class="att-banner-title">오경호의 일일 출석 수련 달력 확인</strong>
+            <p class="att-banner-sub">최초 시작일부터 오늘까지의 퀘스트 달성 여부를 진짜 달력으로 보기</p>
           </div>
         </div>
-
-        <!-- Scrollable Day-by-Day Habit Timeline -->
-        <div class="attendance-days-scroll" id="attendanceDaysList"></div>
+        <button class="btn btn-sm btn-outline-cyan att-banner-btn">
+          출석 달력 열기 ➔
+        </button>
       </div>
 
       <div class="quest-grid" id="questList"></div>
+    </section>
+
+    <!-- ==================== TAB: DEDICATED ATTENDANCE CALENDAR ==================== -->
+    <section id="attendanceTab" class="tab-screen hidden">
+      <!-- Attendance Header -->
+      <div class="attendance-screen-header">
+        <div class="att-header-intro">
+          <h2 class="att-screen-title">📅 일일 수련 출석 달력</h2>
+          <p class="att-screen-sub">
+            최초 시작일(<strong id="attDisplayStartDate" style="color:var(--cyan-neon);">2026-10-27</strong>)부터 오늘까지의 일일 퀘스트 수행 기록을 진짜 달력으로 기록합니다.
+          </p>
+        </div>
+        <div class="att-view-mode-toggle">
+          <button class="btn btn-sm btn-outline-cyan active" id="btnCalMonthView" onclick="ui.setCalendarViewMode('month')">
+            📅 이번 달 달력
+          </button>
+          <button class="btn btn-sm btn-outline-cyan" id="btnCalScrollAll" onclick="ui.setCalendarViewMode('continuous')">
+            📜 전체 달력 쭈우욱 보기
+          </button>
+        </div>
+      </div>
+
+      <!-- Attendance Stats Metric Cards Grid -->
+      <div class="att-metrics-grid">
+        <div class="att-metric-card metric-streak">
+          <div class="m-icon">🔥</div>
+          <div class="m-info">
+            <span class="m-label">현재 연속 출석</span>
+            <strong class="m-val" id="attMetricStreak">1일</strong>
+          </div>
+        </div>
+        <div class="att-metric-card metric-success">
+          <div class="m-icon">✔️</div>
+          <div class="m-info">
+            <span class="m-label">수련 완수일 (성공)</span>
+            <strong class="m-val" id="attMetricDone">0일</strong>
+          </div>
+        </div>
+        <div class="att-metric-card metric-missed">
+          <div class="m-icon">❌</div>
+          <div class="m-info">
+            <span class="m-label">수련 미수행 (휴식)</span>
+            <strong class="m-val" id="attMetricMissed">0일</strong>
+          </div>
+        </div>
+        <div class="att-metric-card metric-rate">
+          <div class="m-icon">📊</div>
+          <div class="m-info">
+            <span class="m-label">출석 성공률</span>
+            <strong class="m-val" id="attMetricRate">0%</strong>
+          </div>
+        </div>
+        <div class="att-metric-card metric-total">
+          <div class="m-icon">⚡</div>
+          <div class="m-info">
+            <span class="m-label">총 완수 퀘스트</span>
+            <strong class="m-val" id="attMetricTotalQuests">0개</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Month Navigation Toolbar (Shown in Month View) -->
+      <div class="cal-nav-toolbar" id="calNavToolbar">
+        <button class="btn btn-sm btn-outline-cyan" onclick="ui.changeCalendarMonth(-1)">
+          ◀ 이전 달
+        </button>
+        <div class="cal-current-month-display">
+          <h3 id="calCurrentMonthTitle" style="margin:0; font-size:18px; color:#fff;">2026년 10월</h3>
+          <span class="cal-month-badge" id="calMonthStatusBadge">수련 진행 중</span>
+        </div>
+        <button class="btn btn-sm btn-outline-cyan" onclick="ui.changeCalendarMonth(1)">
+          다음 달 ▶
+        </button>
+        <button class="btn btn-sm btn-secondary" onclick="ui.jumpToTodayCalendar()" style="margin-left: 6px;">
+          오늘로 이동
+        </button>
+      </div>
+
+      <!-- Calendar Legend -->
+      <div class="cal-legend-bar">
+        <div class="legend-item"><span class="legend-dot dot-success">✔️</span> 퀘스트 완료일 (N개 완료)</div>
+        <div class="legend-item"><span class="legend-dot dot-missed">❌</span> 퀘스트 미수행 (0개)</div>
+        <div class="legend-item"><span class="legend-dot dot-today">⏳</span> 오늘 진행 중</div>
+        <div class="legend-item"><span class="legend-dot dot-before">🔒</span> 시작일 이전 / 미래</div>
+      </div>
+
+      <!-- Real Calendar Month Grid / Continuous Scroll Wrapper -->
+      <div class="calendar-render-stage" id="calendarRenderStage">
+        <!-- Rendered dynamically by ui.renderAttendanceCalendar() -->
+      </div>
     </section>
 
     <!-- ==================== TAB 3: 50 BOSS STAGE SELECT ==================== -->
@@ -485,13 +569,17 @@
       <span class="icon">📜</span>
       <span>퀘스트</span>
     </button>
+    <button class="mobile-nav-btn" data-tab="attendanceTab">
+      <span class="icon">📅</span>
+      <span>출석부</span>
+    </button>
     <button class="mobile-nav-btn" data-tab="bossTab">
       <span class="icon">⚔️</span>
       <span>50보스</span>
     </button>
     <button class="mobile-nav-btn" data-tab="inventoryTab">
       <span class="icon">🎒</span>
-      <span>인벤토리</span>
+      <span>가방</span>
     </button>
     <button class="mobile-nav-btn" data-tab="settingsTab">
       <span class="icon">⚙️</span>

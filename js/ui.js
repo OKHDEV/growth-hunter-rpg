@@ -3,6 +3,9 @@ class UIManager {
   constructor() {
     this.currentTab = 'statusTab';
     this.currentBossZone = 1;
+    this.currentCalYear = new Date().getFullYear();
+    this.currentCalMonth = new Date().getMonth();
+    this.calendarViewMode = 'month';
     this.particleCanvas = null;
     this.particleCtx = null;
     this.particles = [];
@@ -145,10 +148,8 @@ class UIManager {
     }
 
     if (tabId === 'statusTab') this.updateHeaderAndStats();
-    if (tabId === 'questTab') {
-      quests.renderQuestList();
-      this.renderAttendanceCalendar();
-    }
+    if (tabId === 'questTab') quests.renderQuestList();
+    if (tabId === 'attendanceTab') this.renderAttendanceCalendar();
     if (tabId === 'bossTab') this.renderBossStageCards();
     if (tabId === 'inventoryTab') this.renderInventory();
   }
@@ -251,33 +252,236 @@ class UIManager {
     this.renderInventory();
   }
 
-  // --- Daily Attendance Calendar ---
+  // --- Dedicated True Attendance Calendar (진짜 달력 & 쭈우욱 달력) ---
+
+  setCalendarViewMode(mode) {
+    this.calendarViewMode = mode;
+    sound.playClick();
+    const btnMonth = document.getElementById('btnCalMonthView');
+    const btnCont = document.getElementById('btnCalScrollAll');
+    const toolbar = document.getElementById('calNavToolbar');
+
+    if (btnMonth && btnCont) {
+      if (mode === 'month') {
+        btnMonth.classList.add('active');
+        btnCont.classList.remove('active');
+        if (toolbar) toolbar.style.display = 'flex';
+      } else {
+        btnCont.classList.add('active');
+        btnMonth.classList.remove('active');
+        if (toolbar) toolbar.style.display = 'none';
+      }
+    }
+    this.renderAttendanceCalendar();
+  }
+
+  changeCalendarMonth(delta) {
+    sound.playClick();
+    this.currentCalMonth += delta;
+    if (this.currentCalMonth < 0) {
+      this.currentCalMonth = 11;
+      this.currentCalYear--;
+    } else if (this.currentCalMonth > 11) {
+      this.currentCalMonth = 0;
+      this.currentCalYear++;
+    }
+    this.renderAttendanceCalendar();
+  }
+
+  jumpToTodayCalendar() {
+    sound.playClick();
+    const now = new Date();
+    this.currentCalYear = now.getFullYear();
+    this.currentCalMonth = now.getMonth();
+    this.calendarViewMode = 'month';
+    const btnMonth = document.getElementById('btnCalMonthView');
+    const btnCont = document.getElementById('btnCalScrollAll');
+    const toolbar = document.getElementById('calNavToolbar');
+    if (btnMonth && btnCont) {
+      btnMonth.classList.add('active');
+      btnCont.classList.remove('active');
+      if (toolbar) toolbar.style.display = 'flex';
+    }
+    this.renderAttendanceCalendar();
+  }
+
+  showDayDetails(dateStr) {
+    sound.playClick();
+    const questsData = state.data.quests;
+    const todayStr = getLocalDateString();
+    const isToday = (dateStr === todayStr);
+    const count = isToday 
+      ? Object.keys(questsData.completedToday || {}).length 
+      : (questsData.history[dateStr] || 0);
+
+    const parts = dateStr.split('-');
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    const dow = ['일', '월', '화', '수', '목', '금', '토'][new Date(y, m - 1, d).getDay()];
+    const label = `${y}년 ${m}월 ${d}일 (${dow})`;
+
+    if (dateStr < questsData.startDate) {
+      ui.showToast(`🔒 ${label} : 각성 프로젝트 시작 전 날짜입니다.`);
+    } else if (isToday) {
+      if (count > 0) {
+        ui.showToast(`✨ ${label} [오늘] : 일일 퀘스트 ${count}개 완수 완료!`, "success");
+      } else {
+        ui.showToast(`⏳ ${label} [오늘] : 오늘 퀘스트를 완료해 출석 체크를 달성하세요!`);
+      }
+    } else if (dateStr > todayStr) {
+      ui.showToast(`🗓️ ${label} : 예정된 미래의 각성 수련일입니다.`);
+    } else {
+      if (count > 0) {
+        ui.showToast(`✔️ ${label} : 일일 퀘스트 ${count}개 완수 성공!`, "success");
+      } else {
+        ui.showToast(`❌ ${label} : 일일 퀘스트 미수행 (휴식일)`, "warning");
+      }
+    }
+  }
+
+  renderMonthCard(year, month) {
+    const questsData = state.data.quests;
+    const todayStr = getLocalDateString();
+    const todayCompletedCount = Object.keys(questsData.completedToday || {}).length;
+    questsData.history[todayStr] = todayCompletedCount;
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0: Sun, 1: Mon, ...
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const monthNames = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+
+    let html = `
+      <div class="cal-month-card">
+        <div class="cal-month-header-banner">
+          <h4>📅 ${year}년 ${monthNames[month]}</h4>
+          <span class="cal-month-summary-tag">총 ${totalDaysInMonth}일</span>
+        </div>
+        <div class="cal-weekday-grid">
+          <span class="weekday-sun">일</span>
+          <span>월</span>
+          <span>화</span>
+          <span>수</span>
+          <span>목</span>
+          <span>금</span>
+          <span class="weekday-sat">토</span>
+        </div>
+        <div class="cal-days-grid">
+    `;
+
+    // Padding cells from previous month
+    for (let i = 0; i < firstDayIndex; i++) {
+      const prevDay = prevMonthDays - firstDayIndex + 1 + i;
+      html += `<div class="cal-day-cell pad-cell"><span class="cal-cell-num">${prevDay}</span></div>`;
+    }
+
+    // Days in current month
+    for (let day = 1; day <= totalDaysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dow = new Date(year, month, day).getDay();
+      const isToday = (dateStr === todayStr);
+      const isSun = (dow === 0);
+      const isSat = (dow === 6);
+      const count = isToday ? todayCompletedCount : (questsData.history[dateStr] || 0);
+
+      let cellClass = `cal-day-cell ${isSun ? 'sun' : ''} ${isSat ? 'sat' : ''}`;
+      let cellBody = '';
+
+      if (dateStr < questsData.startDate) {
+        cellClass += ' cell-before-start';
+        cellBody = `
+          <div class="cal-cell-top"><span class="cal-cell-num">${day}</span></div>
+          <div class="cal-cell-body"><span class="cal-count-badge muted">시작 전</span></div>
+        `;
+      } else if (isToday) {
+        cellClass += ` cell-today ${count > 0 ? 'cell-success' : ''}`;
+        cellBody = `
+          <div class="cal-cell-top">
+            <span class="cal-cell-num">${day}</span>
+            <span class="cal-today-pill">오늘</span>
+          </div>
+          <div class="cal-cell-body">
+            ${count > 0 
+              ? `<span class="cal-mark-icon success">✔️</span><span class="cal-count-badge success">${count}개 완료</span>`
+              : `<span class="cal-mark-icon pending">⏳</span><span class="cal-count-badge pending">0개 (진행중)</span>`
+            }
+          </div>
+        `;
+      } else if (dateStr > todayStr) {
+        cellClass += ' cell-future';
+        cellBody = `
+          <div class="cal-cell-top"><span class="cal-cell-num">${day}</span></div>
+          <div class="cal-cell-body"><span class="cal-count-badge muted">-</span></div>
+        `;
+      } else {
+        // Past day between startDate and yesterday
+        if (count > 0) {
+          cellClass += ' cell-success';
+          cellBody = `
+            <div class="cal-cell-top"><span class="cal-cell-num">${day}</span></div>
+            <div class="cal-cell-body">
+              <span class="cal-mark-icon success">✔️</span>
+              <span class="cal-count-badge success">${count}개 완료</span>
+            </div>
+          `;
+        } else {
+          cellClass += ' cell-missed';
+          cellBody = `
+            <div class="cal-cell-top"><span class="cal-cell-num">${day}</span></div>
+            <div class="cal-cell-body">
+              <span class="cal-mark-icon missed">❌</span>
+              <span class="cal-count-badge missed">미수행</span>
+            </div>
+          `;
+        }
+      }
+
+      html += `<div class="${cellClass}" onclick="ui.showDayDetails('${dateStr}')">${cellBody}</div>`;
+    }
+
+    // Padding slots for remaining days of the week
+    const totalSlots = firstDayIndex + totalDaysInMonth;
+    const remainingSlots = (7 - (totalSlots % 7)) % 7;
+    for (let j = 1; j <= remainingSlots; j++) {
+      html += `<div class="cal-day-cell pad-cell"><span class="cal-cell-num">${j}</span></div>`;
+    }
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    return html;
+  }
 
   renderAttendanceCalendar() {
-    const listEl = document.getElementById('attendanceDaysList');
-    if (!listEl) return;
-
-    const streakEl = document.getElementById('attStreakDays');
-    const totalEl = document.getElementById('attTotalDays');
-    const rateEl = document.getElementById('attSuccessRate');
+    const stage = document.getElementById('calendarRenderStage');
+    if (!stage) return;
 
     const questsData = state.data.quests;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getLocalDateString();
 
     if (!questsData.startDate) {
       questsData.startDate = todayStr;
     }
 
-    // Align startDate for existing players with multi-day streaks
+    // Align startDate for existing players with streak > 1
     if (questsData.dailyStreak > 1 && questsData.startDate === todayStr) {
       const past = new Date();
       past.setDate(past.getDate() - (questsData.dailyStreak - 1));
-      questsData.startDate = past.toISOString().slice(0, 10);
+      const py = past.getFullYear();
+      const pm = String(past.getMonth() + 1).padStart(2, '0');
+      const pd = String(past.getDate()).padStart(2, '0');
+      questsData.startDate = `${py}-${pm}-${pd}`;
       if (!questsData.history) questsData.history = {};
       for (let i = 1; i < questsData.dailyStreak; i++) {
         const d = new Date();
         d.setDate(d.getDate() - i);
-        const dStr = d.toISOString().slice(0, 10);
+        const dy = d.getFullYear();
+        const dm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dStr = `${dy}-${dm}-${dd}`;
         if (!questsData.history[dStr]) {
           questsData.history[dStr] = 3;
         }
@@ -286,83 +490,103 @@ class UIManager {
 
     if (!questsData.history) questsData.history = {};
 
-    // Generate date sequence from startDate to today
-    const dates = [];
-    const startObj = new Date(questsData.startDate + 'T00:00:00');
-    const todayObj = new Date(todayStr + 'T00:00:00');
-
-    if (isNaN(startObj.getTime()) || startObj > todayObj) {
-      dates.push(todayStr);
-    } else {
-      const cur = new Date(startObj);
-      while (cur <= todayObj) {
-        dates.push(cur.toISOString().slice(0, 10));
-        cur.setDate(cur.getDate() + 1);
-      }
-    }
-
     const todayCompletedCount = Object.keys(questsData.completedToday || {}).length;
     questsData.history[todayStr] = todayCompletedCount;
 
-    let completedDaysCount = 0;
-    const dayOfWeekNames = ['일', '월', '화', '수', '목', '금', '토'];
+    // Calculate overall stats from startDate to today
+    const startObj = new Date(questsData.startDate + 'T00:00:00');
+    const todayObj = new Date(todayStr + 'T00:00:00');
 
-    listEl.innerHTML = '';
+    let totalTrackedDays = 0;
+    let doneDays = 0;
+    let missedDays = 0;
+    let totalCompletedQuestsCount = 0;
 
-    dates.forEach(dStr => {
-      const isToday = (dStr === todayStr);
-      const count = isToday ? todayCompletedCount : (questsData.history[dStr] || 0);
+    if (!isNaN(startObj.getTime()) && startObj <= todayObj) {
+      const cur = new Date(startObj);
+      while (cur <= todayObj) {
+        totalTrackedDays++;
+        const cy = cur.getFullYear();
+        const cm = String(cur.getMonth() + 1).padStart(2, '0');
+        const cd = String(cur.getDate()).padStart(2, '0');
+        const cStr = `${cy}-${cm}-${cd}`;
+        const cnt = (cStr === todayStr) ? todayCompletedCount : (questsData.history[cStr] || 0);
 
-      const parts = dStr.split('-');
-      const month = parseInt(parts[1], 10);
-      const day = parseInt(parts[2], 10);
-      const dayDateObj = new Date(dStr + 'T00:00:00');
-      const dow = dayOfWeekNames[dayDateObj.getDay()] || '';
-
-      const card = document.createElement('div');
-
-      if (count > 0) {
-        completedDaysCount++;
-        card.className = `att-day-card day-completed ${isToday ? 'day-today' : ''}`;
-        card.innerHTML = `
-          <span class="att-day-date">${month}.${day} (${dow})${isToday ? ' <b style="color:#00e5ff;">[오늘]</b>' : ''}</span>
-          <div class="att-day-mark" style="color:#10b981;">✔️</div>
-          <div class="att-day-status" style="color:#34d399;">${count}개 완료</div>
-          <small style="font-size:10px; color:#94a3b8;">수련 완수</small>
-        `;
-      } else {
-        if (isToday) {
-          card.className = `att-day-card day-today`;
-          card.innerHTML = `
-            <span class="att-day-date">${month}.${day} (${dow}) <b style="color:#00e5ff;">[오늘]</b></span>
-            <div class="att-day-mark" style="color:#f59e0b;">⏳</div>
-            <div class="att-day-status" style="color:#fbbf24;">진행 중 (0개)</div>
-            <small style="font-size:10px; color:#cbd5e1;">퀘스트 도전</small>
-          `;
-        } else {
-          card.className = `att-day-card day-missed`;
-          card.innerHTML = `
-            <span class="att-day-date">${month}.${day} (${dow})</span>
-            <div class="att-day-mark" style="color:#ef4444;">❌</div>
-            <div class="att-day-status" style="color:#f87171;">미수행</div>
-            <small style="font-size:10px; color:#64748b;">수련 휴식</small>
-          `;
+        if (cnt > 0) {
+          doneDays++;
+          totalCompletedQuestsCount += cnt;
+        } else if (cStr < todayStr) {
+          missedDays++;
         }
+        cur.setDate(cur.getDate() + 1);
       }
-      listEl.appendChild(card);
-    });
-
-    if (streakEl) streakEl.textContent = `${questsData.dailyStreak}`;
-    if (totalEl) totalEl.textContent = `${completedDaysCount}`;
-    if (rateEl) {
-      const rate = dates.length > 0 ? Math.round((completedDaysCount / dates.length) * 100) : 0;
-      rateEl.textContent = `${rate}%`;
+    } else {
+      totalTrackedDays = 1;
+      if (todayCompletedCount > 0) {
+        doneDays = 1;
+        totalCompletedQuestsCount = todayCompletedCount;
+      }
     }
 
-    // Scroll to the latest day automatically
-    requestAnimationFrame(() => {
-      listEl.scrollLeft = listEl.scrollWidth;
-    });
+    const rate = totalTrackedDays > 0 ? Math.round((doneDays / totalTrackedDays) * 100) : 0;
+
+    // Update UI Metric Elements
+    const startDisp = document.getElementById('attDisplayStartDate');
+    const metricStreak = document.getElementById('attMetricStreak');
+    const metricDone = document.getElementById('attMetricDone');
+    const metricMissed = document.getElementById('attMetricMissed');
+    const metricRate = document.getElementById('attMetricRate');
+    const metricTotal = document.getElementById('attMetricTotalQuests');
+
+    if (startDisp) startDisp.textContent = questsData.startDate;
+    if (metricStreak) metricStreak.textContent = `${questsData.dailyStreak}일`;
+    if (metricDone) metricDone.textContent = `${doneDays}일`;
+    if (metricMissed) metricMissed.textContent = `${missedDays}일`;
+    if (metricRate) metricRate.textContent = `${rate}%`;
+    if (metricTotal) metricTotal.textContent = `${totalCompletedQuestsCount}개`;
+
+    // Render Calendar
+    if (this.calendarViewMode === 'month') {
+      const monthTitle = document.getElementById('calCurrentMonthTitle');
+      const monthBadge = document.getElementById('calMonthStatusBadge');
+      if (monthTitle) {
+        monthTitle.textContent = `${this.currentCalYear}년 ${this.currentCalMonth + 1}월`;
+      }
+      const now = new Date();
+      if (monthBadge) {
+        if (this.currentCalYear === now.getFullYear() && this.currentCalMonth === now.getMonth()) {
+          monthBadge.textContent = '이번 달 (진행 중)';
+          monthBadge.style.display = 'inline-block';
+        } else if (this.currentCalYear < now.getFullYear() || (this.currentCalYear === now.getFullYear() && this.currentCalMonth < now.getMonth())) {
+          monthBadge.textContent = '지난 달';
+          monthBadge.style.display = 'inline-block';
+        } else {
+          monthBadge.textContent = '예정된 달';
+          monthBadge.style.display = 'inline-block';
+        }
+      }
+      stage.innerHTML = this.renderMonthCard(this.currentCalYear, this.currentCalMonth);
+    } else {
+      // Continuous Scroll View ("전체 달력 쭈우욱 보기")
+      let startY = startObj.getFullYear();
+      let startM = startObj.getMonth();
+      const curY = todayObj.getFullYear();
+      const curM = todayObj.getMonth();
+
+      let monthsHtml = '';
+      let tempY = startY;
+      let tempM = startM;
+
+      while (tempY < curY || (tempY === curY && tempM <= curM)) {
+        monthsHtml += this.renderMonthCard(tempY, tempM);
+        tempM++;
+        if (tempM > 11) {
+          tempM = 0;
+          tempY++;
+        }
+      }
+      stage.innerHTML = monthsHtml;
+    }
   }
 
   // --- 50 Boss Stages UI with Zone Selector ---

@@ -582,124 +582,376 @@ body {
   font-size: 11px;
 }
 
-/* Daily Attendance Calendar Card */
-.attendance-calendar-card {
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--bg-card-border);
+/* Quick Link Banner in Quest Tab */
+.quest-att-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(0, 229, 255, 0.12));
+  border: 1px solid rgba(0, 229, 255, 0.35);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: 14px 18px;
   margin-bottom: 20px;
-}
-
-.attendance-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.attendance-title-wrap {
+.quest-att-banner:hover {
+  transform: translateY(-2px);
+  border-color: var(--cyan-neon);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+}
+
+.att-banner-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.attendance-title {
+.att-banner-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.att-banner-title {
   font-size: 15px;
   font-weight: 800;
   color: #fff;
-  margin: 0;
+  display: block;
 }
 
-.attendance-sub {
+.att-banner-sub {
   font-size: 11px;
   color: var(--text-muted);
   margin: 2px 0 0 0;
 }
 
-.attendance-stats-pills {
+.att-banner-btn {
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Dedicated Tab: Attendance Calendar */
+.attendance-screen-header {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.att-pill {
-  padding: 4px 8px;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  font-size: 11px;
-  color: #cbd5e1;
-}
-
-.att-pill.streak {
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
-}
-
-.att-pill.success {
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #34d399;
-}
-
-.attendance-days-scroll {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 6px 2px 10px 2px;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
-}
-
-.att-day-card {
-  flex: 0 0 100px;
-  background: #0a0e1a;
-  border: 1px solid #1e293b;
-  border-radius: var(--radius-sm);
-  padding: 10px 8px;
-  display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  text-align: center;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.att-screen-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.att-screen-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+}
+
+.att-view-mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.att-view-mode-toggle .btn.active {
+  background: var(--cyan-neon);
+  color: #000;
+  border-color: var(--cyan-neon);
+  font-weight: 800;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.4);
+}
+
+/* 5 Metrics Cards Grid */
+.att-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.att-metric-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   transition: all 0.2s;
 }
 
-.att-day-card.day-completed {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.08);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
-}
-
-.att-day-card.day-missed {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
-}
-
-.att-day-card.day-today {
-  border-color: var(--cyan-neon);
-  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
-}
-
-.att-day-date {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.att-day-mark {
+.att-metric-card .m-icon {
   font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.att-metric-card .m-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.att-metric-card .m-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.att-metric-card .m-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.att-metric-card.metric-streak { border-color: rgba(245, 158, 11, 0.4); }
+.att-metric-card.metric-streak .m-val { color: #fbbf24; }
+.att-metric-card.metric-success { border-color: rgba(16, 185, 129, 0.4); }
+.att-metric-card.metric-success .m-val { color: #34d399; }
+.att-metric-card.metric-missed { border-color: rgba(239, 68, 68, 0.4); }
+.att-metric-card.metric-missed .m-val { color: #f87171; }
+.att-metric-card.metric-rate { border-color: rgba(0, 229, 255, 0.4); }
+.att-metric-card.metric-rate .m-val { color: var(--cyan-neon); }
+.att-metric-card.metric-total { border-color: rgba(168, 85, 247, 0.4); }
+.att-metric-card.metric-total .m-val { color: #c084fc; }
+
+/* Calendar Navigation Toolbar */
+.cal-nav-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  margin-bottom: 14px;
+}
+
+.cal-current-month-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cal-month-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(0, 229, 255, 0.15);
+  color: var(--cyan-neon);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+}
+
+/* Legend Bar */
+.cal-legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  font-size: 13px;
   line-height: 1;
 }
 
-.att-day-status {
+/* Real Month Calendar Card */
+.cal-month-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.cal-month-header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cal-month-header-banner h4 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.cal-month-summary-tag {
   font-size: 11px;
+  color: #94a3b8;
+}
+
+/* 7-column Weekday Header */
+.cal-weekday-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cal-weekday-grid .weekday-sun { color: #f87171; }
+.cal-weekday-grid .weekday-sat { color: #60a5fa; }
+.cal-weekday-grid span { color: #94a3b8; }
+
+/* 7-column Calendar Days Grid */
+.cal-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+/* Individual Calendar Day Cell */
+.cal-day-cell {
+  background: #090d16;
+  border: 1px solid #1e293b;
+  border-radius: var(--radius-sm);
+  min-height: 82px;
+  padding: 6px 6px 8px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  user-select: none;
+}
+
+.cal-day-cell:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.cal-day-cell.pad-cell {
+  opacity: 0.18;
+  pointer-events: none;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.03);
+}
+
+.cal-day-cell.cell-before-start {
+  opacity: 0.35;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.cal-day-cell.cell-future {
+  opacity: 0.55;
+  background: rgba(15, 23, 42, 0.3);
+}
+
+/* Completed Day (✔️ N개 완료) */
+.cal-day-cell.cell-success {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.12), 0 0 10px rgba(16, 185, 129, 0.18);
+}
+
+/* Missed Day (❌ 미수행) */
+.cal-day-cell.cell-missed {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.09);
+  box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.1);
+}
+
+/* Today (⏳ or ✔️ with Neon Cyan Pulsing Border) */
+.cal-day-cell.cell-today {
+  border-color: var(--cyan-neon) !important;
+  background: rgba(0, 229, 255, 0.08) !important;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.4) !important;
+}
+
+/* Cell Internal Structure */
+.cal-cell-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.cal-cell-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+.cal-day-cell.sun .cal-cell-num { color: #f87171; }
+.cal-day-cell.sat .cal-cell-num { color: #60a5fa; }
+
+.cal-today-pill {
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1px 4px;
+  background: var(--cyan-neon);
+  color: #000;
+  border-radius: 4px;
+  line-height: 1.1;
+}
+
+.cal-cell-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  margin-top: 4px;
+}
+
+.cal-mark-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cal-mark-icon.success { color: #10b981; }
+.cal-mark-icon.missed { color: #ef4444; }
+.cal-mark-icon.pending { color: #fbbf24; }
+
+.cal-count-badge {
+  font-size: 10px;
   font-weight: 800;
   white-space: nowrap;
+  text-align: center;
 }
+
+.cal-count-badge.success { color: #34d399; }
+.cal-count-badge.missed { color: #f87171; }
+.cal-count-badge.pending { color: #fbbf24; }
+.cal-count-badge.muted { color: #64748b; font-size: 9px; }
 
 .cat-tabs-scroll {
   display: flex;

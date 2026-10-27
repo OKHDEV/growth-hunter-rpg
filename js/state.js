@@ -1,4 +1,12 @@
 // Game State & Persistence Manager: High School 2nd Grade (173cm -> 178cm)
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 class GameState {
   constructor() {
     this.STORAGE_KEY = 'awakened_hunter_save_v2';
@@ -57,8 +65,8 @@ class GameState {
       },
       quests: {
         dailyStreak: 1,
-        startDate: new Date().toISOString().slice(0, 10),
-        lastActiveDate: new Date().toISOString().slice(0, 10),
+        startDate: getLocalDateString(),
+        lastActiveDate: getLocalDateString(),
         completedToday: {},
         progress: {},
         customQuests: [],
@@ -269,10 +277,10 @@ class GameState {
   }
 
   checkDailyReset() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateString();
     if (this.data.quests.lastActiveDate !== today) {
-      const lastDate = new Date(this.data.quests.lastActiveDate);
-      const currentDate = new Date(today);
+      const lastDate = new Date(this.data.quests.lastActiveDate + 'T00:00:00');
+      const currentDate = new Date(today + 'T00:00:00');
       const diffDays = Math.round((currentDate - lastDate) / (1000 * 60 * 60 * 24));
 
       // Record yesterday's total completion count in history
@@ -281,14 +289,26 @@ class GameState {
       if (!this.data.quests.history) this.data.quests.history = {};
       this.data.quests.history[prevDate] = completedCount;
 
-      if (diffDays === 1) {
+      if (diffDays > 1) {
+        // Fill skipped days with 0 in history
+        for (let i = 1; i < diffDays; i++) {
+          const missedDate = new Date(lastDate);
+          missedDate.setDate(missedDate.getDate() + i);
+          const y = missedDate.getFullYear();
+          const m = String(missedDate.getMonth() + 1).padStart(2, '0');
+          const d = String(missedDate.getDate()).padStart(2, '0');
+          const missedStr = `${y}-${m}-${d}`;
+          if (this.data.quests.history[missedStr] === undefined) {
+            this.data.quests.history[missedStr] = 0;
+          }
+        }
+        this.data.quests.dailyStreak = 0;
+      } else if (diffDays === 1) {
         if (completedCount > 0) {
           this.data.quests.dailyStreak += 1;
         } else {
-          this.data.quests.dailyStreak = 1;
+          this.data.quests.dailyStreak = 0;
         }
-      } else if (diffDays > 1) {
-        this.data.quests.dailyStreak = 1;
       }
 
       this.data.quests.lastActiveDate = today;
@@ -490,7 +510,7 @@ class GameState {
     }
 
     this.data.quests.completedToday[questId] = true;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateString();
     if (!this.data.quests.history) this.data.quests.history = {};
     this.data.quests.history[today] = Object.keys(this.data.quests.completedToday).length;
 

@@ -309,6 +309,96 @@ body.in-battle .app-container {
     font-size: 12px;
     padding: 10px 14px;
   }
+
+  /* Mobile Dedicated Attendance Calendar */
+  .attendance-screen-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .att-view-mode-toggle {
+    width: 100%;
+  }
+
+  .att-view-mode-toggle .btn {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    padding: 6px 4px;
+  }
+
+  .att-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .att-metric-card {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .att-metric-card .m-icon {
+    font-size: 18px;
+  }
+
+  .att-metric-card .m-val {
+    font-size: 13px;
+  }
+
+  .cal-nav-toolbar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .cal-current-month-display h3 {
+    font-size: 15px !important;
+  }
+
+  .cal-month-card {
+    padding: 10px 8px;
+    margin-bottom: 16px;
+  }
+
+  .cal-weekday-grid {
+    gap: 2px;
+    font-size: 10px;
+  }
+
+  .cal-days-grid {
+    gap: 3px;
+  }
+
+  .cal-day-cell {
+    min-height: 52px;
+    padding: 3px 2px 4px 2px;
+    border-radius: 4px;
+  }
+
+  .cal-cell-num {
+    font-size: 10px;
+  }
+
+  .cal-today-pill {
+    font-size: 7px;
+    padding: 1px 3px;
+  }
+
+  .cal-mark-icon {
+    font-size: 14px;
+  }
+
+  .cal-count-badge {
+    font-size: 8px;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+
+  .cal-legend-bar {
+    gap: 8px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
 }
 
 @media (max-width: 480px) {
