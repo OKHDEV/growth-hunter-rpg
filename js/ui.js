@@ -213,14 +213,16 @@ class UIManager {
     const hPct = targetGain > 0 ? Math.min(100, Math.max(0, (heightGain / targetGain) * 100)) : 100;
     if (heightProgress) heightProgress.style.width = `${hPct}%`;
 
-    if (freePoints) freePoints.textContent = p.freeStatPoints;
+    const panelGold = document.getElementById('statPanelGold');
+    if (panelGold) panelGold.textContent = p.gold.toLocaleString();
 
     document.querySelectorAll('.stat-row').forEach(row => {
       const statKey = row.dataset.stat;
       if (!statKey) return;
 
       const valEl = row.querySelector('.stat-val');
-      const addBtn = row.querySelector('.btn-add-stat');
+      const upBtn = row.querySelector('.btn-upgrade-stat');
+      const cost = state.getStatUpgradeCost ? state.getStatUpgradeCost(statKey) : 500;
 
       if (valEl) {
         const bonus = effective[statKey] - p.stats[statKey];
@@ -228,8 +230,19 @@ class UIManager {
           ? `${effective[statKey]} <span style="font-size:11px; opacity:0.8; font-weight:normal;">(+${bonus})</span>`
           : `${effective[statKey]}`;
       }
-      if (addBtn) {
-        addBtn.disabled = p.freeStatPoints <= 0;
+      if (upBtn) {
+        const canAfford = p.gold >= cost;
+        upBtn.disabled = !canAfford;
+        upBtn.innerHTML = `💰 ${cost.toLocaleString()} G 강화`;
+        if (canAfford) {
+          upBtn.className = 'btn-upgrade-stat btn btn-sm btn-primary';
+          upBtn.style.opacity = '1';
+          upBtn.style.cursor = 'pointer';
+        } else {
+          upBtn.className = 'btn-upgrade-stat btn btn-sm btn-secondary';
+          upBtn.style.opacity = '0.5';
+          upBtn.style.cursor = 'not-allowed';
+        }
       }
     });
 
@@ -254,6 +267,21 @@ class UIManager {
     this.renderAttendanceCalendar();
     this.renderBossStageCards();
     this.renderInventory();
+  }
+
+  upgradeStatWithGold(statKey) {
+    sound.playClick();
+    const res = state.upgradeStatWithGold(statKey);
+    if (!res || !res.success) {
+      sound.playDefeat();
+      this.showToast(`골드가 부족합니다! (필요: ${res.cost.toLocaleString()} G / 부족: ${res.needed.toLocaleString()} G)`, "error");
+      return;
+    }
+    sound.playLevelUp();
+    this.updateHeaderAndStats();
+    const statNames = { str: '근력 (STR)', int: '지능 (INT)', end: '체력 (END)', gro: '성장 잠재력 (GRO)' };
+    const label = statNames[statKey] || statKey.toUpperCase();
+    this.showToast(`💪 [${label}] +1 강화 성공! (-${res.cost.toLocaleString()} G)`, "success");
   }
 
   // --- Dedicated True Attendance Calendar (진짜 달력 & 쭈우욱 달력) ---
@@ -1088,16 +1116,12 @@ class UIManager {
     const closeProfileBtn = document.getElementById('btnCloseProfileModal');
     if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => this.closeProfileModal());
 
-    document.querySelectorAll('.btn-add-stat').forEach(btn => {
+    document.querySelectorAll('.btn-upgrade-stat, .btn-add-stat').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const row = e.target.closest('.stat-row');
-        const statKey = row.dataset.stat;
+        const statKey = row ? row.dataset.stat : null;
         if (statKey) {
-          sound.playClick();
-          const success = state.allocateStat(statKey, 1);
-          if (success) {
-            this.updateHeaderAndStats();
-          }
+          this.upgradeStatWithGold(statKey);
         }
       });
     });

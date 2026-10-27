@@ -491,77 +491,46 @@ class SoundEngine {
     this.bgmType = type;
     this.bgmStep = 0;
 
-    let tempo = 96;
-    if (type === 'battle') tempo = 144;
-    if (type === 'boss') tempo = 104; // Heavy, ominous epic march tempo
+    // Special: Dark Cinematic Boss Symphony
+    if (type === 'boss') {
+      this.startCinematicBossLoop();
+      return;
+    }
 
+    const tempo = type === 'battle' ? 144 : 96;
     const stepInterval = (60 / tempo / 2) * 1000;
 
     const battleBass = [55, 55, 65.41, 55, 73.42, 55, 65.41, 58.27];
     const ambientBass = [65.41, 65.41, 77.78, 65.41, 87.31, 87.31, 98.00, 77.78];
-    // Epic Grand Final Boss Chord Progression: C minor -> Ab major -> Bb major -> G minor
-    const bossBass = [
-      65.41, 65.41, 130.81, 65.41,   // C2, C2, C3, C2
-      51.91, 51.91, 103.83, 51.91,   // Ab1, Ab1, Ab2, Ab1
-      58.27, 58.27, 116.54, 58.27,   // Bb1, Bb1, Bb2, Bb1
-      49.00, 49.00, 98.00,  73.42    // G1, G1, G2, D2
-    ];
-    // Menacing brass / choir lead line for True Final Boss
-    const bossMelody = [
-      261.63, 0, 311.13, 0, 392.00, 0, 349.23, 311.13, // C4, Eb4, G4, F4, Eb4
-      207.65, 0, 261.63, 0, 311.13, 0, 261.63, 0,      // Ab3, C4, Eb4, C4
-      233.08, 0, 293.66, 0, 349.23, 0, 293.66, 0,      // Bb3, D4, F4, D4
-      196.00, 0, 246.94, 0, 293.66, 0, 392.00, 0       // G3, B3, D4, G4
-    ];
 
     this.bgmTimer = setInterval(() => {
       if (!this.bgmPlaying || this.isMuted || !this.ctx) return;
 
       const now = this.ctx.currentTime;
-      let bassSeq = ambientBass;
-      if (type === 'battle') bassSeq = battleBass;
-      if (type === 'boss') bassSeq = bossBass;
-
+      const bassSeq = type === 'battle' ? battleBass : ambientBass;
       const freq = bassSeq[this.bgmStep % bassSeq.length];
 
-      // Bass drone / synth note
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       const filter = this.ctx.createBiquadFilter();
 
-      osc.type = (type === 'boss' || type === 'battle') ? 'sawtooth' : 'triangle';
+      osc.type = type === 'battle' ? 'sawtooth' : 'triangle';
       osc.frequency.setValueAtTime(freq, now);
 
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(type === 'boss' ? 380 : (type === 'battle' ? 480 : 250), now);
+      filter.frequency.setValueAtTime(type === 'battle' ? 480 : 250, now);
 
-      gain.gain.setValueAtTime(this.volume * (type === 'boss' ? 0.16 : 0.12), now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + (type === 'boss' ? 0.28 : 0.2));
+      gain.gain.setValueAtTime(this.volume * 0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(now);
-      osc.stop(now + (type === 'boss' ? 0.28 : 0.2));
+      osc.stop(now + 0.2);
 
-      // Boss-specific War Drums & Grand Symphony Choir
-      if (type === 'boss') {
-        const stepIdx = this.bgmStep % 16;
-        // Deep War Drum / Timpani impact on main downbeats
-        if (stepIdx === 0 || stepIdx === 4 || stepIdx === 8 || stepIdx === 12) {
-          this.playBossWarDrum(now);
-        }
-        // Grand brass / choral harmonic lead
-        const melFreq = bossMelody[stepIdx];
-        if (melFreq > 0) {
-          this.playBossLeadNote(melFreq, now);
-        }
-        // Ticking battle pulse
-        if (this.bgmStep % 2 === 1) {
-          this.playHiHat(now);
-        }
-      } else if (type === 'battle' && this.bgmStep % 2 === 1) {
+      if (type === 'battle' && this.bgmStep % 2 === 1) {
         this.playHiHat(now);
       }
 
@@ -569,49 +538,204 @@ class SoundEngine {
     }, stepInterval);
   }
 
-  // Deep Ominous Boss War Drum
-  playBossWarDrum(now) {
+  // --- Grand Cinematic Dark Fantasy Boss Symphony (Zero Arcade Bleeps) ---
+  startCinematicBossLoop() {
+    // 82 BPM Epic March (16th note = 183ms)
+    const stepInterval = 183;
+
+    // Driving Gothic Cello Ostinato in D Minor (relentless tension)
+    const celloPattern = [
+      73.42, 73.42, 87.31, 73.42,  82.41, 73.42, 65.41, 55.00, // Bar 1 (Dm)
+      73.42, 73.42, 98.00, 73.42,  87.31, 73.42, 58.27, 55.00, // Bar 2 (Dm-Gm)
+      58.27, 58.27, 73.42, 58.27,  65.41, 58.27, 49.00, 43.65, // Bar 3 (Bb-F)
+      55.00, 55.00, 65.41, 55.00,  73.42, 82.41, 87.31, 110.00 // Bar 4 (A7-Dm)
+    ];
+
+    // Trigger an immediate apocalyptic low brass blast upon entering
+    const initialNow = this.ctx.currentTime;
+    this.playCinematicHornBraam(initialNow, 36.71); // Deep seismic D1
+
+    this.bgmTimer = setInterval(() => {
+      if (!this.bgmPlaying || this.isMuted || !this.ctx) return;
+      const now = this.ctx.currentTime;
+      const step16 = this.bgmStep % 16;
+      const step32 = this.bgmStep % 32;
+
+      // 1. Apocalyptic Cinematic Low Brass ("BRAAAM") on bar downbeats (step 0, 16)
+      if (step16 === 0) {
+        const root = (step32 === 0) ? 36.71 : (step32 === 16 ? 43.65 : 49.00); // D1, F1, G1
+        this.playCinematicHornBraam(now, root);
+      }
+
+      // 2. Heavy Orchestral War Drum (Taiko Impact) on main beats (step 0, 8)
+      if (step16 === 0 || step16 === 8) {
+        this.playCinematicWarDrum(now, step16 === 0);
+      }
+
+      // 3. Driving Gothic Cello Ostinato on every 16th note
+      const celloFreq = celloPattern[this.bgmStep % celloPattern.length];
+      this.playDrivingCelloOstinato(now, celloFreq);
+
+      // 4. Dark Gothic Cathedral Choir Swell every half bar (step 0, 8)
+      if (step16 === 0 || step16 === 8) {
+        const chordIndex = Math.floor((this.bgmStep % 32) / 8);
+        const chords = [
+          [110.00, 130.81, 164.81], // D minor
+          [98.00, 116.54, 146.83],  // G minor
+          [116.54, 146.83, 174.61], // Bb major
+          [110.00, 138.59, 164.81]  // A major
+        ];
+        this.playGothicChoirSwell(now, chords[chordIndex]);
+      }
+
+      this.bgmStep++;
+    }, stepInterval);
+  }
+
+  // Apocalyptic Low Brass Horn Blast (Hans Zimmer / Inception "BRAAAM")
+  playCinematicHornBraam(now, rootFreq) {
     if (!this.ctx) return;
+
+    // 4 Detuned Sawtooth Horn Oscillators + Sub Bass
+    const freqs = [
+      rootFreq,             // Sub fundamental
+      rootFreq * 2 * 0.996, // Detuned low brass 1
+      rootFreq * 2 * 1.004, // Detuned low brass 2
+      rootFreq * 3 * 0.998  // Fifth overtone
+    ];
+
+    const masterGain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    filter.type = 'lowpass';
+    filter.Q.value = 3.5; // Resonant brass bite
+    filter.frequency.setValueAtTime(620, now);
+    filter.frequency.exponentialRampToValueAtTime(140, now + 2.5);
+
+    masterGain.gain.setValueAtTime(0.001, now);
+    masterGain.gain.linearRampToValueAtTime(this.volume * 0.50, now + 0.06); // Punchy brass attack
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 2.7);
+
+    filter.connect(masterGain);
+    masterGain.connect(this.ctx.destination);
+
+    freqs.forEach((f, idx) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = (idx === 0) ? 'sine' : 'sawtooth';
+      osc.frequency.setValueAtTime(f, now);
+      osc.connect(filter);
+      osc.start(now);
+      osc.stop(now + 2.7);
+    });
+  }
+
+  // Deep Orchestral War Drum / Taiko Tremor
+  playCinematicWarDrum(now, isHeavy) {
+    if (!this.ctx) return;
+
+    // Component 1: Deep Sub-Bass Pitch Drop (Boom)
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(105, now);
-    osc.frequency.exponentialRampToValueAtTime(32, now + 0.38);
+    osc.frequency.setValueAtTime(isHeavy ? 75 : 60, now);
+    osc.frequency.exponentialRampToValueAtTime(22, now + 0.55);
 
-    gain.gain.setValueAtTime(this.volume * 0.45, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+    gain.gain.setValueAtTime(this.volume * (isHeavy ? 0.75 : 0.50), now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
 
     osc.connect(gain);
     gain.connect(this.ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.38);
+    osc.stop(now + 0.55);
+
+    // Component 2: Heavy Leather Drum Skin Acoustic Thud
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.08);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'bandpass';
+    noiseFilter.frequency.setValueAtTime(140, now);
+    noiseFilter.Q.value = 1.8;
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(this.volume * 0.40, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.ctx.destination);
+
+    noise.start(now);
   }
 
-  // Grand Ominous Boss Melodic Synth Lead
-  playBossLeadNote(freq, now) {
+  // Driving Gothic Cello Ostinato (Warm low strings with relentless combat drive)
+  playDrivingCelloOstinato(now, freq) {
     if (!this.ctx) return;
-    const osc = this.ctx.createOscillator();
+
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(freq, now);
+    osc1.type = 'sawtooth';
+    osc2.type = 'triangle';
+    osc1.frequency.setValueAtTime(freq, now);
+    osc2.frequency.setValueAtTime(freq * 0.998, now);
 
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(freq * 1.5, now);
-    filter.Q.value = 1.2;
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(280, now); // Warm woody cello tone
 
-    gain.gain.setValueAtTime(this.volume * 0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(this.volume * 0.16, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
-    osc.connect(filter);
+    osc1.connect(filter);
+    osc2.connect(filter);
     filter.connect(gain);
     gain.connect(this.ctx.destination);
 
-    osc.start(now);
-    osc.stop(now + 0.42);
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.15);
+    osc2.stop(now + 0.15);
+  }
+
+  // Dark Gothic Cathedral Choir Swell
+  playGothicChoirSwell(now, chordFreqs) {
+    if (!this.ctx) return;
+
+    chordFreqs.forEach(f => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, now);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(380, now);
+
+      // Choral swell envelope (smooth attack and long breath decay)
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(this.volume * 0.08, now + 0.28);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.35);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 1.35);
+    });
   }
 
   playHiHat(now) {

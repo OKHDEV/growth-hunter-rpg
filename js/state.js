@@ -41,11 +41,11 @@ class GameState {
         avatar: "assets/player/hunter.jpg",
         level: 1,
         exp: 0,
-        gold: 100,
+        gold: 500,
         baseHeight: 173.0,
         targetHeight: 178.0,
         growthPoints: 0,
-        freeStatPoints: 5,
+        freeStatPoints: 0,
         stats: {
           str: 14,
           int: 12,
@@ -156,6 +156,11 @@ class GameState {
         ...(parsed.settings || {})
       }
     };
+    // Convert any legacy freeStatPoints to gold as requested by user
+    if (this.data.player.freeStatPoints && this.data.player.freeStatPoints > 0) {
+      this.data.player.gold = (this.data.player.gold || 0) + (this.data.player.freeStatPoints * 300);
+      this.data.player.freeStatPoints = 0;
+    }
     this.data.quests.dailyStreak = this.getDailyStreak();
     if (triggerSave) {
       this.save();
@@ -482,10 +487,12 @@ class GameState {
     while (this.data.player.exp >= required) {
       this.data.player.exp -= required;
       this.data.player.level += 1;
-      this.data.player.freeStatPoints += 5;
       levelsGained += 1;
       leveledUp = true;
       required = this.getExpRequired(this.data.player.level);
+    }
+    if (levelsGained > 0) {
+      this.data.player.gold += 300 * levelsGained; // Level-up gold reward!
     }
 
     this.save();
@@ -516,14 +523,30 @@ class GameState {
     this.save();
   }
 
-  allocateStat(statKey, amount = 1) {
-    if (this.data.player.freeStatPoints >= amount && this.data.player.stats[statKey] !== undefined) {
-      this.data.player.freeStatPoints -= amount;
-      this.data.player.stats[statKey] += amount;
-      this.save();
-      return true;
+  getStatUpgradeCost(statKey) {
+    const cur = (this.data.player.stats && this.data.player.stats[statKey]) || 10;
+    const diff = Math.max(0, cur - 10);
+    // Expensive escalating gold formula for meaningful gold usage
+    return Math.round(350 * Math.pow(1.10, diff) + diff * 80);
+  }
+
+  upgradeStatWithGold(statKey) {
+    if (!this.data.player.stats || this.data.player.stats[statKey] === undefined) {
+      return { success: false, reason: 'invalid_stat' };
     }
-    return false;
+    const cost = this.getStatUpgradeCost(statKey);
+    if (this.data.player.gold < cost) {
+      return { success: false, reason: 'insufficient_gold', cost, needed: cost - this.data.player.gold };
+    }
+    this.data.player.gold -= cost;
+    this.data.player.stats[statKey] += 1;
+    this.save();
+    return { success: true, newStat: this.data.player.stats[statKey], cost, statKey };
+  }
+
+  allocateStat(statKey, amount = 1) {
+    const res = this.upgradeStatWithGold(statKey);
+    return res && res.success;
   }
 
   equipItem(item) {

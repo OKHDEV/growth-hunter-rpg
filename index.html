@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=20261028_02">
-  <link rel="stylesheet" href="css/battle.css?v=20261028_02">
-  <link rel="stylesheet" href="css/animations.css?v=20261028_02">
-  <link rel="stylesheet" href="css/mobile.css?v=20261028_02">
+  <link rel="stylesheet" href="css/style.css?v=20261028_07">
+  <link rel="stylesheet" href="css/battle.css?v=20261028_07">
+  <link rel="stylesheet" href="css/animations.css?v=20261028_07">
+  <link rel="stylesheet" href="css/mobile.css?v=20261028_07">
 </head>
 <body>
 
@@ -126,9 +126,9 @@
           <!-- Stat Point Allocation Card -->
           <div class="panel-card">
             <div class="panel-card-header">
-              <span class="panel-title">각성자 능력치 (스탯 배분)</span>
+              <span class="panel-title">각성자 신체 수련 (골드 스탯 강화)</span>
               <span style="font-size: 13px; color: var(--gold-mythic);">
-                잔여 포인트: <strong id="statFreePoints" style="font-size:16px;">5</strong> pt
+                보유 골드: 💰 <strong id="statPanelGold" style="font-size:16px; color:#fbbf24;">100</strong> G
               </span>
             </div>
             <div class="stats-table">
@@ -139,7 +139,7 @@
                 </div>
                 <div class="stat-action-right">
                   <span class="stat-val">14</span>
-                  <button class="btn-add-stat">+</button>
+                  <button class="btn-upgrade-stat btn btn-sm btn-primary" onclick="ui.upgradeStatWithGold('str')">💰 500 G 강화</button>
                 </div>
               </div>
 
@@ -150,7 +150,7 @@
                 </div>
                 <div class="stat-action-right">
                   <span class="stat-val">12</span>
-                  <button class="btn-add-stat">+</button>
+                  <button class="btn-upgrade-stat btn btn-sm btn-primary" onclick="ui.upgradeStatWithGold('int')">💰 500 G 강화</button>
                 </div>
               </div>
 
@@ -161,7 +161,7 @@
                 </div>
                 <div class="stat-action-right">
                   <span class="stat-val">14</span>
-                  <button class="btn-add-stat">+</button>
+                  <button class="btn-upgrade-stat btn btn-sm btn-primary" onclick="ui.upgradeStatWithGold('end')">💰 500 G 강화</button>
                 </div>
               </div>
 
@@ -172,7 +172,7 @@
                 </div>
                 <div class="stat-action-right">
                   <span class="stat-val" style="color:var(--green-growth)">15</span>
-                  <button class="btn-add-stat">+</button>
+                  <button class="btn-upgrade-stat btn btn-sm btn-primary" onclick="ui.upgradeStatWithGold('gro')">💰 500 G 강화</button>
                 </div>
               </div>
             </div>
@@ -935,12 +935,12 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261028_06"></script>
-  <script src="js/audio.js?v=20261028_06"></script>
-  <script src="js/state.js?v=20261028_06"></script>
-  <script src="js/battle.js?v=20261028_06"></script>
-  <script src="js/quests.js?v=20261028_06"></script>
-  <script src="js/ui.js?v=20261028_06"></script>
-  <script src="js/app.js?v=20261028_06"></script>
+  <script src="js/data.js?v=20261028_07"></script>
+  <script src="js/audio.js?v=20261028_07"></script>
+  <script src="js/state.js?v=20261028_07"></script>
+  <script src="js/battle.js?v=20261028_07"></script>
+  <script src="js/quests.js?v=20261028_07"></script>
+  <script src="js/ui.js?v=20261028_07"></script>
+  <script src="js/app.js?v=20261028_07"></script>
 </body>
 </html>
