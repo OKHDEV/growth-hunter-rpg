@@ -491,45 +491,127 @@ class SoundEngine {
     this.bgmType = type;
     this.bgmStep = 0;
 
-    const tempo = type === 'battle' ? 144 : 96;
+    let tempo = 96;
+    if (type === 'battle') tempo = 144;
+    if (type === 'boss') tempo = 104; // Heavy, ominous epic march tempo
+
     const stepInterval = (60 / tempo / 2) * 1000;
 
     const battleBass = [55, 55, 65.41, 55, 73.42, 55, 65.41, 58.27];
     const ambientBass = [65.41, 65.41, 77.78, 65.41, 87.31, 87.31, 98.00, 77.78];
+    // Epic Grand Final Boss Chord Progression: C minor -> Ab major -> Bb major -> G minor
+    const bossBass = [
+      65.41, 65.41, 130.81, 65.41,   // C2, C2, C3, C2
+      51.91, 51.91, 103.83, 51.91,   // Ab1, Ab1, Ab2, Ab1
+      58.27, 58.27, 116.54, 58.27,   // Bb1, Bb1, Bb2, Bb1
+      49.00, 49.00, 98.00,  73.42    // G1, G1, G2, D2
+    ];
+    // Menacing brass / choir lead line for True Final Boss
+    const bossMelody = [
+      261.63, 0, 311.13, 0, 392.00, 0, 349.23, 311.13, // C4, Eb4, G4, F4, Eb4
+      207.65, 0, 261.63, 0, 311.13, 0, 261.63, 0,      // Ab3, C4, Eb4, C4
+      233.08, 0, 293.66, 0, 349.23, 0, 293.66, 0,      // Bb3, D4, F4, D4
+      196.00, 0, 246.94, 0, 293.66, 0, 392.00, 0       // G3, B3, D4, G4
+    ];
 
     this.bgmTimer = setInterval(() => {
       if (!this.bgmPlaying || this.isMuted || !this.ctx) return;
 
       const now = this.ctx.currentTime;
-      const bassSeq = type === 'battle' ? battleBass : ambientBass;
+      let bassSeq = ambientBass;
+      if (type === 'battle') bassSeq = battleBass;
+      if (type === 'boss') bassSeq = bossBass;
+
       const freq = bassSeq[this.bgmStep % bassSeq.length];
 
+      // Bass drone / synth note
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       const filter = this.ctx.createBiquadFilter();
 
-      osc.type = type === 'battle' ? 'sawtooth' : 'triangle';
+      osc.type = (type === 'boss' || type === 'battle') ? 'sawtooth' : 'triangle';
       osc.frequency.setValueAtTime(freq, now);
 
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(type === 'battle' ? 480 : 250, now);
+      filter.frequency.setValueAtTime(type === 'boss' ? 380 : (type === 'battle' ? 480 : 250), now);
 
-      gain.gain.setValueAtTime(this.volume * 0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      gain.gain.setValueAtTime(this.volume * (type === 'boss' ? 0.16 : 0.12), now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + (type === 'boss' ? 0.28 : 0.2));
 
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(now);
-      osc.stop(now + 0.2);
+      osc.stop(now + (type === 'boss' ? 0.28 : 0.2));
 
-      if (type === 'battle' && this.bgmStep % 2 === 1) {
+      // Boss-specific War Drums & Grand Symphony Choir
+      if (type === 'boss') {
+        const stepIdx = this.bgmStep % 16;
+        // Deep War Drum / Timpani impact on main downbeats
+        if (stepIdx === 0 || stepIdx === 4 || stepIdx === 8 || stepIdx === 12) {
+          this.playBossWarDrum(now);
+        }
+        // Grand brass / choral harmonic lead
+        const melFreq = bossMelody[stepIdx];
+        if (melFreq > 0) {
+          this.playBossLeadNote(melFreq, now);
+        }
+        // Ticking battle pulse
+        if (this.bgmStep % 2 === 1) {
+          this.playHiHat(now);
+        }
+      } else if (type === 'battle' && this.bgmStep % 2 === 1) {
         this.playHiHat(now);
       }
 
       this.bgmStep++;
     }, stepInterval);
+  }
+
+  // Deep Ominous Boss War Drum
+  playBossWarDrum(now) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(105, now);
+    osc.frequency.exponentialRampToValueAtTime(32, now + 0.38);
+
+    gain.gain.setValueAtTime(this.volume * 0.45, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.38);
+  }
+
+  // Grand Ominous Boss Melodic Synth Lead
+  playBossLeadNote(freq, now) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, now);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(freq * 1.5, now);
+    filter.Q.value = 1.2;
+
+    gain.gain.setValueAtTime(this.volume * 0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.42);
   }
 
   playHiHat(now) {

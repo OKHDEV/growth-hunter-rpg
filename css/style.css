@@ -743,6 +743,34 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.cal-current-month-display:hover {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+}
+
+.cal-day-cell.target-focused {
+  border-color: var(--gold-mythic) !important;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.6) !important;
+  transform: translateY(-2px);
+}
+
+@keyframes pulseDayFocus {
+  0% { transform: scale(1); box-shadow: 0 0 6px rgba(255, 215, 0, 0.4); }
+  50% { transform: scale(1.05); box-shadow: 0 0 24px rgba(255, 215, 0, 0.95); border-color: #ffd700; }
+  100% { transform: scale(1); box-shadow: 0 0 6px rgba(255, 215, 0, 0.4); }
+}
+
+.cal-day-cell.pulse-focus {
+  animation: pulseDayFocus 0.8s ease-in-out infinite alternate !important;
+  z-index: 10;
 }
 
 .cal-month-badge {

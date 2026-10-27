@@ -102,6 +102,7 @@ class GameState {
         const parsed = JSON.parse(saved);
         this.loadFromObject(parsed, false);
         this.checkDailyReset();
+        this.data.quests.dailyStreak = this.getDailyStreak();
       }
     } catch (e) {
       console.error("Failed to load primary save data, attempting mirror:", e);
@@ -153,6 +154,7 @@ class GameState {
         ...(parsed.settings || {})
       }
     };
+    this.data.quests.dailyStreak = this.getDailyStreak();
     if (triggerSave) {
       this.save();
     }
@@ -314,8 +316,65 @@ class GameState {
       this.data.quests.lastActiveDate = today;
       this.data.quests.completedToday = {};
       this.data.quests.progress = {};
+      this.data.quests.dailyStreak = this.getDailyStreak();
       this.save();
     }
+  }
+
+  getDailyStreak() {
+    const todayCompletedCount = Object.keys(this.data.quests.completedToday || {}).length;
+
+    let streak = 0;
+    const d = new Date();
+
+    if (todayCompletedCount > 0) {
+      // Completed at least 1 quest today: start streak from 1 and count consecutive past days
+      streak = 1;
+      d.setDate(d.getDate() - 1);
+      while (true) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${y}-${m}-${day}`;
+        if (this.data.quests.history && (this.data.quests.history[dateStr] || 0) > 0) {
+          streak += 1;
+          d.setDate(d.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+    } else {
+      // No quest completed today yet: check ongoing streak up to yesterday
+      d.setDate(d.getDate() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const yesterdayStr = `${y}-${m}-${day}`;
+      if (this.data.quests.history && (this.data.quests.history[yesterdayStr] || 0) > 0) {
+        streak = 1;
+        d.setDate(d.getDate() - 1);
+        while (true) {
+          const cy = d.getFullYear();
+          const cm = String(d.getMonth() + 1).padStart(2, '0');
+          const cday = String(d.getDate()).padStart(2, '0');
+          const dateStr = `${cy}-${cm}-${cday}`;
+          if (this.data.quests.history && (this.data.quests.history[dateStr] || 0) > 0) {
+            streak += 1;
+            d.setDate(d.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+      } else {
+        streak = 0;
+      }
+    }
+
+    // Safety: if at least 1 quest done today, streak MUST NEVER be 0
+    if (todayCompletedCount > 0 && streak === 0) {
+      streak = 1;
+    }
+    return streak;
   }
 
   // --- Calculations ---
@@ -513,6 +572,9 @@ class GameState {
     const today = getLocalDateString();
     if (!this.data.quests.history) this.data.quests.history = {};
     this.data.quests.history[today] = Object.keys(this.data.quests.completedToday).length;
+
+    // Immediately recalculate streak on every quest completion
+    this.data.quests.dailyStreak = this.getDailyStreak();
 
     const expResult = this.addExp(quest.exp);
     this.addGold(quest.gold);

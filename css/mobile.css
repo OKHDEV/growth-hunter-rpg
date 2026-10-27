@@ -347,12 +347,21 @@ body.in-battle .app-container {
   }
 
   .cal-nav-toolbar {
-    padding: 8px 10px;
-    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px 8px;
+    gap: 6px;
+  }
+
+  .cal-current-month-display {
+    width: 100%;
+    justify-content: center;
+    order: -1;
+    margin-bottom: 6px;
   }
 
   .cal-current-month-display h3 {
-    font-size: 15px !important;
+    font-size: 16px !important;
   }
 
   .cal-month-card {

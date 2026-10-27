@@ -143,6 +143,8 @@ class UIManager {
 
     if (tabId === 'battleArena') {
       // In battle
+    } else if (tabId === 'bossTab' && this.currentBossZone === 6) {
+      sound.startBGM('boss');
     } else {
       sound.startBGM('ambient');
     }
@@ -177,7 +179,9 @@ class UIManager {
       hdrRank.style.color = rank.color;
     }
     if (hdrGold) hdrGold.textContent = p.gold.toLocaleString();
-    if (hdrStreak) hdrStreak.textContent = `${state.data.quests.dailyStreak}일 연속`;
+    const streak = state.getDailyStreak ? state.getDailyStreak() : state.data.quests.dailyStreak;
+    state.data.quests.dailyStreak = streak;
+    if (hdrStreak) hdrStreak.textContent = `${streak}일 연속`;
 
     const statName = document.getElementById('statPlayerName');
     const statTitle = document.getElementById('statPlayerTitle');
@@ -257,21 +261,6 @@ class UIManager {
   setCalendarViewMode(mode) {
     this.calendarViewMode = mode;
     sound.playClick();
-    const btnMonth = document.getElementById('btnCalMonthView');
-    const btnCont = document.getElementById('btnCalScrollAll');
-    const toolbar = document.getElementById('calNavToolbar');
-
-    if (btnMonth && btnCont) {
-      if (mode === 'month') {
-        btnMonth.classList.add('active');
-        btnCont.classList.remove('active');
-        if (toolbar) toolbar.style.display = 'flex';
-      } else {
-        btnCont.classList.add('active');
-        btnMonth.classList.remove('active');
-        if (toolbar) toolbar.style.display = 'none';
-      }
-    }
     this.renderAttendanceCalendar();
   }
 
@@ -293,16 +282,112 @@ class UIManager {
     const now = new Date();
     this.currentCalYear = now.getFullYear();
     this.currentCalMonth = now.getMonth();
+    this.targetedDateStr = getLocalDateString();
     this.calendarViewMode = 'month';
-    const btnMonth = document.getElementById('btnCalMonthView');
-    const btnCont = document.getElementById('btnCalScrollAll');
-    const toolbar = document.getElementById('calNavToolbar');
-    if (btnMonth && btnCont) {
-      btnMonth.classList.add('active');
-      btnCont.classList.remove('active');
-      if (toolbar) toolbar.style.display = 'flex';
-    }
     this.renderAttendanceCalendar();
+  }
+
+  openDateJumpModal() {
+    sound.playClick();
+    const modal = document.getElementById('dateJumpModal');
+    const input = document.getElementById('inputDirectDate');
+    if (modal) {
+      modal.classList.remove('hidden');
+      if (input) {
+        input.value = `${this.currentCalYear}년 ${this.currentCalMonth + 1}월 1일`;
+        setTimeout(() => {
+          input.focus();
+          input.select();
+        }, 80);
+      }
+    } else {
+      const val = prompt("이동할 날짜를 입력하세요 (예: 2025년 10월 3일 또는 2025-10-03):");
+      if (val) this.processDateJump(val);
+    }
+  }
+
+  closeDateJumpModal() {
+    sound.playClick();
+    const modal = document.getElementById('dateJumpModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  fillDateInputPreset(preset) {
+    sound.playClick();
+    const input = document.getElementById('inputDirectDate');
+    if (!input) return;
+    if (preset === 'today') {
+      const now = new Date();
+      input.value = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+    } else {
+      input.value = preset;
+    }
+  }
+
+  confirmDateJump() {
+    const input = document.getElementById('inputDirectDate');
+    if (!input) return;
+    const val = input.value.trim();
+    if (!val) {
+      alert("이동할 날짜를 입력해주세요. (예: 2025년 10월 3일)");
+      return;
+    }
+    const success = this.processDateJump(val);
+    if (success) {
+      this.closeDateJumpModal();
+    }
+  }
+
+  processDateJump(inputStr) {
+    if (!inputStr) return false;
+    const trimmed = inputStr.trim();
+
+    // Pattern 1: 2025년 10월 3일 / 2025-10-03 / 2025.10.03 / 2025/10/03 / 2025 10 3
+    let match = trimmed.match(/(\d{4})[^\d]+(\d{1,2})(?:[^\d]+(\d{1,2}))?/);
+    let targetYear = null;
+    let targetMonth = null;
+    let targetDay = null;
+
+    if (match) {
+      targetYear = parseInt(match[1], 10);
+      targetMonth = parseInt(match[2], 10);
+      targetDay = match[3] ? parseInt(match[3], 10) : 1;
+    } else {
+      // Pattern 2: 10월 3일 / 10-03
+      match = trimmed.match(/^(\d{1,2})[^\d]+(\d{1,2})/);
+      if (match) {
+        targetYear = this.currentCalYear || new Date().getFullYear();
+        targetMonth = parseInt(match[1], 10);
+        targetDay = parseInt(match[2], 10);
+      }
+    }
+
+    if (!targetYear || !targetMonth || targetMonth < 1 || targetMonth > 12) {
+      alert("올바른 날짜 형식이 아닙니다.\n예시: 2025년 10월 3일 또는 2025-10-03");
+      return false;
+    }
+
+    const daysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+    targetDay = Math.min(daysInMonth, Math.max(1, targetDay || 1));
+
+    this.currentCalYear = targetYear;
+    this.currentCalMonth = targetMonth - 1;
+    this.targetedDateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
+
+    sound.playClick();
+    this.renderAttendanceCalendar();
+
+    setTimeout(() => {
+      const cell = document.getElementById(`calDayCell_${this.targetedDateStr}`);
+      if (cell) {
+        cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cell.classList.add('pulse-focus');
+        setTimeout(() => cell.classList.remove('pulse-focus'), 3500);
+      }
+    }, 150);
+
+    this.showToast(`📅 ${targetYear}년 ${targetMonth}월 ${targetDay}일 달력으로 이동했습니다!`, "success");
+    return true;
   }
 
   showDayDetails(dateStr) {
@@ -386,6 +471,9 @@ class UIManager {
       const count = isToday ? todayCompletedCount : (questsData.history[dateStr] || 0);
 
       let cellClass = `cal-day-cell ${isSun ? 'sun' : ''} ${isSat ? 'sat' : ''}`;
+      if (this.targetedDateStr === dateStr) {
+        cellClass += ' target-focused';
+      }
       let cellBody = '';
 
       if (dateStr < questsData.startDate) {
@@ -437,7 +525,7 @@ class UIManager {
         }
       }
 
-      html += `<div class="${cellClass}" onclick="ui.showDayDetails('${dateStr}')">${cellBody}</div>`;
+      html += `<div class="${cellClass}" id="calDayCell_${dateStr}" onclick="ui.showDayDetails('${dateStr}')">${cellBody}</div>`;
     }
 
     // Padding slots for remaining days of the week
@@ -531,6 +619,9 @@ class UIManager {
     const rate = totalTrackedDays > 0 ? Math.round((doneDays / totalTrackedDays) * 100) : 0;
 
     // Update UI Metric Elements
+    const streak = state.getDailyStreak ? state.getDailyStreak() : questsData.dailyStreak;
+    questsData.dailyStreak = streak;
+
     const startDisp = document.getElementById('attDisplayStartDate');
     const metricStreak = document.getElementById('attMetricStreak');
     const metricDone = document.getElementById('attMetricDone');
@@ -539,7 +630,7 @@ class UIManager {
     const metricTotal = document.getElementById('attMetricTotalQuests');
 
     if (startDisp) startDisp.textContent = questsData.startDate;
-    if (metricStreak) metricStreak.textContent = `${questsData.dailyStreak}일`;
+    if (metricStreak) metricStreak.textContent = `${streak}일`;
     if (metricDone) metricDone.textContent = `${doneDays}일`;
     if (metricMissed) metricMissed.textContent = `${missedDays}일`;
     if (metricRate) metricRate.textContent = `${rate}%`;
@@ -599,8 +690,10 @@ class UIManager {
       if (zoneNum === 6) {
         bossTabEl.classList.add('zone-omega-theme');
         sound.playCosmicGodIntro();
+        sound.startBGM('boss');
       } else {
         bossTabEl.classList.remove('zone-omega-theme');
+        sound.startBGM('ambient');
       }
     }
     this.renderBossStageCards();

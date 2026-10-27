@@ -260,14 +260,6 @@
             최초 시작일(<strong id="attDisplayStartDate" style="color:var(--cyan-neon);">2026-10-27</strong>)부터 오늘까지의 일일 퀘스트 수행 기록을 진짜 달력으로 기록합니다.
           </p>
         </div>
-        <div class="att-view-mode-toggle">
-          <button class="btn btn-sm btn-outline-cyan active" id="btnCalMonthView" onclick="ui.setCalendarViewMode('month')">
-            📅 이번 달 달력
-          </button>
-          <button class="btn btn-sm btn-outline-cyan" id="btnCalScrollAll" onclick="ui.setCalendarViewMode('continuous')">
-            📜 전체 달력 쭈우욱 보기
-          </button>
-        </div>
       </div>
 
       <!-- Attendance Stats Metric Cards Grid -->
@@ -314,12 +306,18 @@
         <button class="btn btn-sm btn-outline-cyan" onclick="ui.changeCalendarMonth(-1)">
           ◀ 이전 달
         </button>
-        <div class="cal-current-month-display">
-          <h3 id="calCurrentMonthTitle" style="margin:0; font-size:18px; color:#fff;">2026년 10월</h3>
+        <div class="cal-current-month-display" onclick="ui.openDateJumpModal()" title="클릭하여 날짜 직접 입력 (예: 2025년 10월 3일)" style="cursor: pointer;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <h3 id="calCurrentMonthTitle" style="margin:0; font-size:18px; color:#fff;">2026년 10월</h3>
+            <span class="cal-edit-icon" style="font-size:13px; opacity:0.85;">✏️</span>
+          </div>
           <span class="cal-month-badge" id="calMonthStatusBadge">수련 진행 중</span>
         </div>
         <button class="btn btn-sm btn-outline-cyan" onclick="ui.changeCalendarMonth(1)">
           다음 달 ▶
+        </button>
+        <button class="btn btn-sm btn-outline-cyan" onclick="ui.openDateJumpModal()" style="margin-left: 6px; border-color: var(--gold-neon); color: var(--gold-neon);" title="원하는 연월일로 직접 이동">
+          ✏️ 날짜 직접 이동
         </button>
         <button class="btn btn-sm btn-secondary" onclick="ui.jumpToTodayCalendar()" style="margin-left: 6px;">
           오늘로 이동
@@ -850,16 +848,49 @@
     </div>
   </div>
 
+  <!-- 10. Direct Calendar Date Jump Modal -->
+  <div id="dateJumpModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: var(--cyan-neon); text-align: left; max-width: 420px; box-shadow: 0 0 35px rgba(6, 182, 212, 0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+        <h3 style="color: var(--cyan-neon); font-size: 18px; margin: 0; display:flex; align-items:center; gap:6px;">
+          📅 날짜 직접 이동
+        </h3>
+        <button type="button" class="btn-close" onclick="ui.closeDateJumpModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✕</button>
+      </div>
+      <p style="color: #cbd5e1; font-size: 13px; line-height: 1.5; margin-bottom: 12px;">
+        이동하고 싶은 날짜를 직접 타자로 입력하세요.<br>
+        <span style="color: var(--gold-neon); font-size: 12px;">예: <strong>2025년 10월 3일</strong> 또는 <strong>2025-10-03</strong></span>
+      </p>
+      <div style="margin-bottom: 12px;">
+        <input type="text" id="inputDirectDate" class="form-input" placeholder="예: 2025년 10월 3일" 
+          style="width: 100%; font-size: 16px; padding: 12px 14px; text-align: center; font-weight: bold; background: #0b1120; border: 2px solid var(--cyan-neon); border-radius: 8px; color: #fff;"
+          onkeydown="if(event.key === 'Enter') ui.confirmDateJump()">
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; justify-content: center;">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="ui.fillDateInputPreset('2025년 10월 3일')">예시: 2025년 10월 3일</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="ui.fillDateInputPreset('today')">오늘 날짜로</button>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 800;" onclick="ui.confirmDateJump()">
+          해당 날짜로 이동 ▶
+        </button>
+        <button type="button" class="btn btn-outline-cyan" style="padding: 12px;" onclick="ui.closeDateJumpModal()">
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261028_02"></script>
-  <script src="js/audio.js?v=20261028_02"></script>
-  <script src="js/state.js?v=20261028_02"></script>
-  <script src="js/battle.js?v=20261028_02"></script>
-  <script src="js/quests.js?v=20261028_02"></script>
-  <script src="js/ui.js?v=20261028_02"></script>
-  <script src="js/app.js?v=20261028_02"></script>
+  <script src="js/data.js?v=20261028_04"></script>
+  <script src="js/audio.js?v=20261028_04"></script>
+  <script src="js/state.js?v=20261028_04"></script>
+  <script src="js/battle.js?v=20261028_04"></script>
+  <script src="js/quests.js?v=20261028_04"></script>
+  <script src="js/ui.js?v=20261028_04"></script>
+  <script src="js/app.js?v=20261028_04"></script>
 </body>
 </html>

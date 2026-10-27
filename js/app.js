@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     quests.promptConfirmClaim('height_rope_1000');
   } else if (modalParam === 'customQuest') {
     quests.openCustomQuestModal();
+  } else if (modalParam === 'dateJump') {
+    ui.openDateJumpModal();
   }
 
   // First user interaction starts Web Audio context and ambient BGM
