@@ -411,13 +411,14 @@ function generate50Bosses() {
 
 const BOSSES_DATA = generate50Bosses();
 
-// True Ultimate Secret Final Boss (제100의 벽: 50단계를 넘은 자에게만 열리는 신화의 절대 거신)
+// True Ultimate Secret Final Boss (100단계: 50단계를 넘은 자에게만 열리는 100레벨 신화의 절대 거신)
 const SECRET_FINAL_BOSS = {
   id: "boss_secret_omega",
-  stage: 100, // [제100의 벽]
+  stage: 100, // 100단계
+  level: 100, // 100레벨
   name: "절대 거신, 오메가 크로노스",
-  subName: "True Ultimate Colossal God · 찐막 최종보스",
-  title: "제 100의 벽: 신화의 절대 거신",
+  subName: "True Ultimate Colossal God · 100레벨 찐막 최종보스",
+  title: "100단계: 신화의 절대 거신 (100레벨)",
   recommendedLevel: 999, // 50단계(Lv.505)를 압도적으로 초월하는 신화급 권장레벨
   trainingDays: 3000,
   trainingMonths: 100,
@@ -426,7 +427,7 @@ const SECRET_FINAL_BOSS = {
   def: 3500,
   crit: 0.25,
   image: "assets/bosses/boss_secret_omega.jpg",
-  introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 제100의 벽 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
+  introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 100단계 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
   isSecretFinal: true,
   rewards: {
     exp: 250000,

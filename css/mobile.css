@@ -399,6 +399,28 @@ body.in-battle .app-container {
     padding: 6px 8px;
     font-size: 10px;
   }
+
+  /* Mobile Final Boss Wide Card Adaptations */
+  .boss-select-card.omega-card {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .boss-select-card.omega-card .boss-img-wrap {
+    height: 320px !important;
+    min-height: 320px !important;
+  }
+
+  .boss-select-card.omega-card .boss-info-wrap {
+    padding: 16px 14px !important;
+  }
+
+  .zone-arrow-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
 }
 
 @media (max-width: 480px) {

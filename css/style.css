@@ -1108,10 +1108,115 @@ body {
   margin-top: 6px;
 }
 
+/* Zone Tabs Container & Drag-to-Scroll Controls */
+.zone-nav-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.zone-arrow-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--cyan-neon);
+  color: var(--cyan-neon);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+  z-index: 10;
+}
+
+.zone-arrow-btn:hover {
+  background: var(--cyan-neon);
+  color: #000;
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.6);
+  transform: scale(1.08);
+}
+
+.draggable-scroll {
+  cursor: grab;
+  user-select: none;
+}
+
+.draggable-scroll.is-dragging {
+  cursor: grabbing !important;
+}
+
 .boss-stage-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 24px;
+}
+
+/* Zone 6 List Container (Centers the colossal wide final card) */
+.boss-stage-grid.zone-omega-list {
+  display: flex !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+/* WIDE HORIZONTAL EXPANSION FOR FINAL BOSS (진짜 마지막 보스 느낌) */
+.boss-select-card.omega-card {
+  width: 100% !important;
+  max-width: 1050px !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: 460px 1fr !important;
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 0 60px rgba(245, 158, 11, 0.45), inset 0 0 40px rgba(239, 68, 68, 0.25) !important;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(7, 9, 14, 0.98)) !important;
+  border-radius: var(--radius-lg) !important;
+  overflow: hidden !important;
+  animation: omegaCardGlowPulse 3s infinite alternate;
+}
+
+@keyframes omegaCardGlowPulse {
+  0% { border-color: rgba(245, 158, 11, 0.8); box-shadow: 0 0 45px rgba(245, 158, 11, 0.4); }
+  100% { border-color: rgba(239, 68, 68, 0.9); box-shadow: 0 0 75px rgba(239, 68, 68, 0.6), inset 0 0 50px rgba(245, 158, 11, 0.25); }
+}
+
+.boss-select-card.omega-card .boss-img-wrap {
+  height: 100% !important;
+  min-height: 480px !important;
+  width: 100% !important;
+}
+
+.boss-select-card.omega-card .boss-info-wrap {
+  padding: 24px 28px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.boss-select-card.omega-card .boss-card-name {
+  font-size: 24px !important;
+}
+
+.boss-select-card.omega-card .boss-card-quote {
+  font-size: 14px !important;
+  padding: 12px 14px !important;
+  border-left-width: 4px !important;
+}
+
+.boss-select-card.omega-card .boss-stats-preview {
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+}
+
+.boss-select-card.omega-card .btn-raid-start {
+  padding: 16px 20px !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
 }
 
 .boss-select-card {

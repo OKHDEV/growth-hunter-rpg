@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/battle.css">
-  <link rel="stylesheet" href="css/animations.css">
-  <link rel="stylesheet" href="css/mobile.css">
+  <link rel="stylesheet" href="css/style.css?v=20261028_02">
+  <link rel="stylesheet" href="css/battle.css?v=20261028_02">
+  <link rel="stylesheet" href="css/animations.css?v=20261028_02">
+  <link rel="stylesheet" href="css/mobile.css?v=20261028_02">
 </head>
 <body>
 
@@ -349,8 +349,12 @@
         </p>
       </div>
 
-      <!-- Zone Selector Tabs (1~10, 11~20, 21~30, 31~40, 41~50) -->
-      <div class="cat-tabs-scroll" id="bossZoneTabs" style="justify-content:center; margin-bottom: 20px;"></div>
+      <!-- Zone Selector Tabs with Left/Right Scroll Controls & Mouse Drag -->
+      <div class="zone-nav-container">
+        <button class="zone-arrow-btn left" onclick="ui.scrollZoneTabs(-220)" title="이전 구역">◀</button>
+        <div class="cat-tabs-scroll draggable-scroll" id="bossZoneTabs"></div>
+        <button class="zone-arrow-btn right" onclick="ui.scrollZoneTabs(220)" title="다음 구역">▶</button>
+      </div>
 
       <div class="boss-stage-grid" id="bossStageList"></div>
     </section>
@@ -850,12 +854,12 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/battle.js"></script>
-  <script src="js/quests.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/data.js?v=20261028_02"></script>
+  <script src="js/audio.js?v=20261028_02"></script>
+  <script src="js/state.js?v=20261028_02"></script>
+  <script src="js/battle.js?v=20261028_02"></script>
+  <script src="js/quests.js?v=20261028_02"></script>
+  <script src="js/ui.js?v=20261028_02"></script>
+  <script src="js/app.js?v=20261028_02"></script>
 </body>
 </html>

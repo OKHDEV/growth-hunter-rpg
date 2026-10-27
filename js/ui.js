@@ -618,7 +618,7 @@ class UIManager {
         { id: 3, name: "Zone 3: 수험·번아웃 (21~30층)" },
         { id: 4, name: "Zone 4: 유전·편견 (31~40층)" },
         { id: 5, name: "Zone 5: 178cm 신전 (41~50층)" },
-        { id: 6, name: "👑 [제100의 벽] 찐막 최종보스" }
+        { id: 6, name: "👑 [100단계] 100레벨 최종보스" }
       ];
 
       zoneContainer.innerHTML = '';
@@ -632,6 +632,12 @@ class UIManager {
     }
 
     listContainer.innerHTML = '';
+
+    if (this.currentBossZone === 6) {
+      listContainer.classList.add('zone-omega-list');
+    } else {
+      listContainer.classList.remove('zone-omega-list');
+    }
 
     let zoneBosses = [];
     if (this.currentBossZone === 6) {
@@ -653,19 +659,21 @@ class UIManager {
       card.innerHTML = `
         <div class="boss-img-wrap">
           <img src="${boss.image}" alt="${boss.name}" class="boss-card-img" />
-          <div class="boss-stage-badge" style="${boss.isSecretFinal ? 'background:linear-gradient(135deg, #f59e0b, #ef4444);' : ''}">
-            ${boss.isSecretFinal ? '👑 제100의 벽' : `STAGE ${boss.stage}`}
+          <div class="boss-stage-badge" style="${boss.isSecretFinal ? 'background:linear-gradient(135deg, #f59e0b, #ef4444); border-color:#f59e0b; color:#fff; font-weight:900;' : ''}">
+            ${boss.isSecretFinal ? '👑 100단계 [100레벨 보스]' : `STAGE ${boss.stage}`}
           </div>
           ${isCleared ? `<div class="boss-cleared-badge">토벌 완료</div>` : ''}
           ${!isUnlocked ? `<div class="boss-lock-overlay">🔒 이전 스테이지 클리어 필요</div>` : ''}
         </div>
         <div class="boss-info-wrap">
-          <div class="boss-month-tag" style="margin-bottom:4px; ${boss.isSecretFinal ? 'border-color:#f59e0b; color:#fbbf24; background:rgba(245,158,11,0.25);' : ''}">
-            ${boss.isSecretFinal ? '👑 [찐막 최종보스] 신장 178cm 절대 거신' : `⏳ ${boss.trainingMonths}달(${boss.trainingDays}일) 매일 수련 필수`}
+          <div class="boss-month-tag" style="margin-bottom:6px; ${boss.isSecretFinal ? 'border-color:#f59e0b; color:#fbbf24; background:rgba(245,158,11,0.25); font-weight:800;' : ''}">
+            ${boss.isSecretFinal ? '👑 [100단계 찐막 최종보스] 100레벨 신장 178cm 절대 거신' : `⏳ ${boss.trainingMonths}달(${boss.trainingDays}일) 매일 수련 필수`}
           </div>
           <div class="boss-title-row">
-            <h3 class="boss-card-name">${boss.name}</h3>
-            <span class="boss-card-rec ${isRecommended ? 'rec-ok' : 'rec-warn'}">권장 Lv.${boss.recommendedLevel}</span>
+            <h3 class="boss-card-name" style="${boss.isSecretFinal ? 'font-size:22px; color:#fbbf24; text-shadow:0 0 15px rgba(245,158,11,0.6);' : ''}">${boss.name}</h3>
+            <span class="boss-card-rec ${isRecommended ? 'rec-ok' : 'rec-warn'}" style="${boss.isSecretFinal ? 'border-color:#ef4444; color:#f87171; background:rgba(239,68,68,0.25); font-weight:900;' : ''}">
+              ${boss.isSecretFinal ? `권장 Lv.${boss.recommendedLevel} (신화)` : `권장 Lv.${boss.recommendedLevel}`}
+            </span>
           </div>
           <div class="boss-card-sub">${boss.subName}</div>
           <p class="boss-card-quote">${boss.introQuote}</p>
@@ -683,7 +691,7 @@ class UIManager {
             </div>
           </div>
           <button class="btn btn-raid-start ${isUnlocked ? '' : 'disabled'} ${boss.isSecretFinal ? 'btn-omega-challenge' : ''}" ${isUnlocked ? '' : 'disabled'} onclick="ui.startBossRaid('${boss.id}')">
-            ${isCleared ? '다시 도전하기' : (boss.isSecretFinal ? '🔥 절대 거신과 1:1 결전' : '보스 1:1 맞다이 결전')}
+            ${isCleared ? '다시 도전하기' : (boss.isSecretFinal ? '🔥 100레벨 절대 거신과 1:1 최종 결전' : '보스 1:1 맞다이 결전')}
           </button>
         </div>
       `;
@@ -696,6 +704,53 @@ class UIManager {
     sound.playClick();
     this.switchTab('battleArena');
     battle.startBattle(bossId);
+  }
+
+  scrollZoneTabs(offset) {
+    sound.playClick();
+    const el = document.getElementById('bossZoneTabs');
+    if (el) {
+      el.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  }
+
+  enableDragToScroll(el) {
+    if (!el) return;
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    el.addEventListener('mousedown', (e) => {
+      isDown = true;
+      el.classList.add('is-dragging');
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+    });
+
+    el.addEventListener('mouseleave', () => {
+      isDown = false;
+      el.classList.remove('is-dragging');
+    });
+
+    el.addEventListener('mouseup', () => {
+      isDown = false;
+      el.classList.remove('is-dragging');
+    });
+
+    el.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - el.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      el.scrollLeft = scrollLeft - walk;
+    });
+
+    el.addEventListener('wheel', (e) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    }, { passive: false });
   }
 
   // --- 1:1 Turn-Based Combat Controls Wiring ---
@@ -1075,6 +1130,10 @@ class UIManager {
         }
       });
     }
+
+    // Enable drag-to-scroll & mouse wheel scrolling on zone & category tabs
+    this.enableDragToScroll(document.getElementById('bossZoneTabs'));
+    this.enableDragToScroll(document.getElementById('questCategoryTabs'));
   }
 }
 
