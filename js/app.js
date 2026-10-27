@@ -21,9 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
     quests.setViewMode(modeParam);
   }
 
-  const zoneParam = params.get('zone');
+  const zoneParam = params.get('zone') || (hash.startsWith('bossTab_zone') ? hash.replace('bossTab_zone', '') : null);
   if (zoneParam) {
     ui.setBossZone(parseInt(zoneParam));
+  }
+
+  if (hash.startsWith('battleArena_boss')) {
+    const bId = hash.replace('battleArena_', '');
+    ui.switchTab('battleArena');
+    battle.startBattle(bId);
   }
 
   // Support direct modal display via URL parameter (e.g. ?modal=profile, ?modal=questConfirm, ?modal=customQuest)
