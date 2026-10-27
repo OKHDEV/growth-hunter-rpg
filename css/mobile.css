@@ -109,13 +109,26 @@ body.in-battle .app-container {
     display: flex;
   }
 
+  .main-header {
+    padding: 8px 10px !important;
+  }
+
+  .panel-card {
+    padding: 14px 12px !important;
+  }
+
   .brand-wrap {
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .brand-title {
-    font-size: 16px;
+    font-size: 13px;
     white-space: nowrap;
+  }
+
+  .brand-logo-icon {
+    font-size: 16px;
   }
 
   .brand-sub {
@@ -123,24 +136,68 @@ body.in-battle .app-container {
   }
 
   .header-quick-stats {
-    gap: 8px;
+    display: flex !important;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .quick-stat-badge {
+    display: flex !important; /* All 3 badges: Rank/Level, Gold, Streak are visible on mobile */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 4px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    min-width: 40px;
   }
 
   .stat-badge-title {
-    font-size: 10px;
+    font-size: 8px;
+    color: var(--text-muted);
+    line-height: 1.1;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 85px;
   }
 
   .stat-badge-val {
     font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
   }
 
-  .quick-stat-badge:nth-child(2),
-  .quick-stat-badge:nth-child(3) {
-    display: none; /* Keep header ultra clean on mobile: only show Rank & Level */
+  /* Stat rows in mobile status screen (Prevents awkward wrapping) */
+  .stat-row {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .stat-info-left {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .stat-action-right {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .stat-val {
+    font-size: 14px !important;
+    white-space: nowrap !important;
+    font-weight: 800 !important;
+    text-align: right !important;
+  }
+
+  .btn-add-stat {
+    width: 30px !important;
+    height: 30px !important;
+    flex-shrink: 0 !important;
   }
 
   /* Arena top bar mobile polish */
@@ -256,11 +313,11 @@ body.in-battle .app-container {
 
 @media (max-width: 480px) {
   .brand-title {
-    font-size: 17px;
+    font-size: 13px;
   }
 
   .brand-logo-icon {
-    font-size: 20px;
+    font-size: 16px;
   }
 
   .height-value {

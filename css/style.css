@@ -582,6 +582,125 @@ body {
   font-size: 11px;
 }
 
+/* Daily Attendance Calendar Card */
+.attendance-calendar-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--bg-card-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.attendance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.attendance-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.attendance-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.attendance-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+}
+
+.attendance-stats-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.att-pill {
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.att-pill.streak {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.att-pill.success {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.attendance-days-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 6px 2px 10px 2px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.att-day-card {
+  flex: 0 0 100px;
+  background: #0a0e1a;
+  border: 1px solid #1e293b;
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.att-day-card.day-completed {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.att-day-card.day-missed {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.att-day-card.day-today {
+  border-color: var(--cyan-neon);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+}
+
+.att-day-date {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.att-day-mark {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.att-day-status {
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .cat-tabs-scroll {
   display: flex;
   gap: 8px;

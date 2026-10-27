@@ -232,6 +232,27 @@
         </div>
       </div>
 
+      <!-- Daily Attendance Calendar Section -->
+      <div class="attendance-calendar-card" id="attendanceCard">
+        <div class="attendance-header">
+          <div class="attendance-title-wrap">
+            <span class="attendance-icon" style="font-size:22px;">📅</span>
+            <div>
+              <h3 class="attendance-title">일일 수련 출석 달력</h3>
+              <p class="attendance-sub">최초 시작일(<span id="calStartDate">2026-10-27</span>)부터 오늘까지의 수련 체크 기록</p>
+            </div>
+          </div>
+          <div class="attendance-stats-pills">
+            <span class="att-pill">누적 <strong id="attTotalDays">1</strong>일</span>
+            <span class="att-pill streak">🔥 <strong id="attStreakDays">1</strong>일 연속 달성</span>
+            <span class="att-pill success">성공률 <strong id="attSuccessRate">100%</strong></span>
+          </div>
+        </div>
+
+        <!-- Scrollable Day-by-Day Habit Timeline -->
+        <div class="attendance-days-scroll" id="attendanceDaysList"></div>
+      </div>
+
       <div class="quest-grid" id="questList"></div>
     </section>
 

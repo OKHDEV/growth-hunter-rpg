@@ -281,7 +281,7 @@ class BattleEngine {
     const bossStageBadge = document.getElementById('bossStageBadge');
     if (bossStageBadge) {
       if (this.boss.isSecretFinal) {
-        bossStageBadge.textContent = `👑 [제51의 벽 · 찐막 최종보스]`;
+        bossStageBadge.textContent = `👑 [제100의 벽 · 찐막 최종보스]`;
         bossStageBadge.style.background = 'linear-gradient(135deg, #f59e0b, #ef4444)';
       } else {
         bossStageBadge.textContent = `STAGE ${this.boss.stage} [1달 수련 필수]`;

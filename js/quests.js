@@ -170,6 +170,10 @@ class QuestManager {
 
       listContainer.appendChild(card);
     });
+
+    if (typeof ui !== 'undefined' && ui.renderAttendanceCalendar) {
+      ui.renderAttendanceCalendar();
+    }
   }
 
   // --- Honest Confirmation Pledge Modal (한번 더 "정말 완료하시겠습니까?") ---
@@ -232,6 +236,9 @@ class QuestManager {
 
     this.renderQuestList();
     ui.updateHeaderAndStats();
+    if (typeof ui !== 'undefined' && ui.renderAttendanceCalendar) {
+      ui.renderAttendanceCalendar();
+    }
   }
 
   // --- Interactive Counter Modal (e.g. 줄넘기 1000회) ---

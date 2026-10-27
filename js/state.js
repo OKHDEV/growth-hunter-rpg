@@ -57,10 +57,12 @@ class GameState {
       },
       quests: {
         dailyStreak: 1,
+        startDate: new Date().toISOString().slice(0, 10),
         lastActiveDate: new Date().toISOString().slice(0, 10),
         completedToday: {},
         progress: {},
-        customQuests: []
+        customQuests: [],
+        history: {}
       },
       raid: {
         unlockedStage: 1, // Can progress from 1 to 50
@@ -126,9 +128,11 @@ class GameState {
       quests: {
         ...def.quests,
         ...(parsed.quests || {}),
+        startDate: (parsed.quests && parsed.quests.startDate) || def.quests.startDate,
         completedToday: (parsed.quests && parsed.quests.completedToday) || {},
         progress: (parsed.quests && parsed.quests.progress) || {},
-        customQuests: (parsed.quests && parsed.quests.customQuests) || []
+        customQuests: (parsed.quests && parsed.quests.customQuests) || [],
+        history: (parsed.quests && parsed.quests.history) || {}
       },
       raid: {
         ...def.raid,
@@ -271,8 +275,18 @@ class GameState {
       const currentDate = new Date(today);
       const diffDays = Math.round((currentDate - lastDate) / (1000 * 60 * 60 * 24));
 
+      // Record yesterday's total completion count in history
+      const prevDate = this.data.quests.lastActiveDate;
+      const completedCount = Object.keys(this.data.quests.completedToday || {}).length;
+      if (!this.data.quests.history) this.data.quests.history = {};
+      this.data.quests.history[prevDate] = completedCount;
+
       if (diffDays === 1) {
-        this.data.quests.dailyStreak += 1;
+        if (completedCount > 0) {
+          this.data.quests.dailyStreak += 1;
+        } else {
+          this.data.quests.dailyStreak = 1;
+        }
       } else if (diffDays > 1) {
         this.data.quests.dailyStreak = 1;
       }
@@ -476,6 +490,10 @@ class GameState {
     }
 
     this.data.quests.completedToday[questId] = true;
+    const today = new Date().toISOString().slice(0, 10);
+    if (!this.data.quests.history) this.data.quests.history = {};
+    this.data.quests.history[today] = Object.keys(this.data.quests.completedToday).length;
+
     const expResult = this.addExp(quest.exp);
     this.addGold(quest.gold);
     if (quest.growthPoints) {

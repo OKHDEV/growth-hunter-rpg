@@ -12,6 +12,7 @@ class UIManager {
     this.initCanvas();
     this.setupTabNavigation();
     this.updateHeaderAndStats();
+    this.renderAttendanceCalendar();
     this.renderBossStageCards();
     this.renderInventory();
     this.setupEventListeners();
@@ -144,7 +145,10 @@ class UIManager {
     }
 
     if (tabId === 'statusTab') this.updateHeaderAndStats();
-    if (tabId === 'questTab') quests.renderQuestList();
+    if (tabId === 'questTab') {
+      quests.renderQuestList();
+      this.renderAttendanceCalendar();
+    }
     if (tabId === 'bossTab') this.renderBossStageCards();
     if (tabId === 'inventoryTab') this.renderInventory();
   }
@@ -214,7 +218,10 @@ class UIManager {
       const addBtn = row.querySelector('.btn-add-stat');
 
       if (valEl) {
-        valEl.textContent = `${effective[statKey]} (기본: ${p.stats[statKey]})`;
+        const bonus = effective[statKey] - p.stats[statKey];
+        valEl.innerHTML = bonus > 0 
+          ? `${effective[statKey]} <span style="font-size:11px; opacity:0.8; font-weight:normal;">(+${bonus})</span>`
+          : `${effective[statKey]}`;
       }
       if (addBtn) {
         addBtn.disabled = p.freeStatPoints <= 0;
@@ -232,6 +239,130 @@ class UIManager {
     if (derivedAtk) derivedAtk.textContent = effective.atk.toLocaleString();
     if (derivedDef) derivedDef.textContent = effective.def.toLocaleString();
     if (derivedCrit) derivedCrit.textContent = `${(effective.crit * 100).toFixed(1)}%`;
+  }
+
+  renderAll() {
+    this.updateHeaderAndStats();
+    if (typeof quests !== 'undefined' && quests.renderQuestList) {
+      quests.renderQuestList();
+    }
+    this.renderAttendanceCalendar();
+    this.renderBossStageCards();
+    this.renderInventory();
+  }
+
+  // --- Daily Attendance Calendar ---
+
+  renderAttendanceCalendar() {
+    const listEl = document.getElementById('attendanceDaysList');
+    if (!listEl) return;
+
+    const streakEl = document.getElementById('attStreakDays');
+    const totalEl = document.getElementById('attTotalDays');
+    const rateEl = document.getElementById('attSuccessRate');
+
+    const questsData = state.data.quests;
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    if (!questsData.startDate) {
+      questsData.startDate = todayStr;
+    }
+
+    // Align startDate for existing players with multi-day streaks
+    if (questsData.dailyStreak > 1 && questsData.startDate === todayStr) {
+      const past = new Date();
+      past.setDate(past.getDate() - (questsData.dailyStreak - 1));
+      questsData.startDate = past.toISOString().slice(0, 10);
+      if (!questsData.history) questsData.history = {};
+      for (let i = 1; i < questsData.dailyStreak; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dStr = d.toISOString().slice(0, 10);
+        if (!questsData.history[dStr]) {
+          questsData.history[dStr] = 3;
+        }
+      }
+    }
+
+    if (!questsData.history) questsData.history = {};
+
+    // Generate date sequence from startDate to today
+    const dates = [];
+    const startObj = new Date(questsData.startDate + 'T00:00:00');
+    const todayObj = new Date(todayStr + 'T00:00:00');
+
+    if (isNaN(startObj.getTime()) || startObj > todayObj) {
+      dates.push(todayStr);
+    } else {
+      const cur = new Date(startObj);
+      while (cur <= todayObj) {
+        dates.push(cur.toISOString().slice(0, 10));
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+
+    const todayCompletedCount = Object.keys(questsData.completedToday || {}).length;
+    questsData.history[todayStr] = todayCompletedCount;
+
+    let completedDaysCount = 0;
+    const dayOfWeekNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+    listEl.innerHTML = '';
+
+    dates.forEach(dStr => {
+      const isToday = (dStr === todayStr);
+      const count = isToday ? todayCompletedCount : (questsData.history[dStr] || 0);
+
+      const parts = dStr.split('-');
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      const dayDateObj = new Date(dStr + 'T00:00:00');
+      const dow = dayOfWeekNames[dayDateObj.getDay()] || '';
+
+      const card = document.createElement('div');
+
+      if (count > 0) {
+        completedDaysCount++;
+        card.className = `att-day-card day-completed ${isToday ? 'day-today' : ''}`;
+        card.innerHTML = `
+          <span class="att-day-date">${month}.${day} (${dow})${isToday ? ' <b style="color:#00e5ff;">[오늘]</b>' : ''}</span>
+          <div class="att-day-mark" style="color:#10b981;">✔️</div>
+          <div class="att-day-status" style="color:#34d399;">${count}개 완료</div>
+          <small style="font-size:10px; color:#94a3b8;">수련 완수</small>
+        `;
+      } else {
+        if (isToday) {
+          card.className = `att-day-card day-today`;
+          card.innerHTML = `
+            <span class="att-day-date">${month}.${day} (${dow}) <b style="color:#00e5ff;">[오늘]</b></span>
+            <div class="att-day-mark" style="color:#f59e0b;">⏳</div>
+            <div class="att-day-status" style="color:#fbbf24;">진행 중 (0개)</div>
+            <small style="font-size:10px; color:#cbd5e1;">퀘스트 도전</small>
+          `;
+        } else {
+          card.className = `att-day-card day-missed`;
+          card.innerHTML = `
+            <span class="att-day-date">${month}.${day} (${dow})</span>
+            <div class="att-day-mark" style="color:#ef4444;">❌</div>
+            <div class="att-day-status" style="color:#f87171;">미수행</div>
+            <small style="font-size:10px; color:#64748b;">수련 휴식</small>
+          `;
+        }
+      }
+      listEl.appendChild(card);
+    });
+
+    if (streakEl) streakEl.textContent = `${questsData.dailyStreak}`;
+    if (totalEl) totalEl.textContent = `${completedDaysCount}`;
+    if (rateEl) {
+      const rate = dates.length > 0 ? Math.round((completedDaysCount / dates.length) * 100) : 0;
+      rateEl.textContent = `${rate}%`;
+    }
+
+    // Scroll to the latest day automatically
+    requestAnimationFrame(() => {
+      listEl.scrollLeft = listEl.scrollWidth;
+    });
   }
 
   // --- 50 Boss Stages UI with Zone Selector ---
@@ -263,7 +394,7 @@ class UIManager {
         { id: 3, name: "Zone 3: 수험·번아웃 (21~30층)" },
         { id: 4, name: "Zone 4: 유전·편견 (31~40층)" },
         { id: 5, name: "Zone 5: 178cm 신전 (41~50층)" },
-        { id: 6, name: "👑 [제51의 벽] 찐막 최종보스" }
+        { id: 6, name: "👑 [제100의 벽] 찐막 최종보스" }
       ];
 
       zoneContainer.innerHTML = '';
@@ -299,7 +430,7 @@ class UIManager {
         <div class="boss-img-wrap">
           <img src="${boss.image}" alt="${boss.name}" class="boss-card-img" />
           <div class="boss-stage-badge" style="${boss.isSecretFinal ? 'background:linear-gradient(135deg, #f59e0b, #ef4444);' : ''}">
-            ${boss.isSecretFinal ? '👑 제51의 벽' : `STAGE ${boss.stage}`}
+            ${boss.isSecretFinal ? '👑 제100의 벽' : `STAGE ${boss.stage}`}
           </div>
           ${isCleared ? `<div class="boss-cleared-badge">토벌 완료</div>` : ''}
           ${!isUnlocked ? `<div class="boss-lock-overlay">🔒 이전 스테이지 클리어 필요</div>` : ''}

@@ -349,17 +349,19 @@ const BOSS_NAMES_DATA = [
 function generate50Bosses() {
   return BOSS_NAMES_DATA.map((info, idx) => {
     const stage = idx + 1;
-    // Hardcore 1-month-per-boss scaling:
-    // Stage 1: Req Lv.15 (Day 1~30 grind). Player ~2,700 HP, ~290 ATK, ~140 DEF.
-    // Boss 1: 3,200 HP, 410 ATK, 70 DEF.
-    // If challenged at Day 1 (Lv.1, 700 HP), boss 2-shots player with 377+ dmg per turn!
-    const reqLevel = 15 + (stage - 1) * 12;
+    // Balanced 1-month-per-boss scaling:
+    // Stage 1: Req Lv.15 (1달간 매일 퀘스트 수행 시 도달).
+    // Level 15 Player (~1,400 HP, ~231 ATK, ~81 DEF) vs Boss 1 (1,400 HP, 215 ATK, 35 DEF):
+    // Player deals ~194 dmg/turn -> Defeats boss in 7~8 turns.
+    // Boss deals ~154 dmg/turn -> Player survives with ~470 HP (tight 1:1 clutch victory)!
+    // If challenged at Level 1 (700 HP), player dies in 3 turns!
+    const reqLevel = 15 + (stage - 1) * 10;
     const trainingDays = stage * 30;
     const trainingMonths = stage;
 
-    const maxHp = Math.round(3200 * Math.pow(1.15, stage - 1) + (stage - 1) * 2500);
-    const atk = Math.round(410 * Math.pow(1.135, stage - 1) + (stage - 1) * 280);
-    const def = Math.round(70 * Math.pow(1.12, stage - 1) + (stage - 1) * 75);
+    const maxHp = Math.round(1400 * Math.pow(1.12, stage - 1) + (stage - 1) * 1200);
+    const atk = Math.round(215 * Math.pow(1.11, stage - 1) + (stage - 1) * 120);
+    const def = Math.round(35 * Math.pow(1.10, stage - 1) + (stage - 1) * 45);
 
     const rewardsExp = Math.round(350 * Math.pow(1.085, stage - 1) + stage * 90);
     const rewardsGold = Math.round(120 * Math.pow(1.08, stage - 1) + stage * 40);
@@ -409,22 +411,22 @@ function generate50Bosses() {
 
 const BOSSES_DATA = generate50Bosses();
 
-// True Ultimate Secret Final Boss (제51의 벽: 50단계 보스를 모두 깬 자에게만 열리는 절대 거신)
+// True Ultimate Secret Final Boss (제100의 벽: 50단계를 넘은 자에게만 열리는 신화의 절대 거신)
 const SECRET_FINAL_BOSS = {
   id: "boss_secret_omega",
-  stage: 51,
+  stage: 100, // [제100의 벽]
   name: "절대 거신, 오메가 크로노스",
   subName: "True Ultimate Colossal God · 찐막 최종보스",
-  title: "제 51의 벽: 절대 거신",
-  recommendedLevel: 80,
-  trainingDays: 1500,
-  trainingMonths: 50,
+  title: "제 100의 벽: 신화의 절대 거신",
+  recommendedLevel: 999, // 50단계(Lv.505)를 압도적으로 초월하는 신화급 권장레벨
+  trainingDays: 3000,
+  trainingMonths: 100,
   maxHp: 999999,
   atk: 8888,
   def: 3500,
   crit: 0.25,
   image: "assets/bosses/boss_secret_omega.jpg",
-  introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
+  introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 제100의 벽 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
   isSecretFinal: true,
   rewards: {
     exp: 250000,
@@ -508,5 +510,5 @@ const TITLES_DATA = {
   "불굴의 수험생 (176cm)": { name: "불굴의 수험생 (176cm)", desc: "Stage 30 심연룡을 베고 번아웃을 극복한 자.", bonusText: "공격력 +80, 최대 체력 +600", stats: { atk: 80, maxHp: 600 } },
   "골격 파괴의 거인 (177cm)": { name: "골격 파괴의 거인 (177cm)", desc: "Stage 40 스켈레톤 킹을 굴복시킨 자.", bonusText: "전 스탯 +35, 치명타율 +8%", stats: { str: 35, int: 35, end: 35, gro: 35 } },
   "178cm 신화의 절대 각성자": { name: "178cm 신화의 절대 각성자", desc: "Stage 50 크로노스를 꺾고 178cm 목표 신장을 완벽히 쟁취한 전설.", bonusText: "전 스탯 +80, 모든 데미지 +40%", stats: { str: 80, int: 80, end: 80, gro: 80 } },
-  "178cm 신화의 절대신": { name: "178cm 신화의 절대신", desc: "제51의 벽, 절대 거신 오메가 크로노스를 굴복시키고 신의 반열에 오른 전설.", bonusText: "전 스탯 +100, 모든 공격력 +5,000, 방어력 +2,500", stats: { str: 100, int: 100, end: 100, gro: 100, atk: 5000, def: 2500 } }
+  "178cm 신화의 절대신": { name: "178cm 신화의 절대신", desc: "제100의 벽, 절대 거신 오메가 크로노스를 굴복시키고 신의 반열에 오른 전설.", bonusText: "전 스탯 +100, 모든 공격력 +5,000, 방어력 +2,500", stats: { str: 100, int: 100, end: 100, gro: 100, atk: 5000, def: 2500 } }
 };
