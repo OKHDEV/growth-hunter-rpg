@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>성장형 헌터 RPG - 클라우드 데이터베이스 관리자</title>
+  <link rel="stylesheet" href="css/style.css?v=20261029_36">
+  <style>
+    body {
+      background: #0a0e17;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      padding: 16px;
+      margin: 0;
+    }
+    .admin-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .admin-header {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .admin-header h1 {
+      margin: 0 0 8px 0;
+      color: #00e5ff;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .admin-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: rgba(0, 229, 255, 0.12);
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      color: #38bdf8;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .admin-link-btn:hover {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: #00e5ff;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+    .account-card {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      transition: all 0.2s;
+    }
+    .account-card:hover {
+      border-color: rgba(0, 229, 255, 0.4);
+      box-shadow: 0 6px 20px rgba(0, 229, 255, 0.1);
+    }
+    .account-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+    }
+    .user-badge {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #34d399;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pw-badge {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .stat-box {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    .stat-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    .json-editor {
+      width: 100%;
+      height: 280px;
+      background: #050811;
+      border: 1px solid rgba(0, 229, 255, 0.2);
+      border-radius: 8px;
+      color: #38bdf8;
+      font-family: Consolas, monospace;
+      font-size: 0.85rem;
+      padding: 12px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-action {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .btn-cyan { background: rgba(0, 229, 255, 0.18); border-color: #00e5ff; color: #00e5ff; }
+    .btn-cyan:hover { background: #00e5ff; color: #000; }
+    .btn-emerald { background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #34d399; }
+    .btn-emerald:hover { background: #10b981; color: #000; }
+    .btn-amber { background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #fbbf24; }
+    .btn-amber:hover { background: #f59e0b; color: #000; }
+    .loading-spinner {
+      text-align: center;
+      padding: 40px;
+      color: #38bdf8;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <div class="admin-header">
+      <h1>🗄️ 클라우드 데이터베이스 관리자 콘솔</h1>
+      <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">
+        성장형 헌터 RPG 유저 계정 데이터 실시간 조회, 백엔드 저장소 직접 링크 및 데이터 편집기
+      </p>
+
+      <div class="admin-links">
+        <a href="https://ntfy.sh/okh_gh_cloud_v4_registry" target="_blank" class="admin-link-btn">
+          📡 Ntfy 레지스트리 웹 콘솔 (계정 목록) ↗
+        </a>
+        <a href="index.html" class="admin-link-btn" style="border-color: rgba(52, 211, 153, 0.5); color: #34d399;">
+          🎮 게임 플레이 화면으로 가기
+        </a>
+        <button class="admin-link-btn" onclick="loadAllAccounts()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #fbbf24; cursor: pointer;">
+          🔄 계정 목록 새로고침
+        </button>
+      </div>
+    </div>
+
+    <!-- Accounts List Container -->
+    <div id="accountsList">
+      <div class="loading-spinner">📡 서버에서 유저 계정 목록을 불러오는 중...</div>
+    </div>
+  </div>
+
+  <script>
+    const NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_v4_';
+    const BYTEBIN_URL = 'https://bytebin.lucko.me';
+    const PASTES_URL = 'https://api.pastes.dev';
+
+    function userIdToHex(userId) {
+      const clean = String(userId || '').trim().toLowerCase();
+      let hex = '';
+      for (let i = 0; i < clean.length; i++) {
+        hex += clean.charCodeAt(i).toString(16);
+      }
+      return hex.slice(0, 32) || 'default';
+    }
+
+    async function loadAllAccounts() {
+      const listEl = document.getElementById('accountsList');
+      listEl.innerHTML = '<div class="loading-spinner">📡 서버에서 유저 계정 목록을 불러오는 중...</div>';
+
+      try {
+        const res = await fetch(`${NTFY_BASE}registry/json?poll=1&since=0`);
+        if (!res.ok) throw new Error('서버 응답 실패: ' + res.status);
+
+        const text = (await res.text()).trim();
+        let registry = {};
+
+        if (text) {
+          const lines = text.split('\n');
+          for (const line of lines) {
+            try {
+              const msg = JSON.parse(line);
+              if (msg && msg.message) {
+                const parsed = JSON.parse(msg.message);
+                registry = { ...registry, ...parsed };
+              }
+            } catch (e) {}
+          }
+        }
+
+        const userIds = Object.keys(registry);
+        if (userIds.length === 0) {
+          listEl.innerHTML = '<div style="text-align:center; padding:40px; color:#64748b;">등록된 유저 계정이 없습니다.</div>';
+          return;
+        }
+
+        listEl.innerHTML = '';
+        for (const uid of userIds) {
+          const accInfo = registry[uid] || {};
+          const card = document.createElement('div');
+          card.className = 'account-card';
+          card.id = `card_${userIdToHex(uid)}`;
+
+          const hexId = userIdToHex(uid);
+          const syncDateStr = accInfo.ts ? new Date(accInfo.ts).toLocaleString() : '기록 없음';
+
+          card.innerHTML = `
+            <div class="account-header">
+              <div>
+                <span class="user-badge">👤 ${uid}</span>
+                <span class="pw-badge">비밀번호: ${accInfo.p || '미설정'}</span>
+                <span style="font-size:0.8rem; color:#64748b; margin-left:8px;">최근 동기화: ${syncDateStr}</span>
+              </div>
+              <div class="btn-group">
+                <button class="btn-action btn-cyan" onclick="fetchAndDisplayUserData('${uid}', '${accInfo.bk || ''}', '${accInfo.pk || ''}')">
+                  🔍 데이터 조회 / 편집
+                </button>
+                <a href="${BYTEBIN_URL}/${accInfo.bk}" target="_blank" class="btn-action btn-emerald" style="text-decoration:none;">
+                  💾 Bytebin JSON ↗
+                </a>
+                <a href="${PASTES_URL}/${accInfo.pk}" target="_blank" class="btn-action btn-emerald" style="text-decoration:none;">
+                  📋 Pastes JSON ↗
+                </a>
+                <a href="${NTFY_BASE}u_${hexId}" target="_blank" class="btn-action btn-amber" style="text-decoration:none;">
+                  📡 Ntfy 채널 ↗
+                </a>
+              </div>
+            </div>
+            <div id="details_${hexId}" style="display:none; margin-top:14px;"></div>
+          `;
+
+          listEl.appendChild(card);
+        }
+
+      } catch (err) {
+        listEl.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444;">계정 목록 로드 실패: ${err.message}</div>`;
+      }
+    }
+
+    async function fetchAndDisplayUserData(userId, bk, pk) {
+      const hexId = userIdToHex(userId);
+      const detailContainer = document.getElementById(`details_${hexId}`);
+      if (!detailContainer) return;
+
+      if (detailContainer.style.display !== 'none' && detailContainer.dataset.loaded === 'true') {
+        detailContainer.style.display = 'none';
+        return;
+      }
+
+      detailContainer.style.display = 'block';
+      detailContainer.innerHTML = '<div style="color:#38bdf8; font-size:0.9rem;">⏳ 유저 상세 세이브 데이터를 로드하는 중...</div>';
+
+      let saveJson = null;
+
+      // 1. Try Bytebin
+      if (bk) {
+        try {
+          const res = await fetch(`${BYTEBIN_URL}/${bk}`);
+          if (res.ok) saveJson = await res.json();
+        } catch (e) {}
+      }
+
+      // 2. Try Pastes
+      if (!saveJson && pk) {
+        try {
+          const res = await fetch(`${PASTES_URL}/${pk}`);
+          if (res.ok) saveJson = await res.json();
+        } catch (e) {}
+      }
+
+      // 3. Try Ntfy
+      if (!saveJson) {
+        try {
+          const res = await fetch(`${NTFY_BASE}u_${hexId}/json?poll=1&since=0`);
+          if (res.ok) {
+            const text = (await res.text()).trim();
+            if (text) {
+              const lines = text.split('\n');
+              for (let i = lines.length - 1; i >= 0; i--) {
+                try {
+                  const m = JSON.parse(lines[i]);
+                  if (m && m.message) {
+                    const parsed = JSON.parse(m.message);
+                    if (parsed && parsed.d) {
+                      saveJson = parsed.d;
+                      break;
+                    }
+                  }
+                } catch (e) {}
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!saveJson) {
+        detailContainer.innerHTML = '<div style="color:#ef4444;">유저 세이브 데이터를 가져오지 못했습니다.</div>';
+        return;
+      }
+
+      detailContainer.dataset.loaded = 'true';
+      const p = saveJson.player || {};
+      const s = p.stats || {};
+      const r = saveJson.raid || {};
+      const q = saveJson.quests || {};
+
+      const goldFmt = typeof p.gold === 'number' ? p.gold.toLocaleString() : (p.gold || 0);
+
+      detailContainer.innerHTML = `
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">레벨 (LV)</div>
+            <div class="stat-val" style="color:#38bdf8;">Lv.${p.level || 1}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">골드 (GOLD)</div>
+            <div class="stat-val" style="color:#facc15;">${goldFmt} G</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">경험치 (EXP)</div>
+            <div class="stat-val" style="color:#a855f7;">${p.exp || 0}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">근력 / 지능 / 체력</div>
+            <div class="stat-val">${s.str || 14} / ${s.int || 12} / ${s.end || 14}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">보스 토벌 단계</div>
+            <div class="stat-val" style="color:#ef4444;">STAGE ${r.unlockedStage || 1}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">연속 출석일</div>
+            <div class="stat-val" style="color:#34d399;">${q.dailyStreak || 1}일</div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:0.85rem; font-weight:700; color:#94a3b8;">원시 세이브 JSON 편집기</span>
+            <div class="btn-group">
+              <button class="btn-action btn-amber" onclick="addGoldToUser('${userId}', 1000000)">+1,000,000 G 지급</button>
+              <button class="btn-action btn-cyan" onclick="saveUserChanges('${userId}')">💾 서버에 변경사항 즉시 저장</button>
+            </div>
+          </div>
+          <textarea class="json-editor" id="json_${hexId}">${JSON.stringify(saveJson, null, 2)}</textarea>
+        </div>
+      `;
+    }
+
+    function addGoldToUser(userId, amount) {
+      const hexId = userIdToHex(userId);
+      const txt = document.getElementById(`json_${hexId}`);
+      if (!txt) return;
+      try {
+        const obj = JSON.parse(txt.value);
+        if (!obj.player) obj.player = {};
+        obj.player.gold = (Number(obj.player.gold) || 0) + amount;
+        obj.lastSaved = new Date().toISOString();
+        txt.value = JSON.stringify(obj, null, 2);
+        alert(`골드가 +${amount.toLocaleString()} G 추가되었습니다. [서버에 변경사항 즉시 저장]을 눌러 반영하세요!`);
+      } catch (e) {
+        alert("JSON 파싱 에러: " + e.message);
+      }
+    }
+
+    async function saveUserChanges(userId) {
+      const hexId = userIdToHex(userId);
+      const txt = document.getElementById(`json_${hexId}`);
+      if (!txt) return;
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(txt.value);
+      } catch (e) {
+        return alert("유효하지 않은 JSON 형식입니다: " + e.message);
+      }
+
+      parsedData.ownerAccountId = userId;
+      parsedData.lastSaved = new Date().toISOString();
+
+      try {
+        // 1. Upload to Bytebin
+        let newBk = null;
+        try {
+          const bRes = await fetch(`${BYTEBIN_URL}/post`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parsedData)
+          });
+          if (bRes.ok) {
+            const bJson = await bRes.json();
+            if (bJson && bJson.key) newBk = bJson.key;
+          }
+        } catch (e) {}
+
+        // 2. Upload to Pastes
+        let newPk = null;
+        try {
+          const pRes = await fetch(`${PASTES_URL}/post`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parsedData)
+          });
+          if (pRes.ok) {
+            const pJson = await pRes.json();
+            if (pJson && pJson.key) newPk = pJson.key;
+          }
+        } catch (e) {}
+
+        // 3. Upload to Ntfy user topic
+        await fetch(`${NTFY_BASE}u_${hexId}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            u: userId,
+            bk: newBk,
+            pk: newPk,
+            d: parsedData,
+            ts: Date.now()
+          })
+        });
+
+        // 4. Update registry
+        await fetch(`${NTFY_BASE}registry`, {
+          method: 'POST',
+          body: JSON.stringify({
+            [userId]: {
+              bk: newBk,
+              pk: newPk,
+              ts: Date.now()
+            }
+          })
+        });
+
+        alert(`✅ [${userId}] 계정의 세이브 데이터가 성공적으로 서버에 업데이트되었습니다!\n유저 기기에서 새로고침 또는 앱 진입 시 최신 데이터로 자동 반영됩니다.`);
+        loadAllAccounts();
+      } catch (err) {
+        alert("저장 실패: " + err.message);
+      }
+    }
+
+    // Init on load
+    window.addEventListener('DOMContentLoaded', loadAllAccounts);
+  </script>
+</body>
+</html>
