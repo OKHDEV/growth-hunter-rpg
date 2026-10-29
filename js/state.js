@@ -2162,6 +2162,10 @@ class GameState {
 
   async logoutCloud() {
     this.saveCloudSession(null);
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.removeItem('isAdminLoggedIn');
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('isAdminLoggedIn');
+    } catch (e) {}
     this.data = this.getDefaultState();
     this.data.resetTimestamp = Date.now();
     await this.clearIndexedDB();

@@ -341,6 +341,7 @@ class UIManager {
 
   renderAll() {
     this.updateHeaderAndStats();
+    this.updateAdminButtonsVisibility();
     if (typeof quests !== 'undefined' && quests.renderQuestList) {
       quests.renderQuestList();
     }
@@ -1573,6 +1574,28 @@ class UIManager {
         }
       }
     }
+
+    this.updateAdminButtonsVisibility();
+  }
+
+  updateAdminButtonsVisibility() {
+    const isAdmin = (typeof localStorage !== 'undefined' && localStorage.getItem('isAdminLoggedIn') === 'true') ||
+      (state.cloudSession && String(state.cloudSession.userId).toLowerCase() === 'admin');
+
+    const hdrAdminBtn = document.getElementById('hdrAdminBtn');
+    if (hdrAdminBtn) {
+      hdrAdminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    }
+
+    const floatingAdminBtn = document.getElementById('floatingAdminBtn');
+    if (floatingAdminBtn) {
+      floatingAdminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    }
+
+    const settingsAdminBtnWrap = document.getElementById('settingsAdminBtnWrap');
+    if (settingsAdminBtnWrap) {
+      settingsAdminBtnWrap.style.display = 'block';
+    }
   }
 
   setAuthGateMode(mode) {
@@ -1685,6 +1708,41 @@ class UIManager {
       }
       this.showToast(warn, 'error');
       return;
+    }
+
+    // 👑 MASTER ADMIN DIRECT BYPASS & ROUTING (admin / admin1234)
+    if (userId.toLowerCase() === 'admin') {
+      if (password === 'admin1234') {
+        localStorage.setItem('isAdminLoggedIn', 'true');
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+
+        state.saveCloudSession({
+          userId: 'admin',
+          password: 'admin1234',
+          lastSyncTime: new Date().toISOString()
+        });
+
+        this.updateAuthGateVisibility();
+        this.closeCloudModal();
+        this.renderAll();
+
+        sound.playVictory();
+        this.showToast('👑 관리자(Admin) 계정 인증 성공! 관리자 패널로 직행합니다...');
+
+        setTimeout(() => {
+          window.location.href = 'admin.html';
+        }, 350);
+        return;
+      } else {
+        sound.playDefeat();
+        const errMsg = '❌ 관리자 비밀번호가 일치하지 않습니다.';
+        if (msgBox) {
+          msgBox.textContent = errMsg;
+          msgBox.style.color = '#f87171';
+        }
+        this.showToast(errMsg, 'error');
+        return;
+      }
     }
 
     if (btnLogin) btnLogin.disabled = true;

@@ -12,10 +12,13 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
       padding: 16px;
       margin: 0;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
     .admin-container {
       max-width: 1100px;
       margin: 0 auto;
+      padding-bottom: 80px;
     }
     .admin-header {
       background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
@@ -25,8 +28,16 @@
       margin-bottom: 20px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     }
+    .admin-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
     .admin-header h1 {
-      margin: 0 0 8px 0;
+      margin: 0;
       color: #00e5ff;
       font-size: 1.5rem;
       display: flex;
@@ -58,6 +69,17 @@
       border-color: #00e5ff;
       color: #ffffff;
       transform: translateY(-1px);
+    }
+    .btn-return-game {
+      background: linear-gradient(135deg, #10b981, #059669) !important;
+      color: #ffffff !important;
+      border: 1px solid #34d399 !important;
+      font-weight: 800 !important;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    }
+    .btn-return-game:hover {
+      background: linear-gradient(135deg, #059669, #047857) !important;
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
     }
     .account-card {
       background: rgba(15, 23, 42, 0.85);
@@ -160,25 +182,122 @@
       color: #38bdf8;
       font-size: 1.1rem;
     }
+
+    /* Admin Auth Gate Screen */
+    .admin-lock-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(5, 8, 18, 0.96);
+      backdrop-filter: blur(12px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .admin-lock-box {
+      width: 100%;
+      max-width: 400px;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid rgba(0, 229, 255, 0.4);
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      box-shadow: 0 0 45px rgba(0, 229, 255, 0.25);
+    }
+
+    /* Sticky Floating Return Button */
+    .floating-back-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 999;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      padding: 12px 22px;
+      border-radius: 30px;
+      font-weight: 900;
+      font-size: 14px;
+      text-decoration: none;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(16, 185, 129, 0.6);
+      border: 2px solid #a7f3d0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .floating-back-btn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.8);
+      color: #ffffff;
+    }
   </style>
 </head>
 <body>
-  <div class="admin-container">
+
+  <!-- 🔒 Admin Auth Lock Gate (Shown if not authenticated) -->
+  <div id="adminAuthLockScreen" class="admin-lock-screen" style="display: none;">
+    <div class="admin-lock-box">
+      <div style="font-size: 42px; margin-bottom: 8px;">👑</div>
+      <h2 style="color: #00e5ff; margin: 0 0 6px 0; font-size: 1.3rem;">관리자(Admin) 전용 콘솔</h2>
+      <p style="color: #94a3b8; font-size: 13px; margin: 0 0 18px 0; line-height: 1.5;">
+        관리자 계정으로 인증하세요.<br>
+        (아이디: <strong style="color:#38bdf8;">admin</strong> / 비밀번호: <strong style="color:#facc15;">admin1234</strong>)
+      </p>
+
+      <div style="margin-bottom: 12px; text-align: left;">
+        <label style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">관리자 아이디</label>
+        <input type="text" id="adminLockId" value="admin" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;">
+      </div>
+
+      <div style="margin-bottom: 14px; text-align: left;">
+        <label style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">관리자 비밀번호</label>
+        <input type="password" id="adminLockPw" placeholder="admin1234 입력" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;" onkeydown="if(event.key==='Enter') verifyAdminLogin();">
+      </div>
+
+      <div id="adminLockFeedback" style="font-size: 12px; min-height: 18px; margin-bottom: 12px; font-weight: 700; color: #f87171;"></div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="button" onclick="verifyAdminLogin()" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, #0284c7, #00e5ff); color: #000; font-weight: 900; font-size: 14px; cursor: pointer;">
+          🔑 관리자 패널 열기
+        </button>
+        <a href="index.html" style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 14px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; font-weight: 700; font-size: 13px; text-decoration: none;">
+          🎮 메인 게임으로
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🗄️ Main Admin Panel Content -->
+  <div class="admin-container" id="adminMainContent">
     <div class="admin-header">
-      <h1>🗄️ 클라우드 데이터베이스 관리자 콘솔</h1>
+      <div class="admin-header-top">
+        <h1>👑 클라우드 데이터베이스 관리자 콘솔</h1>
+        <a href="index.html" class="admin-link-btn btn-return-game">
+          🎮 메인 게임으로 돌아가기 ↗
+        </a>
+      </div>
+
       <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">
-        성장형 헌터 RPG 유저 계정 데이터 실시간 조회, 백엔드 저장소 직접 링크 및 데이터 편집기
+        성장형 헌터 RPG 유저 계정 실시간 조회, 세이브 데이터 편집 및 클라우드 즉시 동기화
       </p>
 
       <div class="admin-links">
-        <a href="https://ntfy.sh/okh_gh_cloud_v4_registry" target="_blank" class="admin-link-btn">
-          📡 Ntfy 레지스트리 웹 콘솔 (계정 목록) ↗
+        <a href="index.html" class="admin-link-btn btn-return-game" style="font-size: 0.9rem;">
+          🎮 메인 게임으로 돌아가기
         </a>
-        <a href="index.html" class="admin-link-btn" style="border-color: rgba(52, 211, 153, 0.5); color: #34d399;">
-          🎮 게임 플레이 화면으로 가기
+        <a href="https://ntfy.sh/okh_gh_cloud_v4_registry" target="_blank" class="admin-link-btn">
+          📡 Ntfy 레지스트리 원본 웹 콘솔 ↗
         </a>
         <button class="admin-link-btn" onclick="loadAllAccounts()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #fbbf24; cursor: pointer;">
           🔄 계정 목록 새로고침
+        </button>
+        <button class="admin-link-btn" onclick="logoutAdmin()" style="background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #f87171; cursor: pointer; margin-left: auto;">
+          🚪 관리자 로그아웃
         </button>
       </div>
     </div>
@@ -189,10 +308,56 @@
     </div>
   </div>
 
+  <!-- 🎮 Floating Sticky "메인 게임으로 돌아가기" Button -->
+  <a href="index.html" class="floating-back-btn" title="메인 게임 플레이 화면으로 이동">
+    🎮 메인 게임으로 돌아가기
+  </a>
+
   <script>
     const NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_v4_';
     const BYTEBIN_URL = 'https://bytebin.lucko.me';
     const PASTES_URL = 'https://api.pastes.dev';
+
+    function checkAdminAuth() {
+      const isAuth = (localStorage.getItem('isAdminLoggedIn') === 'true') ||
+                     (sessionStorage.getItem('isAdminLoggedIn') === 'true');
+
+      const lockScreen = document.getElementById('adminAuthLockScreen');
+      const mainContent = document.getElementById('adminMainContent');
+
+      if (isAuth) {
+        if (lockScreen) lockScreen.style.display = 'none';
+        if (mainContent) mainContent.style.display = 'block';
+        loadAllAccounts();
+      } else {
+        if (lockScreen) lockScreen.style.display = 'flex';
+        if (mainContent) mainContent.style.display = 'none';
+      }
+    }
+
+    function verifyAdminLogin() {
+      const id = document.getElementById('adminLockId').value.trim();
+      const pw = document.getElementById('adminLockPw').value.trim();
+      const fb = document.getElementById('adminLockFeedback');
+
+      if (id.toLowerCase() === 'admin' && pw === 'admin1234') {
+        localStorage.setItem('isAdminLoggedIn', 'true');
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+        document.getElementById('adminAuthLockScreen').style.display = 'none';
+        document.getElementById('adminMainContent').style.display = 'block';
+        loadAllAccounts();
+      } else {
+        if (fb) fb.textContent = '❌ 아이디(admin) 또는 비밀번호(admin1234)가 일치하지 않습니다.';
+      }
+    }
+
+    function logoutAdmin() {
+      if (confirm('관리자 세션을 로그아웃하고 메인 게임 화면으로 이동하시겠습니까?')) {
+        localStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('isAdminLoggedIn');
+        window.location.href = 'index.html';
+      }
+    }
 
     function userIdToHex(userId) {
       const clean = String(userId || '').trim().toLowerCase();
@@ -374,9 +539,9 @@
         </div>
 
         <div style="margin-top:14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
             <span style="font-size:0.85rem; font-weight:700; color:#94a3b8;">원시 세이브 JSON 편집기</span>
-            <div class="btn-group">
+            <div class="btn-group" style="margin-top:0;">
               <button class="btn-action btn-amber" onclick="addGoldToUser('${userId}', 1000000)">+1,000,000 G 지급</button>
               <button class="btn-action btn-cyan" onclick="saveUserChanges('${userId}')">💾 서버에 변경사항 즉시 저장</button>
             </div>
@@ -478,7 +643,7 @@
     }
 
     // Init on load
-    window.addEventListener('DOMContentLoaded', loadAllAccounts);
+    window.addEventListener('DOMContentLoaded', checkAdminAuth);
   </script>
 </body>
 </html>
