@@ -199,12 +199,32 @@ class UIManager {
 
     if (statName) statName.textContent = p.name;
     if (statTitle) {
+      const tMeta = (typeof getTitleMetadata === 'function' ? getTitleMetadata(p.activeTitle) : null) 
+        || (typeof TITLES_DATA !== 'undefined' ? TITLES_DATA[p.activeTitle] : null);
       const activeMults = state.getActiveTitleMultipliers ? state.getActiveTitleMultipliers() : { expMultiplier: 1.0, goldMultiplier: 1.0 };
-      if (activeMults.expMultiplier > 1 || activeMults.goldMultiplier > 1) {
-        statTitle.innerHTML = `${p.activeTitle} <span style="font-size: 11px; color: #facc15; font-weight: 800; margin-left: 6px; background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.45); padding: 2px 7px; border-radius: 4px;">EXP x${activeMults.expMultiplier} / 골드 x${activeMults.goldMultiplier}</span>`;
-      } else {
-        statTitle.textContent = p.activeTitle;
+
+      let statParts = [];
+      if (tMeta && tMeta.stats) {
+        const s = tMeta.stats;
+        if (s.atk) statParts.push(`⚔️ 공격력 +${s.atk.toLocaleString()}`);
+        if (s.def) statParts.push(`🛡️ 방어력 +${s.def.toLocaleString()}`);
+        if (s.str) statParts.push(`STR +${s.str}`);
+        if (s.int) statParts.push(`INT +${s.int}`);
+        if (s.end) statParts.push(`END +${s.end}`);
+        if (s.gro) statParts.push(`키 성장 +${s.gro}%`);
+        if (s.maxHp) statParts.push(`HP +${s.maxHp.toLocaleString()}`);
+        if (s.crit) statParts.push(`치명타 +${Math.round(s.crit * 100)}%`);
       }
+
+      const statLineHtml = statParts.length > 0
+        ? `<div style="font-size: 11px; color: #38bdf8; font-weight: 800; margin-top: 4px; line-height: 1.4;">${statParts.join(' · ')}</div>`
+        : '';
+
+      const multBadgeHtml = (activeMults.expMultiplier > 1 || activeMults.goldMultiplier > 1)
+        ? `<span style="font-size: 11px; color: #facc15; font-weight: 800; margin-left: 6px; background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.45); padding: 2px 7px; border-radius: 4px;">EXP x${activeMults.expMultiplier} / 골드 x${activeMults.goldMultiplier}</span>`
+        : '';
+
+      statTitle.innerHTML = `<div>${p.activeTitle} ${multBadgeHtml}</div>${statLineHtml}`;
     }
     if (statLevel) statLevel.textContent = `LEVEL ${p.level}`;
     if (statRank) {
@@ -262,10 +282,29 @@ class UIManager {
     const derivedDef = document.getElementById('statDerivedDef');
     const derivedCrit = document.getElementById('statDerivedCrit');
 
-    if (derivedHp) derivedHp.textContent = effective.maxHp.toLocaleString();
+    const baseAtk = Math.round(25 + (p.stats.str * 4) + (p.level * 6));
+    const bonusAtkVal = effective.atk - baseAtk;
+    const baseDef = Math.round(8 + (p.stats.end * 2.5) + (p.level * 2.5));
+    const bonusDefVal = effective.def - baseDef;
+    const baseHp = 300 + (p.level * 50) + (p.stats.end * 25);
+    const bonusHpVal = effective.maxHp - baseHp;
+
+    if (derivedHp) {
+      derivedHp.innerHTML = bonusHpVal > 0
+        ? `${effective.maxHp.toLocaleString()} <span style="font-size:11px; color:#34d399; font-weight:bold;">(+${bonusHpVal.toLocaleString()})</span>`
+        : effective.maxHp.toLocaleString();
+    }
     if (derivedMp) derivedMp.textContent = effective.maxMp.toLocaleString();
-    if (derivedAtk) derivedAtk.textContent = effective.atk.toLocaleString();
-    if (derivedDef) derivedDef.textContent = effective.def.toLocaleString();
+    if (derivedAtk) {
+      derivedAtk.innerHTML = bonusAtkVal > 0
+        ? `${effective.atk.toLocaleString()} <span style="font-size:11px; color:#38bdf8; font-weight:bold;">(+${bonusAtkVal.toLocaleString()})</span>`
+        : effective.atk.toLocaleString();
+    }
+    if (derivedDef) {
+      derivedDef.innerHTML = bonusDefVal > 0
+        ? `${effective.def.toLocaleString()} <span style="font-size:11px; color:#38bdf8; font-weight:bold;">(+${bonusDefVal.toLocaleString()})</span>`
+        : effective.def.toLocaleString();
+    }
     if (derivedCrit) derivedCrit.textContent = `${(effective.crit * 100).toFixed(1)}%`;
 
     if (typeof state.updateSaveIndicator === 'function') {
@@ -1087,6 +1126,11 @@ class UIManager {
           actionHtml = `<span class="title-lock-condition">🔒 해금 조건: ${tInfo.unlockHint || '특정 업적 달성'}</span>`;
         }
 
+        let statBonusText = tInfo.bonusText || '';
+        if (statBonusText.includes('|')) {
+          statBonusText = statBonusText.split('|')[0].trim();
+        }
+
         const multBadgeHtml = (tInfo.expMultiplier || tInfo.goldMultiplier) ? `
           <div class="title-multiplier-badge" style="display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 10px; background: linear-gradient(90deg, rgba(250, 204, 21, 0.16), rgba(0, 229, 255, 0.12)); border: 1px solid rgba(250, 204, 21, 0.45); border-radius: 6px; font-size: 11px; font-weight: 800;">
             <span style="color: #38bdf8;">✨ EXP x${tInfo.expMultiplier || 1.0}</span>
@@ -1105,7 +1149,7 @@ class UIManager {
             ${isActive ? '<span class="title-equipped-dot">착용</span>' : ''}
           </div>
           <div class="title-desc-text">${tInfo.desc}</div>
-          <div class="title-bonus-badge">${tInfo.bonusText}</div>
+          <div class="title-bonus-badge">⚡ ${statBonusText}</div>
           ${multBadgeHtml}
           <div class="title-card-footer">
             ${actionHtml}
