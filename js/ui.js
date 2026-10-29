@@ -835,27 +835,47 @@ class UIManager {
       const card = document.createElement('div');
       card.className = `boss-select-card ${isUnlocked ? 'unlocked' : 'locked'} ${isCleared ? 'cleared' : ''} ${boss.isSecretFinal ? 'omega-card' : ''}`;
 
+      const v = boss.visual;
+      if (v && !boss.isSecretFinal) {
+        card.style.setProperty('--boss-theme-color', v.color);
+        card.style.setProperty('--boss-theme-sub', v.subColor);
+        card.style.borderColor = `${v.color}66`;
+        card.style.boxShadow = `0 8px 28px rgba(0,0,0,0.65), inset 0 0 22px ${v.color}22`;
+      }
+
+      const imgStyle = (v && !boss.isSecretFinal)
+        ? `filter: hue-rotate(${v.hue}deg) saturate(${v.sat}) contrast(${v.con}) brightness(${v.bri}); transform: scaleX(${v.flip}) scale(${v.zoom}); object-position: ${v.pos};`
+        : '';
+
+      const auraOverlayHtml = (v && !boss.isSecretFinal)
+        ? `<div class="boss-card-aura-fx" style="background: radial-gradient(circle at 50% 35%, transparent 35%, ${v.color}38 85%, ${v.subColor}66 100%); box-shadow: inset 0 0 ${14 + Math.round(boss.stage * 0.6)}px ${v.color};"></div>
+           <div class="boss-awakening-tag" style="background: linear-gradient(135deg, ${v.color}dd, ${v.subColor}dd); border-color: ${v.color};">
+             ⚡ ${v.rankTag} · ${v.auraName}
+           </div>`
+        : '';
+
       card.innerHTML = `
         <div class="boss-img-wrap">
-          <img src="${boss.image}" alt="${boss.name}" class="boss-card-img" />
-          <div class="boss-stage-badge" style="${boss.isSecretFinal ? 'background:linear-gradient(135deg, #f59e0b, #ef4444); border-color:#f59e0b; color:#fff; font-weight:900;' : ''}">
+          <img src="${boss.image}" alt="${boss.name}" class="boss-card-img" style="${imgStyle}" />
+          ${auraOverlayHtml}
+          <div class="boss-stage-badge" style="${boss.isSecretFinal ? 'background:linear-gradient(135deg, #f59e0b, #ef4444); border-color:#f59e0b; color:#fff; font-weight:900;' : (v ? `border-color:${v.color}; color:#fff; background:linear-gradient(135deg, rgba(0,0,0,0.88), ${v.color}66); box-shadow:0 0 12px ${v.color}88;` : '')}">
             ${boss.isSecretFinal ? '👑 100단계 [100레벨 보스]' : `STAGE ${boss.stage}`}
           </div>
           ${isCleared ? `<div class="boss-cleared-badge">토벌 완료</div>` : ''}
           ${!isUnlocked ? `<div class="boss-lock-overlay">🔒 이전 스테이지 클리어 필요</div>` : ''}
         </div>
         <div class="boss-info-wrap">
-          <div class="boss-month-tag" style="margin-bottom:6px; ${boss.isSecretFinal ? 'border-color:#f59e0b; color:#fbbf24; background:rgba(245,158,11,0.25); font-weight:800;' : ''}">
+          <div class="boss-month-tag" style="margin-bottom:6px; ${boss.isSecretFinal ? 'border-color:#f59e0b; color:#fbbf24; background:rgba(245,158,11,0.25); font-weight:800;' : (v ? `border-color:${v.color}88; color:${v.color}; background:${v.color}1a;` : '')}">
             ${boss.isSecretFinal ? '👑 [100단계 찐막 최종보스] 100레벨 신장 178cm 절대 거신' : `⏳ ${boss.trainingMonths}달(${boss.trainingDays}일) 매일 수련 필수`}
           </div>
           <div class="boss-title-row">
-            <h3 class="boss-card-name" style="${boss.isSecretFinal ? 'font-size:22px; color:#fbbf24; text-shadow:0 0 15px rgba(245,158,11,0.6);' : ''}">${boss.name}</h3>
+            <h3 class="boss-card-name" style="${boss.isSecretFinal ? 'font-size:22px; color:#fbbf24; text-shadow:0 0 15px rgba(245,158,11,0.6);' : (v ? `text-shadow: 0 0 12px ${v.color}55;` : '')}">${boss.name}</h3>
             <span class="boss-card-rec ${isRecommended ? 'rec-ok' : 'rec-warn'}" style="${boss.isSecretFinal ? 'border-color:#ef4444; color:#f87171; background:rgba(239,68,68,0.25); font-weight:900;' : ''}">
               ${boss.isSecretFinal ? `권장 Lv.${boss.recommendedLevel} (신화)` : `권장 Lv.${boss.recommendedLevel}`}
             </span>
           </div>
           <div class="boss-card-sub">${boss.subName}</div>
-          <p class="boss-card-quote">${boss.introQuote}</p>
+          <p class="boss-card-quote" style="${v && !boss.isSecretFinal ? `border-left-color: ${v.color};` : ''}">${boss.introQuote}</p>
           <div class="boss-stats-preview">
             <span>체력: ${boss.maxHp.toLocaleString()}</span>
             <span>공격력: ${boss.atk.toLocaleString()}</span>
@@ -869,8 +889,8 @@ class UIManager {
               <span class="badge-growth">+${boss.rewards.growthPoints.toLocaleString()} 키 성장치</span>
             </div>
           </div>
-          <button class="btn btn-raid-start ${isUnlocked ? '' : 'disabled'} ${boss.isSecretFinal ? 'btn-omega-challenge' : ''}" ${isUnlocked ? '' : 'disabled'} onclick="ui.startBossRaid('${boss.id}')">
-            ${isCleared ? '다시 도전하기' : (boss.isSecretFinal ? '🔥 100레벨 절대 거신과 1:1 최종 결전' : '보스 1:1 맞다이 결전')}
+          <button class="btn btn-raid-start ${isUnlocked ? '' : 'disabled'} ${boss.isSecretFinal ? 'btn-omega-challenge' : ''}" style="${v && !boss.isSecretFinal && isUnlocked ? `background: linear-gradient(135deg, ${v.color}, ${v.subColor}); box-shadow: 0 4px 16px ${v.color}55;` : ''}" ${isUnlocked ? '' : 'disabled'} onclick="ui.startBossRaid('${boss.id}')">
+            ${isCleared ? '다시 도전하기' : (boss.isSecretFinal ? '🔥 100레벨 절대 거신과 1:1 최종 결전' : `⚔️ Stage ${boss.stage} 보스 1:1 맞다이 결전`)}
           </button>
         </div>
       `;

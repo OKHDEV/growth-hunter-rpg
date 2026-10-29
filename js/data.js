@@ -282,66 +282,134 @@ const TIER_CONFIG = {
 };
 
 // 50 High-Difficulty Bosses (Organized in 5 Zones, requiring solid daily consistency)
+// Uses the 5 iconic original boss photos (boss1.jpg ~ boss5.jpg) in a strictly non-adjacent cycle
+// so adjacent stages never share the same character, while each stage gets its own distinct
+// elemental aura, hue/contrast evolution, framing crop, and awakening emblem!
 const BOSS_NAMES_DATA = [
   // Zone 1: 나태와 숏폼의 회랑 (Stage 1~10)
   { stage: 1, name: "나태의 망령, 슬로스", sub: "Sloth Spectre", quote: "“침대 속이 따뜻하지 않나...? 영원히 일어나지 마라...”", img: "assets/bosses/boss1.jpg" },
   { stage: 2, name: "숏폼의 환영귀, 스크롤러", sub: "Phantom Scroller", quote: "“딱 5분만 본다더니 벌써 새벽 2시로구나, 크크크...”", img: "assets/bosses/boss2.jpg" },
-  { stage: 3, name: "야식의 폭식마, 글러튼", sub: "Gluttonous Fiend", quote: "“밤 11시의 라면과 치킨... 성장은 내일로 미뤄라!”", img: "assets/bosses/boss1.jpg" },
-  { stage: 4, name: "작심삼일의 사신, 기브업", sub: "Reaper of Surrender", quote: "“어차피 사흘이면 때려치울 거 뭐 하러 땀 흘리나?”", img: "assets/bosses/boss1.jpg" },
-  { stage: 5, name: "알고리즘의 주술사, 피드", sub: "Algorithm Sorcerer", quote: "“네 뇌의 도파민을 남김없이 흡수해주마!”", img: "assets/bosses/boss2.jpg" },
+  { stage: 3, name: "야식의 폭식마, 글러튼", sub: "Gluttonous Fiend", quote: "“밤 11시의 라면과 치킨... 성장은 내일로 미뤄라!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 4, name: "작심삼일의 사신, 기브업", sub: "Reaper of Surrender", quote: "“어차피 사흘이면 때려치울 거 뭐 하러 땀 흘리나?”", img: "assets/bosses/boss4.jpg" },
+  { stage: 5, name: "알고리즘의 주술사, 피드", sub: "Algorithm Sorcerer", quote: "“네 뇌의 도파민을 남김없이 흡수해주마!”", img: "assets/bosses/boss5.jpg" },
   { stage: 6, name: "스마트폰 지박령, 블루라이트", sub: "Bluelight Demon", quote: "“망막을 태우고 멜라토닌을 소멸시키리라!”", img: "assets/bosses/boss2.jpg" },
   { stage: 7, name: "침대 늪의 흡혈귀, 매트리스", sub: "Mattress Vampire", quote: "“천근만근 무거운 사지... 절대 침대 밖을 못 벗어난다!”", img: "assets/bosses/boss1.jpg" },
-  { stage: 8, name: "가짜 성취의 요마, 도파민스니크", sub: "Dopamine Sneak", quote: "“게임 한 판 더 해라. 현실 따위 잊으면 그만이야.”", img: "assets/bosses/boss2.jpg" },
-  { stage: 9, name: "미루기의 군주, 프로크라스틴", sub: "Lord of Procrastination", quote: "“오늘 할 공부는 내일의 너에게 떠넘겨라!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 8, name: "가짜 성취의 요마, 도파민스니크", sub: "Dopamine Sneak", quote: "“게임 한 판 더 해라. 현실 따위 잊으면 그만이야.”", img: "assets/bosses/boss4.jpg" },
+  { stage: 9, name: "미루기의 군주, 프로크라스틴", sub: "Lord of Procrastination", quote: "“오늘 할 공부는 내일의 너에게 떠넘겨라!”", img: "assets/bosses/boss5.jpg" },
   { stage: 10, name: "도파민의 대마신, 도파미너스", sub: "High Dopamine Demon", quote: "“쾌락의 노예가 된 영혼이여, 내 영원한 데이터가 되어라!”", img: "assets/bosses/boss2.jpg" },
 
   // Zone 2: 왜소와 중력의 협곡 (Stage 11~20)
-  { stage: 11, name: "구부정한 망령, 거북목", sub: "Turtle Neck Wraith", quote: "“숙인 고개, 굳은 목덜미... 넌 평생 땅만 쳐다볼 팔자다.”", img: "assets/bosses/boss3.jpg" },
+  { stage: 11, name: "구부정한 망령, 거북목", sub: "Turtle Neck Wraith", quote: "“숙인 고개, 굳은 목덜미... 넌 평생 땅만 쳐다볼 팔자다.”", img: "assets/bosses/boss1.jpg" },
   { stage: 12, name: "척추 압박의 석괴, 척추만곡", sub: "Spine Compactor", quote: "“등뼈를 납작하게 으스러뜨려 키를 2cm 깎아내주마!”", img: "assets/bosses/boss3.jpg" },
-  { stage: 13, name: "성장판 봉인귀, 에피피시스", sub: "Growth Plate Sealer", quote: "“성장판을 단단히 닫아버려 173cm에 평생 박제하겠다!”", img: "assets/bosses/boss3.jpg" },
-  { stage: 14, name: "칼슘 결핍의 골렘, 본크러셔", sub: "Bone Crusher", quote: "“골밀도가 푸석한 뼈마디를 가루로 만들어주마!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 13, name: "성장판 봉인귀, 에피피시스", sub: "Growth Plate Sealer", quote: "“성장판을 단단히 닫아버려 173cm에 평생 박제하겠다!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 14, name: "칼슘 결핍의 골렘, 본크러셔", sub: "Bone Crusher", quote: "“골밀도가 푸석한 뼈마디를 가루로 만들어주마!”", img: "assets/bosses/boss4.jpg" },
   { stage: 15, name: "수면 부족의 악령, 인섬니아", sub: "Insomnia Fiend", quote: "“성장호르몬 골든타임? 새벽 3시까지 뒤척여라!”", img: "assets/bosses/boss1.jpg" },
-  { stage: 16, name: "라운드숄더의 족쇄, 말린어깨", sub: "Rounded Shackle", quote: "“가슴을 웅크려 왜소한 프레임 속에 영원히 갇혀라!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 16, name: "라운드숄더의 족쇄, 말린어깨", sub: "Rounded Shackle", quote: "“가슴을 웅크려 왜소한 프레임 속에 영원히 갇혀라!”", img: "assets/bosses/boss2.jpg" },
   { stage: 17, name: "점프 저지마, 헤비앵클", sub: "Heavy Ankle Beast", quote: "“줄넘기를 뛰어봤자 발목에 쇠사슬을 감아주마!”", img: "assets/bosses/boss3.jpg" },
-  { stage: 18, name: "운동 결핍의 점액괴, 슬라임바디", sub: "Sluggish Slime", quote: "“근육이 흐물흐물 녹아내리는 무기력의 늪!”", img: "assets/bosses/boss1.jpg" },
-  { stage: 19, name: "골격 억압의 거인, 척추파괴수", sub: "Spine Shatterer", quote: "“똑바로 일어서지 마라! 중력의 무게 앞에 무릎 꿇어라!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 18, name: "운동 결핍의 점액괴, 슬라임바디", sub: "Sluggish Slime", quote: "“근육이 흐물흐물 녹아내리는 무기력의 늪!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 19, name: "골격 억압의 거인, 척추파괴수", sub: "Spine Shatterer", quote: "“똑바로 일어서지 마라! 중력의 무게 앞에 무릎 꿇어라!”", img: "assets/bosses/boss5.jpg" },
   { stage: 20, name: "중력과 왜소의 거신, 그라비타스", sub: "Titan of Gravity", quote: "“네 173cm의 작은 뼈대를 대지 밑으로 영원히 매장하리라!”", img: "assets/bosses/boss3.jpg" },
 
   // Zone 3: 고교 수험과 번아웃의 마궁 (Stage 21~30)
-  { stage: 21, name: "내신 참사의 망령, 미드텀", sub: "Midterm Despair", quote: "“열심히 해봤자 4등급... 네 한계는 여기까지다!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 21, name: "내신 참사의 망령, 미드텀", sub: "Midterm Despair", quote: "“열심히 해봤자 4등급... 네 한계는 여기까지다!”", img: "assets/bosses/boss1.jpg" },
   { stage: 22, name: "모의고사 킬러마, 모크", sub: "Mock Exam Executioner", quote: "“킬러 문항 앞에서 멘탈이 바스러지는 꼴을 봐라!”", img: "assets/bosses/boss4.jpg" },
-  { stage: 23, name: "뇌 피로의 독무, 브레인포그", sub: "Brain Fog Fogger", quote: "“머릿속이 하얘질 것이다... 아무것도 기억나지 않는다!”", img: "assets/bosses/boss4.jpg" },
-  { stage: 24, name: "타인과의 비교귀, 콤플렉스", sub: "Inferiority Complex", quote: "“남들은 키 180에 전교권인데 넌 뭐 하고 있냐?”", img: "assets/bosses/boss4.jpg" },
-  { stage: 25, name: "공부 회피의 유혹귀, 딴짓마", sub: "Distraction Siren", quote: "“공부는 내일부터 하고 유튜브 알고리즘이나 타자꾸나.”", img: "assets/bosses/boss2.jpg" },
+  { stage: 23, name: "뇌 피로의 독무, 브레인포그", sub: "Brain Fog Fogger", quote: "“머릿속이 하얘질 것이다... 아무것도 기억나지 않는다!”", img: "assets/bosses/boss2.jpg" },
+  { stage: 24, name: "타인과의 비교귀, 콤플렉스", sub: "Inferiority Complex", quote: "“남들은 키 180에 전교권인데 넌 뭐 하고 있냐?”", img: "assets/bosses/boss5.jpg" },
+  { stage: 25, name: "공부 회피의 유혹귀, 딴짓마", sub: "Distraction Siren", quote: "“공부는 내일부터 하고 유튜브 알고리즘이나 타자꾸나.”", img: "assets/bosses/boss3.jpg" },
   { stage: 26, name: "수면제 같은 교과서, 슬리퍼", sub: "Soporific Tome", quote: "“책만 펴면 쏟아지는 졸음... 눈을 감아라...”", img: "assets/bosses/boss1.jpg" },
-  { stage: 27, name: "시간 낭비의 도둑, 타임시프", sub: "Time Stealer", quote: "“멍때리는 사이 청춘의 하루가 또 증발했다!”", img: "assets/bosses/boss1.jpg" },
-  { stage: 28, name: "의지력 박탈의 악마, 에디션", sub: "Willpower Eater", quote: "“오늘 계획표 지킨 거 하나도 없지? 포기해라!”", img: "assets/bosses/boss4.jpg" },
-  { stage: 29, name: "자기합리화의 요마, 핑계귀", sub: "Excuse Fiend", quote: "“피곤하니까... 유전이니까... 온갖 핑계를 대거라!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 27, name: "시간 낭비의 도둑, 타임시프", sub: "Time Stealer", quote: "“멍때리는 사이 청춘의 하루가 또 증발했다!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 28, name: "의지력 박탈의 악마, 에디션", sub: "Willpower Eater", quote: "“오늘 계획표 지킨 거 하나도 없지? 포기해라!”", img: "assets/bosses/boss2.jpg" },
+  { stage: 29, name: "자기합리화의 요마, 핑계귀", sub: "Excuse Fiend", quote: "“피곤하니까... 유전이니까... 온갖 핑계를 대거라!”", img: "assets/bosses/boss3.jpg" },
   { stage: 30, name: "무기력의 심연룡, 아비스", sub: "Dragon of Despair", quote: "“해봤자 변하지 않는다... 심연의 영원한 패배주의에 굴복하라!”", img: "assets/bosses/boss4.jpg" },
 
   // Zone 4: 유전과 편견의 얼어붙은 빙벽 (Stage 31~40)
-  { stage: 31, name: "유전 탓의 원령, 헤레디티", sub: "Heredity Wraith", quote: "“부모님 키가 작으면 끝이야! 노력으로 키가 크겠냐?”", img: "assets/bosses/boss3.jpg" },
+  { stage: 31, name: "유전 탓의 원령, 헤레디티", sub: "Heredity Wraith", quote: "“부모님 키가 작으면 끝이야! 노력으로 키가 크겠냐?”", img: "assets/bosses/boss1.jpg" },
   { stage: 32, name: "늦깎이 절망마, 레이트블루머", sub: "Late Bloomer Denier", quote: "“고2는 이미 뼈 다 닫혔어! 헛된 희망을 버려라!”", img: "assets/bosses/boss3.jpg" },
-  { stage: 33, name: "불규칙 식습관의 괴수, 말뉴트리션", sub: "Malnutrition Behemoth", quote: "“끼니를 거르고 탄수화물만 채워 뼈를 굶주리게 하마!”", img: "assets/bosses/boss3.jpg" },
+  { stage: 33, name: "불규칙 식습관의 괴수, 말뉴트리션", sub: "Malnutrition Behemoth", quote: "“끼니를 거르고 탄수화물만 채워 뼈를 굶주리게 하마!”", img: "assets/bosses/boss2.jpg" },
   { stage: 34, name: "골격 동결의 마녀, 본프리즈", sub: "Bone Freeze Witch", quote: "“네 173cm의 척추를 얼음처럼 딱딱하게 굳혀버리겠다!”", img: "assets/bosses/boss4.jpg" },
   { stage: 35, name: "수면 장애의 몽마, 나이트메어", sub: "Nightmare Incubus", quote: "“밤새 악몽에 시달리며 피로를 짊어지고 등교해라!”", img: "assets/bosses/boss1.jpg" },
   { stage: 36, name: "의지력 영하의 빙룡, 프로스트팽", sub: "Frostfang Wyrm", quote: "“차가운 현실의 벽 앞에서 네 오만한 열정을 얼려버리리라!”", img: "assets/bosses/boss4.jpg" },
   { stage: 37, name: "자세 왜곡의 골렘, 스콜리오", sub: "Scoliosis Golem", quote: "“골반이 틀어지고 다리 길이가 짝짝이가 될 것이다!”", img: "assets/bosses/boss3.jpg" },
-  { stage: 38, name: "성장 호르몬 차단마, 소마토블록", sub: "Somato Blocker", quote: "“뇌하수체에서 뿜어져 나오는 호르몬을 완전히 가로막겠다!”", img: "assets/bosses/boss4.jpg" },
+  { stage: 38, name: "성장 호르몬 차단마, 소마토블록", sub: "Somato Blocker", quote: "“뇌하수체에서 뿜어져 나오는 호르몬을 완전히 가로막겠다!”", img: "assets/bosses/boss5.jpg" },
   { stage: 39, name: "한계 조롱의 악귀, 모커리", sub: "Mockery Demon", quote: "“네가 178cm가 된다고? 친구들이 비웃는 소리가 들리는구나!”", img: "assets/bosses/boss2.jpg" },
   { stage: 40, name: "절망의 골격 군주, 스켈레톤 킹", sub: "Skeleton Sovereign", quote: "“뼈마디의 절규를 들어라! 넌 173cm의 껍데기를 절대 벗지 못한다!”", img: "assets/bosses/boss5.jpg" },
 
   // Zone 5: 신장 178cm 초월과 운명의 신전 (Stage 41~50)
-  { stage: 41, name: "한계 돌파의 수문장, 게이트키퍼", sub: "Apex Gatekeeper", quote: "“여기서부터는 진짜 각성한 자만이 발을 들일 수 있다!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 41, name: "한계 돌파의 수문장, 게이트키퍼", sub: "Apex Gatekeeper", quote: "“여기서부터는 진짜 각성한 자만이 발을 들일 수 있다!”", img: "assets/bosses/boss3.jpg" },
   { stage: 42, name: "황금 비율의 심판관, 프로포션", sub: "Judge of Proportion", quote: "“173cm의 왜소함을 버리고 황금비율의 전신을 증명하라!”", img: "assets/bosses/boss5.jpg" },
-  { stage: 43, name: "성장호르몬의 폭풍령, 소마토스톰", sub: "Somato Storm", quote: "“매일의 줄넘기와 수면으로 다져진 골격을 시험하겠다!”", img: "assets/bosses/boss3.jpg" },
-  { stage: 44, name: "백절불굴의 투신, 인빅터스", sub: "Invictus Fighter", quote: "“수천 번의 좌절을 딛고 일어선 검격만을 인정하리라!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 43, name: "성장호르몬의 폭풍령, 소마토스톰", sub: "Somato Storm", quote: "“매일의 줄넘기와 수면으로 다져진 골격을 시험하겠다!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 44, name: "백절불굴의 투신, 인빅터스", sub: "Invictus Fighter", quote: "“수천 번의 좌절을 딛고 일어선 검격만을 인정하리라!”", img: "assets/bosses/boss2.jpg" },
   { stage: 45, name: "척추 기립의 대천사, 버티컬", sub: "Archangel Vertical", quote: "“구부러졌던 모든 뼈를 곧추세워 하늘을 찌르는 자태를 보이라!”", img: "assets/bosses/boss5.jpg" },
   { stage: 46, name: "도약의 절대 지배자, 에어본", sub: "Airborne Sovereign", quote: "“줄넘기 수만 회의 탄력으로 허공을 밟고 날아올라라!”", img: "assets/bosses/boss3.jpg" },
   { stage: 47, name: "175cm의 관문 수호신, 센티넬", sub: "175cm Sentinel", quote: "“첫 번째 벽, 175cm를 넘어서기 위한 피와 땀을 증명하라!”", img: "assets/bosses/boss4.jpg" },
-  { stage: 48, name: "177cm의 환영 군주, 팬텀미라지", sub: "177cm Mirage Lord", quote: "“마지막 1cm를 앞두고 포기했던 수많은 패자들의 무덤이다!”", img: "assets/bosses/boss4.jpg" },
-  { stage: 49, name: "황금 신장의 수호신, 에이펙스", sub: "Apex Guardian", quote: "“178cm의 완성까지 단 한 걸음... 신의 권능을 견뎌보아라!”", img: "assets/bosses/boss5.jpg" },
+  { stage: 48, name: "177cm의 환영 군주, 팬텀미라지", sub: "177cm Mirage Lord", quote: "“마지막 1cm를 앞두고 포기했던 수많은 패자들의 무덤이다!”", img: "assets/bosses/boss1.jpg" },
+  { stage: 49, name: "황금 신장의 수호신, 에이펙스", sub: "Apex Guardian", quote: "“178cm의 완성까지 단 한 걸음... 신의 권능을 견뎌보아라!”", img: "assets/bosses/boss4.jpg" },
   { stage: 50, name: "한계의 절대군주, 크로노스", sub: "Supreme Overlord Chronos", quote: "“모든 핑계를 부수고 178cm의 기적을 완성하였구나, 진정한 각성자여!”", img: "assets/bosses/boss5.jpg" }
+];
+
+// 50 Distinct Elemental & Awakening Visual Themes for Stages 1~50
+// Preserves the awesome original boss character art while giving every single stage (1~50)
+// a unique hue/saturation/contrast evolution, framing composition, and elemental aura!
+const BOSS_VISUAL_EVOLUTIONS = [
+  // Zone 1 (Stages 1~10)
+  { hue: 0, sat: 1.15, con: 1.08, bri: 1.0, flip: 1, zoom: 1.0, pos: "50% 35%", color: "#a855f7", subColor: "#6366f1", auraName: "심연의 나태 오라", rankTag: "Ⅰ. 태초의 나태" },
+  { hue: 0, sat: 1.25, con: 1.12, bri: 1.02, flip: 1, zoom: 1.04, pos: "50% 30%", color: "#10b981", subColor: "#06b6d4", auraName: "사이버 도파민 전류", rankTag: "Ⅱ. 숏폼 노이즈" },
+  { hue: 35, sat: 1.35, con: 1.15, bri: 1.0, flip: 1, zoom: 1.06, pos: "50% 25%", color: "#f97316", subColor: "#eab308", auraName: "폭식의 용암 화염", rankTag: "Ⅲ. 폭식의 화염" },
+  { hue: 290, sat: 1.4, con: 1.15, bri: 0.98, flip: 1, zoom: 1.05, pos: "55% 35%", color: "#ec4899", subColor: "#f43f5e", auraName: "핏빛 사신의 마기", rankTag: "Ⅳ. 단절의 브레스" },
+  { hue: 140, sat: 1.3, con: 1.14, bri: 1.02, flip: 1, zoom: 1.08, pos: "50% 28%", color: "#22d3ee", subColor: "#3b82f6", auraName: "알고리즘 룬 결계", rankTag: "Ⅴ. 세뇌의 마법진" },
+  { hue: 75, sat: 1.45, con: 1.18, bri: 1.04, flip: -1, zoom: 1.12, pos: "45% 25%", color: "#38bdf8", subColor: "#818cf8", auraName: "블루라이트 섬광", rankTag: "Ⅵ. 청색광 과부하" },
+  { hue: 55, sat: 1.5, con: 1.2, bri: 0.96, flip: -1, zoom: 1.14, pos: "50% 28%", color: "#ef4444", subColor: "#991b1b", auraName: "핏빛 수면의 늪", rankTag: "Ⅶ. 흡혈의 속박" },
+  { hue: 195, sat: 1.45, con: 1.18, bri: 1.02, flip: -1, zoom: 1.12, pos: "42% 30%", color: "#34d399", subColor: "#059669", auraName: "맹독성 환각 브레스", rankTag: "Ⅷ. 가짜 성취독" },
+  { hue: 48, sat: 1.38, con: 1.2, bri: 1.05, flip: -1, zoom: 1.15, pos: "50% 22%", color: "#facc15", subColor: "#d97706", auraName: "정지된 황금 시계탑", rankTag: "Ⅸ. 시간 왜곡장" },
+  { hue: 265, sat: 1.6, con: 1.25, bri: 1.05, flip: 1, zoom: 1.18, pos: "50% 24%", color: "#f43f5e", subColor: "#a855f7", auraName: "대마신 도파민 폭주", rankTag: "🔟 Zone 1 지배자" },
+
+  // Zone 2 (Stages 11~20)
+  { hue: 145, sat: 1.35, con: 1.18, bri: 0.98, flip: 1, zoom: 1.12, pos: "48% 30%", color: "#14b8a6", subColor: "#0d9488", auraName: "석화된 경추의 저주", rankTag: "Ⅺ. 거북목의 원혼" },
+  { hue: 180, sat: 1.4, con: 1.2, bri: 1.0, flip: 1, zoom: 1.1, pos: "52% 28%", color: "#06b6d4", subColor: "#2563eb", auraName: "심해 고압 중력장", rankTag: "Ⅻ. 청색 암석 거신" },
+  { hue: 310, sat: 1.45, con: 1.2, bri: 1.02, flip: 1, zoom: 1.14, pos: "50% 25%", color: "#e879f9", subColor: "#9333ea", auraName: "자수정 성장판 봉인", rankTag: "XIII. 영구 봉인술" },
+  { hue: 85, sat: 1.5, con: 1.22, bri: 1.0, flip: 1, zoom: 1.15, pos: "60% 35%", color: "#f59e0b", subColor: "#dc2626", auraName: "골밀도 분쇄 화염", rankTag: "XIV. 파멸의 화염룡" },
+  { hue: 215, sat: 1.55, con: 1.22, bri: 0.95, flip: -1, zoom: 1.18, pos: "50% 25%", color: "#60a5fa", subColor: "#1d4ed8", auraName: "새벽 3시의 빙결", rankTag: "XV. 불면의 한기" },
+  { hue: 135, sat: 1.5, con: 1.24, bri: 1.02, flip: 1, zoom: 1.16, pos: "54% 26%", color: "#c084fc", subColor: "#ec4899", auraName: "자력 구속의 족쇄", rankTag: "XVI. 프레임 압축" },
+  { hue: 270, sat: 1.55, con: 1.25, bri: 0.98, flip: -1, zoom: 1.16, pos: "46% 30%", color: "#a855f7", subColor: "#4c1d95", auraName: "암흑 중력의 쇠사슬", rankTag: "XVII. 천근만근 족쇄" },
+  { hue: 140, sat: 1.65, con: 1.2, bri: 1.04, flip: 1, zoom: 1.18, pos: "45% 40%", color: "#84cc16", subColor: "#15803d", auraName: "산성 슬라임 독안개", rankTag: "XVIII. 근손실 맹독" },
+  { hue: 25, sat: 1.6, con: 1.25, bri: 1.05, flip: -1, zoom: 1.18, pos: "50% 20%", color: "#fb923c", subColor: "#b91c1c", auraName: "태양풍 척추 압사", rankTag: "XIX. 초중력 집행관" },
+  { hue: 335, sat: 1.75, con: 1.3, bri: 1.04, flip: 1, zoom: 1.22, pos: "50% 24%", color: "#ef4444", subColor: "#f59e0b", auraName: "초신성 대지 붕괴", rankTag: "20. Zone 2 지배자" },
+
+  // Zone 3 (Stages 21~30)
+  { hue: 95, sat: 1.55, con: 1.24, bri: 1.0, flip: 1, zoom: 1.2, pos: "52% 26%", color: "#facc15", subColor: "#ea580c", auraName: "황혼의 등급 절망", rankTag: "XXI. 내신 학살자" },
+  { hue: 40, sat: 1.6, con: 1.26, bri: 1.02, flip: -1, zoom: 1.18, pos: "58% 30%", color: "#2dd4bf", subColor: "#0284c7", auraName: "킬러문항 창백 뇌전", rankTag: "XXII. 멘탈 분쇄룡" },
+  { hue: 195, sat: 1.6, con: 1.25, bri: 1.0, flip: -1, zoom: 1.2, pos: "48% 28%", color: "#e879f9", subColor: "#6366f1", auraName: "자홍빛 브레인포그", rankTag: "XXIII. 기억 소거귀" },
+  { hue: 85, sat: 1.5, con: 1.26, bri: 1.04, flip: 1, zoom: 1.2, pos: "50% 22%", color: "#4ade80", subColor: "#0d9488", auraName: "질투와 열등의 마안", rankTag: "XXIV. 비교의 심판" },
+  { hue: 110, sat: 1.65, con: 1.25, bri: 1.02, flip: -1, zoom: 1.18, pos: "50% 28%", color: "#34d399", subColor: "#059669", auraName: "취록빛 유혹의 파동", rankTag: "XXV. 의지력 붕괴" },
+  { hue: 260, sat: 1.5, con: 1.25, bri: 0.96, flip: -1, zoom: 1.22, pos: "48% 32%", color: "#38bdf8", subColor: "#312e81", auraName: "심해 수면 최면술", rankTag: "XXVI. 영원한 가위눌림" },
+  { hue: 175, sat: 1.6, con: 1.28, bri: 1.04, flip: -1, zoom: 1.22, pos: "50% 26%", color: "#f472b6", subColor: "#db2777", auraName: "증발하는 청춘의 시계", rankTag: "XXVII. 시간 강탈자" },
+  { hue: 320, sat: 1.7, con: 1.28, bri: 1.05, flip: 1, zoom: 1.22, pos: "52% 24%", color: "#fbbf24", subColor: "#dc2626", auraName: "방전된 뇌신경 폭풍", rankTag: "XXVIII. 계획표 소각" },
+  { hue: 225, sat: 1.65, con: 1.28, bri: 1.0, flip: 1, zoom: 1.2, pos: "48% 26%", color: "#818cf8", subColor: "#4f46e5", auraName: "자기합리화의 암흑벽", rankTag: "XXIX. 핑계의 거신" },
+  { hue: 115, sat: 1.8, con: 1.32, bri: 1.06, flip: 1, zoom: 1.25, pos: "55% 32%", color: "#f43f5e", subColor: "#7c3aed", auraName: "심연룡의 멸망 브레스", rankTag: "30. Zone 3 지배자" },
+
+  // Zone 4 (Stages 31~40)
+  { hue: 190, sat: 1.55, con: 1.28, bri: 1.04, flip: 1, zoom: 1.24, pos: "50% 24%", color: "#00e5ff", subColor: "#0284c7", auraName: "얼어붙은 유전의 사슬", rankTag: "XXXI. 혈통의 저주" },
+  { hue: 65, sat: 1.65, con: 1.28, bri: 1.02, flip: -1, zoom: 1.22, pos: "50% 26%", color: "#a3e635", subColor: "#4d7c0f", auraName: "화석화된 골격 봉인", rankTag: "XXXII. 성장판 동결" },
+  { hue: 40, sat: 1.7, con: 1.3, bri: 1.04, flip: 1, zoom: 1.24, pos: "46% 26%", color: "#22d3ee", subColor: "#0891b2", auraName: "영양 고갈의 청색 독", rankTag: "XXXIII. 기아의 마수" },
+  { hue: 250, sat: 1.65, con: 1.3, bri: 1.06, flip: -1, zoom: 1.22, pos: "45% 28%", color: "#38bdf8", subColor: "#1d4ed8", auraName: "절대영도 본프리즈", rankTag: "XXXIV. 혹한의 마녀" },
+  { hue: 315, sat: 1.75, con: 1.3, bri: 0.98, flip: -1, zoom: 1.25, pos: "52% 28%", color: "#f43f5e", subColor: "#881337", auraName: "악몽의 핏빛 보름달", rankTag: "XXXV. 몽마의 지배" },
+  { hue: 215, sat: 1.75, con: 1.32, bri: 1.08, flip: 1, zoom: 1.26, pos: "58% 28%", color: "#67e8f9", subColor: "#0369a1", auraName: "영하 200도 빙룡의 포효", rankTag: "XXXVI. 빙하의 절대룡" },
+  { hue: 300, sat: 1.7, con: 1.32, bri: 1.02, flip: 1, zoom: 1.24, pos: "50% 22%", color: "#d946ef", subColor: "#701a75", auraName: "뒤틀린 차원의 골격", rankTag: "XXXVII. 비대칭 재앙" },
+  { hue: 275, sat: 1.75, con: 1.32, bri: 1.05, flip: 1, zoom: 1.24, pos: "50% 20%", color: "#fb7185", subColor: "#be123c", auraName: "호르몬 소멸의 붉은 별", rankTag: "XXXVIII. 소마토 봉인" },
+  { hue: 160, sat: 1.8, con: 1.34, bri: 1.06, flip: -1, zoom: 1.26, pos: "50% 24%", color: "#c084fc", subColor: "#6d28d9", auraName: "조롱하는 환영 분신", rankTag: "XXXIX. 편견의 악귀" },
+  { hue: 15, sat: 1.85, con: 1.35, bri: 1.08, flip: -1, zoom: 1.28, pos: "50% 18%", color: "#facc15", subColor: "#dc2626", auraName: "백골 군주의 패왕색", rankTag: "40. Zone 4 지배자" },
+
+  // Zone 5 (Stages 41~50)
+  { hue: 150, sat: 1.75, con: 1.34, bri: 1.06, flip: -1, zoom: 1.26, pos: "48% 24%", color: "#38bdf8", subColor: "#a855f7", auraName: "신전 수문장의 성광", rankTag: "XLI. 초월의 관문" },
+  { hue: 65, sat: 1.8, con: 1.35, bri: 1.1, flip: 1, zoom: 1.26, pos: "50% 22%", color: "#fbbf24", subColor: "#f59e0b", auraName: "황금 비율의 천상계", rankTag: "XLII. 황금의 재판관" },
+  { hue: 30, sat: 1.85, con: 1.35, bri: 1.08, flip: 1, zoom: 1.28, pos: "50% 22%", color: "#f97316", subColor: "#facc15", auraName: "폭풍 성장의 뇌신", rankTag: "XLIII. 호르몬 폭풍" },
+  { hue: 295, sat: 1.85, con: 1.36, bri: 1.08, flip: 1, zoom: 1.28, pos: "50% 22%", color: "#ef4444", subColor: "#f97316", auraName: "백절불굴의 투신염", rankTag: "XLIV. 무패의 투신" },
+  { hue: 205, sat: 1.85, con: 1.36, bri: 1.12, flip: -1, zoom: 1.28, pos: "50% 18%", color: "#00e5ff", subColor: "#38bdf8", auraName: "대천사의 수직 승천광", rankTag: "XLV. 천공의 기립" },
+  { hue: 95, sat: 1.9, con: 1.38, bri: 1.08, flip: 1, zoom: 1.3, pos: "52% 20%", color: "#10b981", subColor: "#00e5ff", auraName: "창공 도약의 소닉붐", rankTag: "XLVI. 중력 초월자" },
+  { hue: 55, sat: 1.9, con: 1.38, bri: 1.1, flip: -1, zoom: 1.3, pos: "55% 24%", color: "#f59e0b", subColor: "#ec4899", auraName: "175cm 돌파의 성화", rankTag: "XLVII. 제1벽 수호신" },
+  { hue: 240, sat: 1.9, con: 1.4, bri: 1.1, flip: -1, zoom: 1.32, pos: "50% 20%", color: "#c084fc", subColor: "#00e5ff", auraName: "177cm 차원 왜곡 환영", rankTag: "XLVIII. 제2벽 환영왕" },
+  { hue: 165, sat: 1.95, con: 1.42, bri: 1.12, flip: 1, zoom: 1.34, pos: "58% 22%", color: "#facc15", subColor: "#ef4444", auraName: "178cm 신역의 천벌룡", rankTag: "XLIX. 신역의 수호신" },
+  { hue: 345, sat: 2.0, con: 1.45, bri: 1.15, flip: 1, zoom: 1.36, pos: "50% 16%", color: "#ffd700", subColor: "#ff0055", auraName: "크로노스 50층 신화 각성", rankTag: "👑 50층 최종 군주" }
 ];
 
 // Helper to construct all 50 full Boss objects with realistic hardcore scaling
@@ -371,6 +439,8 @@ function generate50Bosses() {
     const slot = ["weapon", "armor", "shoes", "ring", "aura"][stage % 5];
     const itemName = `${info.name.split(',')[0]}의 ${slot === 'weapon' ? '검격' : (slot === 'armor' ? '갑옷' : (slot === 'shoes' ? '각력화' : (slot === 'ring' ? '반지' : '오라')))}`;
 
+    const visual = BOSS_VISUAL_EVOLUTIONS[idx] || BOSS_VISUAL_EVOLUTIONS[0];
+
     return {
       id: `boss${stage}`,
       stage,
@@ -385,6 +455,7 @@ function generate50Bosses() {
       def,
       crit: 0.05 + Math.min(0.20, stage * 0.003),
       image: info.img,
+      visual,
       introQuote: info.quote,
       rewards: {
         exp: rewardsExp,

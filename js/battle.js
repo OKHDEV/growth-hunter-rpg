@@ -267,16 +267,39 @@ class BattleEngine {
 
   renderBattleUI() {
     const bossImg = document.getElementById('bossImage');
+    const bossCardEl = document.getElementById('bossCard');
+    const v = this.boss.visual;
     if (bossImg) {
       bossImg.src = this.boss.image;
       bossImg.className = 'boss-arena-img';
+      if (v && !this.boss.isSecretFinal) {
+        bossImg.style.filter = `hue-rotate(${v.hue}deg) saturate(${v.sat}) contrast(${v.con}) brightness(${v.bri}) drop-shadow(0 0 18px ${v.color})`;
+        bossImg.style.transform = `scaleX(${v.flip}) scale(${v.zoom})`;
+        bossImg.style.objectPosition = v.pos;
+      } else {
+        bossImg.style.filter = '';
+        bossImg.style.transform = '';
+        bossImg.style.objectPosition = '';
+      }
+    }
+    if (bossCardEl) {
+      if (v && !this.boss.isSecretFinal) {
+        bossCardEl.style.borderColor = v.color;
+        bossCardEl.style.boxShadow = `0 10px 45px rgba(0, 0, 0, 0.9), 0 0 32px ${v.color}44, inset 0 0 24px ${v.subColor}33`;
+      } else if (!this.boss.isSecretFinal) {
+        bossCardEl.style.borderColor = '';
+        bossCardEl.style.boxShadow = '';
+      }
     }
 
     const bossNameEl = document.getElementById('bossName');
     if (bossNameEl) bossNameEl.textContent = `Stage ${this.boss.stage}: ${this.boss.name}`;
 
     const bossSubNameEl = document.getElementById('bossSubName');
-    if (bossSubNameEl) bossSubNameEl.textContent = `${this.boss.subName} · 권장: ${this.boss.trainingMonths}개월(${this.boss.trainingDays}일) 수련`;
+    if (bossSubNameEl) {
+      const auraSuffix = (v && !this.boss.isSecretFinal) ? ` · ⚡ ${v.auraName}` : '';
+      bossSubNameEl.textContent = `${this.boss.subName}${auraSuffix} · 권장: ${this.boss.trainingMonths}개월(${this.boss.trainingDays}일) 수련`;
+    }
 
     const bossStageBadge = document.getElementById('bossStageBadge');
     if (bossStageBadge) {
@@ -284,8 +307,8 @@ class BattleEngine {
         bossStageBadge.textContent = `👑 [100단계 · 100레벨 찐막 최종보스]`;
         bossStageBadge.style.background = 'linear-gradient(135deg, #f59e0b, #ef4444)';
       } else {
-        bossStageBadge.textContent = `STAGE ${this.boss.stage} [1달 수련 필수]`;
-        bossStageBadge.style.background = 'var(--crimson-rage)';
+        bossStageBadge.textContent = v ? `STAGE ${this.boss.stage} [${v.rankTag}]` : `STAGE ${this.boss.stage} [1달 수련 필수]`;
+        bossStageBadge.style.background = v ? `linear-gradient(135deg, ${v.color}, ${v.subColor})` : 'var(--crimson-rage)';
       }
     }
 
