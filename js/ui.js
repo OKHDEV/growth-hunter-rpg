@@ -6,6 +6,7 @@ class UIManager {
     this.currentCalYear = new Date().getFullYear();
     this.currentCalMonth = new Date().getMonth();
     this.calendarViewMode = 'month';
+    this.isUnownedTitlesExpanded = false;
     this.particleCanvas = null;
     this.particleCtx = null;
     this.particles = [];
@@ -1007,9 +1008,15 @@ class UIManager {
       }
     }
 
-    const titlesContainer = document.getElementById('titlesContainer');
-    if (titlesContainer) {
-      titlesContainer.innerHTML = '';
+    const ownedContainer = document.getElementById('ownedTitlesContainer') || document.getElementById('titlesContainer');
+    const unownedContainer = document.getElementById('unownedTitlesContainer');
+    const ownedBadge = document.getElementById('ownedTitlesCountBadge');
+    const unownedBadge = document.getElementById('unownedTitlesCountBadge');
+
+    if (ownedContainer || unownedContainer) {
+      if (ownedContainer) ownedContainer.innerHTML = '';
+      if (unownedContainer) unownedContainer.innerHTML = '';
+
       const unlocked = state.data.player.unlockedTitles || [];
       const active = state.data.player.activeTitle;
 
@@ -1049,7 +1056,7 @@ class UIManager {
         return a.tName.localeCompare(b.tName);
       });
 
-      titleCardsList.forEach(({ tName, tInfo, isUnlocked, isActive, rarity, reqLevel }) => {
+      const createTitleCardElement = ({ tName, tInfo, isUnlocked, isActive, rarity, reqLevel }) => {
         const card = document.createElement('div');
         card.className = `title-card rarity-${rarity} ${isActive ? 'active' : ''} ${!isUnlocked ? 'is-locked' : ''}`;
 
@@ -1077,8 +1084,66 @@ class UIManager {
             ${actionHtml}
           </div>
         `;
-        titlesContainer.appendChild(card);
-      });
+        return card;
+      };
+
+      const ownedCards = titleCardsList.filter(t => t.isUnlocked);
+      const unownedCards = titleCardsList.filter(t => !t.isUnlocked);
+
+      if (ownedBadge) ownedBadge.textContent = `보유 ${ownedCards.length}개`;
+      if (unownedBadge) unownedBadge.textContent = `미보유 ${unownedCards.length}개`;
+
+      if (ownedContainer) {
+        if (ownedCards.length === 0) {
+          const emptyDiv = document.createElement('div');
+          emptyDiv.style.cssText = 'grid-column: 1 / -1; padding: 28px 16px; text-align: center; background: rgba(15, 23, 42, 0.4); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.12); color: var(--text-muted);';
+          emptyDiv.innerHTML = `
+            <div style="font-size: 22px; margin-bottom: 6px;">📜</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-normal);">현재 보유 중인 각성 칭호가 없습니다.</div>
+            <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">일일 퀘스트를 꾸준히 수행하고 보스를 격파하여 강력한 각성 칭호를 획득해보세요!</div>
+          `;
+          ownedContainer.appendChild(emptyDiv);
+        } else {
+          ownedCards.forEach(t => ownedContainer.appendChild(createTitleCardElement(t)));
+        }
+      }
+
+      if (unownedContainer) {
+        unownedCards.forEach(t => unownedContainer.appendChild(createTitleCardElement(t)));
+      }
+
+      this.updateUnownedTitlesToggleUi();
+    }
+  }
+
+  toggleUnownedTitles() {
+    this.isUnownedTitlesExpanded = !this.isUnownedTitlesExpanded;
+    this.updateUnownedTitlesToggleUi();
+  }
+
+  updateUnownedTitlesToggleUi() {
+    const wrapper = document.getElementById('unownedTitlesWrapper');
+    const textEl = document.getElementById('toggleUnownedTitlesText');
+    const iconEl = document.getElementById('toggleUnownedTitlesIcon');
+    const btn = document.getElementById('toggleUnownedTitlesBtn');
+    if (!wrapper || !textEl) return;
+
+    if (this.isUnownedTitlesExpanded) {
+      wrapper.classList.remove('hidden');
+      textEl.textContent = '각성칭호도감 접기(닫기)';
+      if (iconEl) iconEl.textContent = '▲';
+      if (btn) {
+        btn.style.background = 'rgba(0, 229, 255, 0.12)';
+        btn.style.borderColor = 'var(--cyan-neon)';
+      }
+    } else {
+      wrapper.classList.add('hidden');
+      textEl.textContent = '각성칭호도감 더보기(열기)';
+      if (iconEl) iconEl.textContent = '▼';
+      if (btn) {
+        btn.style.background = 'rgba(0, 229, 255, 0.05)';
+        btn.style.borderColor = 'rgba(0, 229, 255, 0.35)';
+      }
     }
   }
 

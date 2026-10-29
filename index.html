@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=20261028_10">
-  <link rel="stylesheet" href="css/battle.css?v=20261028_10">
-  <link rel="stylesheet" href="css/animations.css?v=20261028_10">
-  <link rel="stylesheet" href="css/mobile.css?v=20261028_10">
+  <link rel="stylesheet" href="css/style.css?v=20261029_15">
+  <link rel="stylesheet" href="css/battle.css?v=20261029_15">
+  <link rel="stylesheet" href="css/animations.css?v=20261029_15">
+  <link rel="stylesheet" href="css/mobile.css?v=20261029_15">
 </head>
 <body>
 
@@ -488,10 +488,26 @@
         </div>
 
         <div class="panel-card">
-          <div class="panel-card-header">
-            <span class="panel-title">각성 칭호 도감</span>
+          <div class="panel-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="panel-title">소유한 각성 칭호도감</span>
+            <span id="ownedTitlesCountBadge" class="badge-equipped" style="font-size: 11px;">보유 0개</span>
           </div>
-          <div class="titles-grid" id="titlesContainer"></div>
+          <div class="titles-grid" id="ownedTitlesContainer"></div>
+
+          <!-- Collapsible Unowned Titles Section -->
+          <div class="unowned-titles-section" style="margin-top: 16px; border-top: 1px dashed rgba(255, 255, 255, 0.12); padding-top: 14px;">
+            <button type="button" id="toggleUnownedTitlesBtn" class="btn btn-outline-cyan" onclick="ui.toggleUnownedTitles()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 16px; font-weight: 700; font-size: 13px; border-radius: 8px; background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.35); cursor: pointer; transition: all 0.2s ease;">
+              <span id="toggleUnownedTitlesText">각성칭호도감 더보기(열기)</span>
+              <span id="toggleUnownedTitlesIcon" style="font-size: 11px;">▼</span>
+            </button>
+            <div id="unownedTitlesWrapper" class="hidden" style="margin-top: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 4px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);">🔒 미보유 각성 칭호 (보스 격파 및 도전과제 달성 시 해금)</span>
+                <span id="unownedTitlesCountBadge" style="font-size: 11px; color: var(--text-dim);">미보유 0개</span>
+              </div>
+              <div class="titles-grid" id="unownedTitlesContainer"></div>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -1002,12 +1018,12 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261028_10"></script>
-  <script src="js/audio.js?v=20261028_10"></script>
-  <script src="js/state.js?v=20261028_10"></script>
-  <script src="js/battle.js?v=20261028_10"></script>
-  <script src="js/quests.js?v=20261028_10"></script>
-  <script src="js/ui.js?v=20261028_10"></script>
-  <script src="js/app.js?v=20261028_10"></script>
+  <script src="js/data.js?v=20261029_15"></script>
+  <script src="js/audio.js?v=20261029_15"></script>
+  <script src="js/state.js?v=20261029_15"></script>
+  <script src="js/battle.js?v=20261029_15"></script>
+  <script src="js/quests.js?v=20261029_15"></script>
+  <script src="js/ui.js?v=20261029_15"></script>
+  <script src="js/app.js?v=20261029_15"></script>
 </body>
 </html>

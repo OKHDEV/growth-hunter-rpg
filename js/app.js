@@ -32,6 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
     battle.startBattle(bId);
   }
 
+  if (hash === 'inventoryTab_openTitles') {
+    ui.switchTab('inventoryTab');
+    if (!ui.isUnownedTitlesExpanded) {
+      ui.toggleUnownedTitles();
+    }
+  }
+
   // Support direct modal display via URL parameter (e.g. ?modal=profile, ?modal=questConfirm, ?modal=customQuest)
   const modalParam = params.get('modal');
   if (modalParam === 'profile') {
