@@ -569,6 +569,25 @@
             }
           } catch(e) {}
         }
+        if (!save && accInfo.pk) {
+          try {
+            const r = await fetch(`${PASTES_URL}/${accInfo.pk}`);
+            if (r.ok) {
+              save = await r.json();
+              cachedUserSaves[uid] = save;
+            }
+          } catch(e) {}
+        }
+
+        if (save) {
+          const hexId = userIdToHex(uid);
+          const activeEl = document.getElementById(`lastActive_${hexId}`);
+          if (activeEl && save.lastSaved) {
+            const d = new Date(save.lastSaved);
+            const formatted = !isNaN(d.getTime()) ? d.toLocaleString() : save.lastSaved;
+            activeEl.innerHTML = `<span style="color:#cbd5e1;">🎮 마지막 활동:</span> <strong style="color:#38bdf8;">${formatted}</strong>`;
+          }
+        }
 
         if (save && save.player) {
           const g = Number(save.player.gold) || 0;
@@ -639,14 +658,33 @@
         const hexId = userIdToHex(uid);
         const syncDateStr = accInfo.ts ? new Date(accInfo.ts).toLocaleString() : '기록 없음';
 
+        const save = cachedUserSaves[uid];
+        let lastActiveStr = '확인 중...';
+        if (save && save.lastSaved) {
+          const d = new Date(save.lastSaved);
+          lastActiveStr = !isNaN(d.getTime()) ? d.toLocaleString() : save.lastSaved;
+        } else if (accInfo.ts) {
+          lastActiveStr = '동기화 데이터 분석 중...';
+        } else {
+          lastActiveStr = '기록 없음';
+        }
+
         card.innerHTML = `
           <div class="account-header">
             <div>
-              <span class="user-badge">👤 ${uid}</span>
-              <span class="pw-badge">비밀번호: <strong>${accInfo.p || '미설정'}</strong></span>
-              <span style="font-size:0.8rem; color:#64748b; margin-left:8px;">최근 동기화: ${syncDateStr}</span>
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px;">
+                <span class="user-badge">👤 ${uid}</span>
+                <span class="pw-badge">비밀번호: <strong>${accInfo.p || '미설정'}</strong></span>
+                <span style="font-size:0.82rem; color:#94a3b8;">🔄 최근 서버 동기화: <strong style="color:#e2e8f0;">${syncDateStr}</strong></span>
+                <span id="lastActive_${hexId}" style="font-size:0.82rem; color:#94a3b8; background:rgba(56, 189, 248, 0.1); padding:2px 8px; border-radius:4px; border:1px solid rgba(56, 189, 248, 0.2);">
+                  <span style="color:#cbd5e1;">🎮 마지막 활동:</span> <strong style="color:#38bdf8;">${lastActiveStr}</strong>
+                </span>
+              </div>
             </div>
             <div class="btn-group">
+              <button class="btn-action" onclick="openSpectatorMode('${uid}', '${accInfo.bk || ''}', '${accInfo.pk || ''}')" style="background:linear-gradient(135deg, #7c3aed, #6366f1); border-color:#818cf8; color:#fff; font-weight:700;">
+                👀 플레이어 화면 보기 (관전)
+              </button>
               <button class="btn-action btn-cyan" onclick="toggleUserDetails('${uid}', '${accInfo.bk || ''}', '${accInfo.pk || ''}')">
                 ⚡ 관리 도구 & 세이브 열기
               </button>
@@ -666,6 +704,86 @@
 
         listEl.appendChild(card);
       }
+    }
+
+    async function openSpectatorMode(userId, bk, pk) {
+      const hexId = userIdToHex(userId);
+      let save = cachedUserSaves[userId];
+
+      if (!save) {
+        const btn = event ? event.currentTarget : null;
+        const oldText = btn ? btn.textContent : '';
+        if (btn) btn.textContent = '⏳ 데이터 로드 중...';
+
+        // 1. Try Bytebin
+        if (bk) {
+          try {
+            const r = await fetch(`${BYTEBIN_URL}/${bk}`);
+            if (r.ok) save = await r.json();
+          } catch(e) {}
+        }
+        // 2. Try Pastes
+        if (!save && pk) {
+          try {
+            const r = await fetch(`${PASTES_URL}/${pk}`);
+            if (r.ok) save = await r.json();
+          } catch(e) {}
+        }
+        // 3. Try Ntfy streams
+        if (!save) {
+          const userTopics = [
+            `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+            `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+            `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=0`,
+            `https://ntfy.sh/okh_gh_cloud_prod_v3_u_${hexId}/json?poll=1&since=0`,
+            `https://ntfy.sh/okh_gh_cloud_v2_u_${hexId}/json?poll=1&since=0`
+          ];
+          try {
+            const results = await Promise.allSettled(userTopics.map(u =>
+              fetch(u, { signal: AbortSignal.timeout(4000) }).then(r => r.text())
+            ));
+            let highestTs = 0;
+            for (const res of results) {
+              if (res.status === 'fulfilled' && res.value) {
+                const lines = res.value.trim().split('\n');
+                for (let i = lines.length - 1; i >= 0; i--) {
+                  try {
+                    const m = JSON.parse(lines[i]);
+                    if (m && m.message) {
+                      const p = JSON.parse(m.message);
+                      if (p && p.d && p.d.player) {
+                        const ts = p.ts || (m.time * 1000) || 0;
+                        if (ts >= highestTs) {
+                          highestTs = ts;
+                          save = p.d;
+                        }
+                      }
+                    }
+                  } catch(e) {}
+                }
+              }
+            }
+          } catch(e) {}
+        }
+
+        if (btn) btn.textContent = oldText;
+      }
+
+      if (!save) {
+        alert(`❌ [${userId}] 계정의 세이브 데이터를 불러오지 못했습니다.`);
+        return;
+      }
+
+      cachedUserSaves[userId] = save;
+
+      // 100% Safe read-only mode activation in sessionStorage & localStorage
+      sessionStorage.setItem('spectator_active', 'true');
+      sessionStorage.setItem('spectator_user_id', userId);
+      sessionStorage.setItem('spectator_save_data', JSON.stringify(save));
+      localStorage.setItem('spectator_temp_save', JSON.stringify({ userId, save, time: Date.now() }));
+
+      // Navigate to game view in safe spectator mode
+      window.location.href = 'index.html?spectate=1';
     }
 
     async function toggleUserDetails(userId, bk, pk) {
@@ -759,6 +877,17 @@
       const heightVal = p.baseHeight || 173;
 
       detailContainer.innerHTML = `
+        <!-- Spectator Quick View Bar -->
+        <div style="background:rgba(99, 102, 241, 0.12); border:1px solid rgba(129, 140, 248, 0.35); border-radius:8px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <div style="font-size:0.85rem; color:#e0e7ff;">
+            🎮 <strong>[${userId}]</strong> 님의 현재 실제 게임 화면을 직접 확인하고 싶으신가요?
+            <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">(데이터를 절대 덮어쓰지 않는 안전한 읽기 전용 관전 모드로 메인 게임 화면이 열립니다)</div>
+          </div>
+          <button class="btn-action" onclick="openSpectatorMode('${userId}')" style="background:linear-gradient(135deg, #7c3aed, #6366f1); border-color:#818cf8; color:#fff; font-weight:700;">
+            👀 이 플레이어 시점으로 게임 열기 (안전 관전)
+          </button>
+        </div>
+
         <!-- Sub Navigation Tabs -->
         <div class="user-subtabs">
           <button class="subtab-btn active" onclick="switchUserTab('${hexId}', 'tab_cheats_${hexId}', this)">⚡ 원클릭 슈퍼 치트</button>

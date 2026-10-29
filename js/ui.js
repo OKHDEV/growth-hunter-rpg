@@ -23,6 +23,13 @@ class UIManager {
     this.renderInventory();
     this.setupEventListeners();
     this.setupCombatControls();
+
+    if (state.isReadOnlyMode) {
+      const banner = document.getElementById('spectatorBanner');
+      const badge = document.getElementById('spectatorUserBadge');
+      if (banner) banner.style.display = 'flex';
+      if (badge && state.spectatorUserId) badge.textContent = state.spectatorUserId;
+    }
   }
 
   // --- Canvas Particle FX ---
@@ -1546,7 +1553,7 @@ class UIManager {
   updateAuthGateVisibility() {
     const gate = document.getElementById('authGateScreen');
     const banner = document.getElementById('authGateRecordBanner');
-    const isLogged = state.isCloudLoggedIn();
+    const isLogged = state.isCloudLoggedIn() || state.isReadOnlyMode;
 
     if (isLogged) {
       document.body.classList.remove('auth-gate-locked');
@@ -1639,6 +1646,10 @@ class UIManager {
 
   openCloudModal() {
     sound.playClick();
+    if (state.isReadOnlyMode) {
+      this.showToast(`👀 [관전 모드] [${state.spectatorUserId}] 계정을 보기 전용으로 열람 중입니다. (서버 저장 차단됨)`, 'info');
+      return;
+    }
     this.renderCloudModalState();
     const modal = document.getElementById('cloudAccountModal');
     if (modal) modal.classList.remove('hidden');
@@ -1863,3 +1874,16 @@ class UIManager {
 
 // Global UI manager instance
 const ui = new UIManager();
+
+// Safe exit from spectator read-only view mode
+window.exitSpectatorMode = function() {
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem('spectator_active');
+    sessionStorage.removeItem('spectator_user_id');
+    sessionStorage.removeItem('spectator_save_data');
+  }
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('spectator_temp_save');
+  }
+  window.location.replace('admin.html');
+};

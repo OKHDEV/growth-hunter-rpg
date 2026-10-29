@@ -94,6 +94,27 @@
   <!-- Main App Container -->
   <div class="app-container">
 
+    <!-- ==================== SPECTATOR / READ-ONLY VIEW MODE BANNER ==================== -->
+    <div id="spectatorBanner" style="display:none; position:sticky; top:0; left:0; width:100%; z-index:999999; background:linear-gradient(90deg, #581c87, #4338ca); color:#ffffff; padding:10px 16px; box-shadow:0 4px 16px rgba(0,0,0,0.6); border-bottom:2px solid #a855f7; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.5rem;">👀</span>
+        <div>
+          <div style="font-weight:800; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+            <span>[플레이어 관전 / 보기 전용 모드]</span>
+            <span id="spectatorUserBadge" style="background:#fde047; color:#0f172a; padding:1px 8px; border-radius:4px; font-size:0.85rem; font-weight:900;">유저</span>
+          </div>
+          <div style="font-size:0.8rem; color:#e0e7ff; margin-top:2px;">
+            🔒 <strong>데이터 안심 보호:</strong> 모든 로컬 및 서버 저장/덮어쓰기가 완전히 차단되어 플레이어의 원래 데이터에 절대 영향을 주지 않습니다.
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" onclick="exitSpectatorMode()" style="background:#f59e0b; color:#0f172a; border:none; padding:8px 16px; border-radius:8px; font-weight:800; font-size:0.88rem; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:all 0.15s ease;">
+          ⚙️ 관리자 패널로 복귀
+        </button>
+      </div>
+    </div>
+
     <!-- Top Header Navigation -->
     <header class="main-header">
       <div class="brand-wrap">

@@ -31,6 +31,26 @@ class GameState {
       'https://ntfy.sh/okh_gh_cloud_v2_registry/json?poll=1&since=0'
     ];
     this._lastRegistrySync = 0;
+    this.isReadOnlyMode = false;
+    this.spectatorUserId = null;
+
+    // Check if spectator / view-only mode is active
+    try {
+      const isSpectator = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('spectator_active') === 'true') ||
+                          (typeof localStorage !== 'undefined' && localStorage.getItem('spectator_temp_save') !== null);
+      const isAdmin = (typeof localStorage !== 'undefined' && localStorage.getItem('isAdminLoggedIn') === 'true');
+      if (isSpectator && isAdmin) {
+        this.isReadOnlyMode = true;
+        let sUser = null;
+        if (typeof sessionStorage !== 'undefined') sUser = sessionStorage.getItem('spectator_user_id');
+        if (!sUser && typeof localStorage !== 'undefined') {
+          const t = JSON.parse(localStorage.getItem('spectator_temp_save') || '{}');
+          sUser = t && t.userId;
+        }
+        this.spectatorUserId = sUser || '유저';
+      }
+    } catch (e) {}
+
     this.cloudSession = this.loadCloudSession();
     this._cloudSyncTimer = null;
     this._isSyncingCloud = false;
@@ -45,6 +65,7 @@ class GameState {
 
     let lastAutoPullTime = 0;
     const triggerAutoCloudPull = (reason = 'focus') => {
+      if (this.isReadOnlyMode) return;
       const now = Date.now();
       // Throttle pulls to avoid flooding requests within 2.5 seconds
       if (now - lastAutoPullTime < 2500) return;
@@ -55,11 +76,16 @@ class GameState {
     };
 
     // 1. Leaving page, switching tabs, or locking phone: save immediately to local storage and sync to cloud
-    window.addEventListener('beforeunload', () => this.save(true));
-    window.addEventListener('pagehide', () => this.save(true));
+    window.addEventListener('beforeunload', () => {
+      if (!this.isReadOnlyMode) this.save(true);
+    });
+    window.addEventListener('pagehide', () => {
+      if (!this.isReadOnlyMode) this.save(true);
+    });
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
+        if (this.isReadOnlyMode) return;
         if (document.hidden) {
           this.save(true);
         } else {
@@ -71,16 +97,16 @@ class GameState {
 
     // 2. iOS Safari / Android Chrome BFCache restore & Window focus
     window.addEventListener('pageshow', () => {
-      triggerAutoCloudPull('pageshow');
+      if (!this.isReadOnlyMode) triggerAutoCloudPull('pageshow');
     });
 
     window.addEventListener('focus', () => {
-      triggerAutoCloudPull('focus');
+      if (!this.isReadOnlyMode) triggerAutoCloudPull('focus');
     });
 
     // 3. Online event (reconnected to internet after device sleep or power on)
     window.addEventListener('online', () => {
-      triggerAutoCloudPull('online');
+      if (!this.isReadOnlyMode) triggerAutoCloudPull('online');
     });
   }
 
@@ -169,6 +195,29 @@ class GameState {
   }
 
   load() {
+    if (this.isReadOnlyMode) {
+      let rawSave = null;
+      if (typeof sessionStorage !== 'undefined') {
+        rawSave = sessionStorage.getItem('spectator_save_data');
+      }
+      if (!rawSave && typeof localStorage !== 'undefined') {
+        try {
+          const tempObj = JSON.parse(localStorage.getItem('spectator_temp_save') || '{}');
+          if (tempObj && tempObj.save) rawSave = JSON.stringify(tempObj.save);
+        } catch(e) {}
+      }
+      if (rawSave) {
+        try {
+          const parsed = JSON.parse(rawSave);
+          this.loadFromObject(parsed, false);
+          this.checkRetroactiveUnlocks();
+          return;
+        } catch(e) {
+          console.error("Failed to parse spectator save data:", e);
+        }
+      }
+    }
+
     try {
       let saved = localStorage.getItem(this.STORAGE_KEY);
       // Dual-layer recovery: If primary key missing or broken, try mirror backup
@@ -272,6 +321,10 @@ class GameState {
   }
 
   save(immediateCloud = false) {
+    if (this.isReadOnlyMode) {
+      this.updateSaveIndicator('👀 관전 모드: 저장 차단됨');
+      return;
+    }
     try {
       this.data.lastSaved = new Date().toISOString();
       if (this.cloudSession && this.cloudSession.userId) {
@@ -296,6 +349,24 @@ class GameState {
     const now = new Date();
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const el = document.getElementById('saveStatusIndicator');
+    const hdrCloudStatus = document.getElementById('hdrCloudStatus');
+    const hdrCloudBtn = document.getElementById('hdrCloudBtn');
+
+    if (this.isReadOnlyMode) {
+      if (el) {
+        el.innerHTML = `<span style="color:#f59e0b; font-weight:800;">👀 [플레이어 관전 / 보기 전용 모드] ${this.spectatorUserId} (데이터 저장 완전 차단)</span>`;
+      }
+      if (hdrCloudStatus) {
+        hdrCloudStatus.textContent = `👀 ${this.spectatorUserId} (관전)`;
+        hdrCloudStatus.style.color = '#f59e0b';
+      }
+      if (hdrCloudBtn) {
+        hdrCloudBtn.style.borderColor = 'rgba(245, 158, 11, 0.6)';
+        hdrCloudBtn.style.background = 'rgba(245, 158, 11, 0.15)';
+      }
+      return;
+    }
+
     if (el) {
       if (this.cloudSession && this.cloudSession.userId) {
         el.innerHTML = `🟢 <strong>클라우드 계정 [${this.cloudSession.userId}] 실시간 서버 동기화 중</strong> (${cloudStatusText || '최근: ' + timeStr})`;
@@ -303,8 +374,6 @@ class GameState {
         el.innerHTML = `🟢 <strong>기기 자동 보존 중</strong> (최근: ${timeStr}) · <span style="color:#38bdf8; cursor:pointer; text-decoration:underline;" onclick="if(typeof ui!=='undefined') ui.openCloudModal();">☁️ 클라우드 로그인 연동하기</span>`;
       }
     }
-    const hdrCloudStatus = document.getElementById('hdrCloudStatus');
-    const hdrCloudBtn = document.getElementById('hdrCloudBtn');
     if (this.cloudSession && this.cloudSession.userId) {
       if (hdrCloudStatus) {
         hdrCloudStatus.textContent = `🟢 ${this.cloudSession.userId}`;
@@ -535,6 +604,7 @@ class GameState {
   }
 
   checkDailyReset() {
+    if (this.isReadOnlyMode) return;
     const today = getLocalDateString();
     if (this.data.quests.lastActiveDate !== today) {
       const lastDate = new Date(this.data.quests.lastActiveDate + 'T00:00:00');
@@ -1151,6 +1221,9 @@ class GameState {
   // =========================================================================
 
   loadCloudSession() {
+    if (this.isReadOnlyMode) {
+      return { userId: this.spectatorUserId || '유저', isReadOnly: true };
+    }
     try {
       if (typeof localStorage === 'undefined') return null;
       const raw = localStorage.getItem(this.CLOUD_SESSION_KEY);
@@ -1161,6 +1234,10 @@ class GameState {
   }
 
   saveCloudSession(session) {
+    if (this.isReadOnlyMode) {
+      this.cloudSession = session;
+      return;
+    }
     this.cloudSession = session;
     try {
       if (typeof localStorage !== 'undefined') {
@@ -1246,7 +1323,7 @@ class GameState {
   }
 
   initCloudSyncOnStartup() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || this.isReadOnlyMode) return;
     // Run after brief paint tick to immediately pull the freshest cloud save
     setTimeout(async () => {
       this.updateSaveIndicator();
@@ -1798,6 +1875,7 @@ class GameState {
   }
 
   async syncToCloud(forceImmediate = false) {
+    if (this.isReadOnlyMode) return { success: false, readOnly: true };
     if (!this.cloudSession || !this.cloudSession.userId) return { success: false };
     if (this._isSyncingCloud && !forceImmediate) return { success: false };
     this._isSyncingCloud = true;
@@ -1999,6 +2077,7 @@ class GameState {
   }
 
   async pullFromCloud(silent = false, forceOverwriteLocal = false, notifyIfChanged = true) {
+    if (this.isReadOnlyMode) return { success: false, readOnly: true };
     if (!this.cloudSession || !this.cloudSession.userId) {
       return { success: false, message: '로그인된 클라우드 계정이 없습니다.' };
     }
