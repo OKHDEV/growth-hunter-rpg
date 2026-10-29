@@ -273,9 +273,9 @@ class BattleEngine {
       bossImg.src = this.boss.image;
       bossImg.className = 'boss-arena-img';
       if (v && !this.boss.isSecretFinal) {
-        bossImg.style.filter = `hue-rotate(${v.hue}deg) saturate(${v.sat}) contrast(${v.con}) brightness(${v.bri}) drop-shadow(0 0 18px ${v.color})`;
-        bossImg.style.transform = `scaleX(${v.flip}) scale(${v.zoom})`;
-        bossImg.style.objectPosition = v.pos;
+        bossImg.style.filter = `drop-shadow(0 0 18px ${v.color})`;
+        bossImg.style.transform = '';
+        bossImg.style.objectPosition = '';
       } else {
         bossImg.style.filter = '';
         bossImg.style.transform = '';

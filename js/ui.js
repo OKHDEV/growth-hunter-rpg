@@ -844,7 +844,7 @@ class UIManager {
       }
 
       const imgStyle = (v && !boss.isSecretFinal)
-        ? `filter: hue-rotate(${v.hue}deg) saturate(${v.sat}) contrast(${v.con}) brightness(${v.bri}); transform: scaleX(${v.flip}) scale(${v.zoom}); object-position: ${v.pos};`
+        ? `filter: drop-shadow(0 0 14px ${v.color}66);`
         : '';
 
       const auraOverlayHtml = (v && !boss.isSecretFinal)
