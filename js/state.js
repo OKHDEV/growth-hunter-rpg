@@ -17,7 +17,20 @@ class GameState {
     this.CLOUD_API_BASE = 'https://api.restful-api.dev/objects';
     this.BYTEBIN_URL = 'https://bytebin.lucko.me';
     this.PASTES_URL = 'https://api.pastes.dev';
-    this.NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_v4_';
+    this.NTFY_MIRRORS = [
+      'https://ntfy.adminforge.de/okh_gh_cloud_',
+      'https://ntfy.tedomum.fr/okh_gh_cloud_',
+      'https://ntfy.sh/okh_gh_cloud_v4_'
+    ];
+    this.NTFY_BASE = this.NTFY_MIRRORS[0];
+    this.LEGACY_REGISTRIES = [
+      'https://ntfy.adminforge.de/okh_gh_cloud_registry/json?poll=1&since=0',
+      'https://ntfy.tedomum.fr/okh_gh_cloud_registry/json?poll=1&since=0',
+      'https://ntfy.sh/okh_gh_cloud_v4_registry/json?poll=1&since=0',
+      'https://ntfy.sh/okh_gh_cloud_prod_v3_registry/json?poll=1&since=0',
+      'https://ntfy.sh/okh_gh_cloud_v2_registry/json?poll=1&since=0'
+    ];
+    this._lastRegistrySync = 0;
     this.cloudSession = this.loadCloudSession();
     this._cloudSyncTimer = null;
     this._isSyncingCloud = false;
@@ -1698,31 +1711,56 @@ class GameState {
 
   async fetchCloudRegistry() {
     let reg = {};
-    try {
-      const res = await fetch(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}?t=${Date.now()}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.data && json.data.u) {
-          reg = typeof json.data.u === 'string' ? JSON.parse(json.data.u) : json.data.u;
-        }
-      }
-    } catch (e) {}
 
-    // Multi-device Ntfy registry stream (using &since=0 for reliable persistence)
+    // 1. Multi-mirror registry aggregation (adminforge, tedomum, ntfy.sh)
     try {
-      const nRes = await fetch(`${this.NTFY_BASE}registry/json?poll=1&since=0`);
-      if (nRes.ok) {
-        const text = (await nRes.text()).trim();
-        if (text) {
-          const lines = text.split('\n');
+      const results = await Promise.allSettled(this.LEGACY_REGISTRIES.map(url =>
+        fetch(url, { signal: AbortSignal.timeout(4500) }).then(r => r.text())
+      ));
+
+      for (const res of results) {
+        if (res.status === 'fulfilled' && res.value) {
+          const lines = res.value.trim().split('\n');
           for (const line of lines) {
             try {
               const msg = JSON.parse(line);
               if (msg && msg.message) {
                 const parsed = JSON.parse(msg.message);
-                reg = { ...reg, ...parsed };
+                for (const [uid, acc] of Object.entries(parsed)) {
+                  if (!uid) continue;
+                  if (!reg[uid]) {
+                    reg[uid] = acc;
+                  } else {
+                    const extTs = Number(reg[uid].ts) || 0;
+                    const incTs = Number(acc.ts) || 0;
+                    const newer = incTs >= extTs ? acc : reg[uid];
+                    const older = incTs >= extTs ? reg[uid] : acc;
+                    reg[uid] = {
+                      ...older,
+                      ...newer,
+                      p: newer.p || older.p,
+                      bk: newer.bk || older.bk,
+                      pk: newer.pk || older.pk,
+                      ts: Math.max(extTs, incTs)
+                    };
+                  }
+                }
               }
             } catch (err) {}
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 2. Fallback check RESTful API object
+    try {
+      const res = await fetch(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}?t=${Date.now()}`, { signal: AbortSignal.timeout(3000) });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.data && json.data.u) {
+          const restReg = typeof json.data.u === 'string' ? JSON.parse(json.data.u) : json.data.u;
+          for (const [uid, acc] of Object.entries(restReg || {})) {
+            if (!reg[uid]) reg[uid] = acc;
           }
         }
       }
@@ -1733,6 +1771,19 @@ class GameState {
 
   async updateCloudRegistry(reg) {
     const str = JSON.stringify(reg);
+    const endpoints = [
+      'https://ntfy.adminforge.de/okh_gh_cloud_registry',
+      'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
+      'https://ntfy.sh/okh_gh_cloud_v4_registry'
+    ];
+    await Promise.allSettled(endpoints.map(url =>
+      fetch(url, {
+        method: 'POST',
+        body: str,
+        keepalive: true
+      })
+    ));
+
     try {
       await fetch(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}`, {
         method: 'PUT',
@@ -1741,14 +1792,6 @@ class GameState {
           name: 'gh_cloud_registry_v1',
           data: { u: str }
         }),
-        keepalive: true
-      });
-    } catch (e) {}
-
-    try {
-      await fetch(`${this.NTFY_BASE}registry`, {
-        method: 'POST',
-        body: str,
         keepalive: true
       });
     } catch (e) {}
@@ -1801,7 +1844,7 @@ class GameState {
         }
       } catch (e) {}
 
-      // 3. Upload full save & keys to Ntfy user channel (live delivery + cached stream)
+      // 3. Upload full save & keys to Ntfy user channels (live delivery + cached stream across mirrors)
       const hexId = this.userIdToHex(userId);
       const userPayload = JSON.stringify({
         u: userId,
@@ -1812,23 +1855,39 @@ class GameState {
         ts: Date.now()
       });
 
-      try {
-        await fetch(`${this.NTFY_BASE}u_${hexId}`, {
+      const userTopics = [
+        `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}`,
+        `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}`,
+        `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
+      ];
+      await Promise.allSettled(userTopics.map(u =>
+        fetch(u, {
           method: 'POST',
           body: userPayload,
           keepalive: true
-        });
-      } catch (e) {}
+        })
+      ));
 
-      // 4. Update master account registry
-      const regUpdate = { [userId]: { p: password, bk: bytebinKey, pk: pastesKey, ts: Date.now() } };
-      try {
-        await fetch(`${this.NTFY_BASE}registry`, {
-          method: 'POST',
-          body: JSON.stringify(regUpdate),
-          keepalive: true
-        });
-      } catch (e) {}
+      // 4. Update master account registry ONLY when necessary (forceImmediate, or at least 5 minutes since last sync)
+      // This prevents 429 quota exhaustion while keeping registries completely synchronized across devices.
+      const now = Date.now();
+      if (forceImmediate || !this._lastRegistrySync || (now - this._lastRegistrySync > 300000)) {
+        this._lastRegistrySync = now;
+        const regUpdate = { [userId]: { p: password, bk: bytebinKey, pk: pastesKey, ts: now } };
+        const regStr = JSON.stringify(regUpdate);
+        const regTopics = [
+          'https://ntfy.adminforge.de/okh_gh_cloud_registry',
+          'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
+          'https://ntfy.sh/okh_gh_cloud_v4_registry'
+        ];
+        Promise.allSettled(regTopics.map(u =>
+          fetch(u, {
+            method: 'POST',
+            body: regStr,
+            keepalive: true
+          })
+        )).catch(() => {});
+      }
 
       this.cloudSession.lastSyncTime = new Date().toISOString();
       this.saveCloudSession(this.cloudSession);
@@ -1852,14 +1911,24 @@ class GameState {
     let storedPassword = null;
     let highestTs = 0;
 
-    // 1. Fetch from Ntfy user stream with &since=0 for full cross-device catchup
+    // 1. Fetch from Ntfy user streams across mirrors with &since=0
     const hexId = this.userIdToHex(userId);
+    const userTopics = [
+      `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+      `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+      `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=0`,
+      `https://ntfy.sh/okh_gh_cloud_prod_v3_u_${hexId}/json?poll=1&since=0`,
+      `https://ntfy.sh/okh_gh_cloud_v2_u_${hexId}/json?poll=1&since=0`
+    ];
+
     try {
-      const nRes = await fetch(`${this.NTFY_BASE}u_${hexId}/json?poll=1&since=0`);
-      if (nRes.ok) {
-        const text = (await nRes.text()).trim();
-        if (text) {
-          const lines = text.split('\n');
+      const results = await Promise.allSettled(userTopics.map(u =>
+        fetch(u, { signal: AbortSignal.timeout(4500) }).then(r => r.text())
+      ));
+
+      for (const res of results) {
+        if (res.status === 'fulfilled' && res.value) {
+          const lines = res.value.trim().split('\n');
           for (let i = lines.length - 1; i >= 0; i--) {
             try {
               const msg = JSON.parse(lines[i]);
@@ -2020,6 +2089,9 @@ class GameState {
     try {
       const reg = await this.fetchCloudRegistry();
       let existingRecord = reg[userId] || null;
+      if (existingRecord && existingRecord.deleted) {
+        existingRecord = null;
+      }
 
       // Also check Ntfy user channel in case account was created earlier
       const { cloudSave, storedPassword, latestBk, latestPk } = await this.fetchAccountCloudData(

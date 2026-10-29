@@ -424,9 +424,21 @@
   </a>
 
   <script>
-    const NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_v4_';
+    const NTFY_MIRRORS = [
+      'https://ntfy.adminforge.de/okh_gh_cloud_',
+      'https://ntfy.tedomum.fr/okh_gh_cloud_',
+      'https://ntfy.sh/okh_gh_cloud_v4_'
+    ];
+    const NTFY_BASE = NTFY_MIRRORS[0];
     const BYTEBIN_URL = 'https://bytebin.lucko.me';
     const PASTES_URL = 'https://api.pastes.dev';
+    const REGISTRY_ENDPOINTS = [
+      'https://ntfy.adminforge.de/okh_gh_cloud_registry/json?poll=1&since=0',
+      'https://ntfy.tedomum.fr/okh_gh_cloud_registry/json?poll=1&since=0',
+      'https://ntfy.sh/okh_gh_cloud_v4_registry/json?poll=1&since=0',
+      'https://ntfy.sh/okh_gh_cloud_prod_v3_registry/json?poll=1&since=0',
+      'https://ntfy.sh/okh_gh_cloud_v2_registry/json?poll=1&since=0'
+    ];
 
     let rawAccountsRegistry = {};
     let cachedUserSaves = {}; // userId -> saveJson
@@ -474,26 +486,52 @@
 
     async function loadAllAccounts() {
       const listEl = document.getElementById('accountsList');
-      listEl.innerHTML = '<div class="loading-spinner">📡 서버에서 유저 계정 목록을 불러오는 중...</div>';
+      listEl.innerHTML = '<div class="loading-spinner">📡 여러 분산 서버에서 전체 유저 계정 목록을 통합 검색 중...</div>';
 
       try {
-        const res = await fetch(`${NTFY_BASE}registry/json?poll=1&since=0`);
-        if (!res.ok) throw new Error('서버 응답 실패: ' + res.status);
+        const results = await Promise.allSettled(REGISTRY_ENDPOINTS.map(url =>
+          fetch(url, { signal: AbortSignal.timeout(5000) }).then(r => r.text())
+        ));
 
-        const text = (await res.text()).trim();
         let registry = {};
+        let successCount = 0;
 
-        if (text) {
-          const lines = text.split('\n');
-          for (const line of lines) {
-            try {
-              const msg = JSON.parse(line);
-              if (msg && msg.message) {
-                const parsed = JSON.parse(msg.message);
-                registry = { ...registry, ...parsed };
-              }
-            } catch (e) {}
+        for (const res of results) {
+          if (res.status === 'fulfilled' && res.value) {
+            successCount++;
+            const lines = res.value.trim().split('\n');
+            for (const line of lines) {
+              try {
+                const msg = JSON.parse(line);
+                if (msg && msg.message) {
+                  const parsed = JSON.parse(msg.message);
+                  for (const [uid, acc] of Object.entries(parsed)) {
+                    if (!uid) continue;
+                    if (!registry[uid]) {
+                      registry[uid] = acc;
+                    } else {
+                      const extTs = Number(registry[uid].ts) || 0;
+                      const incTs = Number(acc.ts) || 0;
+                      const newer = incTs >= extTs ? acc : registry[uid];
+                      const older = incTs >= extTs ? registry[uid] : acc;
+                      registry[uid] = {
+                        ...older,
+                        ...newer,
+                        p: newer.p || older.p,
+                        bk: newer.bk || older.bk,
+                        pk: newer.pk || older.pk,
+                        ts: Math.max(extTs, incTs)
+                      };
+                    }
+                  }
+                }
+              } catch (e) {}
+            }
           }
+        }
+
+        if (successCount === 0 && Object.keys(registry).length === 0) {
+          throw new Error('모든 클라우드 미러 서버와의 통신에 실패했습니다.');
         }
 
         rawAccountsRegistry = registry;
@@ -661,22 +699,34 @@
         } catch (e) {}
       }
 
-      // 3. Try Ntfy
+      // 3. Try Ntfy user stream across all mirrors
       if (!saveJson) {
+        const userTopics = [
+          `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+          `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+          `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=0`,
+          `https://ntfy.sh/okh_gh_cloud_prod_v3_u_${hexId}/json?poll=1&since=0`,
+          `https://ntfy.sh/okh_gh_cloud_v2_u_${hexId}/json?poll=1&since=0`
+        ];
         try {
-          const res = await fetch(`${NTFY_BASE}u_${hexId}/json?poll=1&since=0`);
-          if (res.ok) {
-            const text = (await res.text()).trim();
-            if (text) {
-              const lines = text.split('\n');
+          const results = await Promise.allSettled(userTopics.map(u =>
+            fetch(u, { signal: AbortSignal.timeout(4500) }).then(r => r.text())
+          ));
+          let highestTs = 0;
+          for (const res of results) {
+            if (res.status === 'fulfilled' && res.value) {
+              const lines = res.value.trim().split('\n');
               for (let i = lines.length - 1; i >= 0; i--) {
                 try {
                   const m = JSON.parse(lines[i]);
                   if (m && m.message) {
                     const parsed = JSON.parse(m.message);
-                    if (parsed && parsed.d) {
-                      saveJson = parsed.d;
-                      break;
+                    if (parsed && parsed.d && parsed.d.player) {
+                      const ts = parsed.ts || (m.time * 1000) || 0;
+                      if (ts >= highestTs) {
+                        highestTs = ts;
+                        saveJson = parsed.d;
+                      }
                     }
                   }
                 } catch (e) {}
@@ -1033,19 +1083,24 @@
           }
         } catch (e) {}
 
-        // 3. Upload to Ntfy user topic
-        await fetch(`${NTFY_BASE}u_${hexId}`, {
-          method: 'POST',
-          body: JSON.stringify({
-            u: userId,
-            bk: newBk,
-            pk: newPk,
-            d: parsedData,
-            ts: Date.now()
-          })
+        // 3. Upload to Ntfy user topics across mirrors
+        const userTopics = [
+          `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}`,
+          `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}`,
+          `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
+        ];
+        const userPayload = JSON.stringify({
+          u: userId,
+          bk: newBk,
+          pk: newPk,
+          d: parsedData,
+          ts: Date.now()
         });
+        await Promise.allSettled(userTopics.map(u =>
+          fetch(u, { method: 'POST', body: userPayload })
+        ));
 
-        // 4. Update registry
+        // 4. Update registry across mirrors
         const oldP = (rawAccountsRegistry[userId] && rawAccountsRegistry[userId].p) || '1234';
         rawAccountsRegistry[userId] = {
           p: oldP,
@@ -1054,12 +1109,15 @@
           ts: Date.now()
         };
 
-        await fetch(`${NTFY_BASE}registry`, {
-          method: 'POST',
-          body: JSON.stringify({
-            [userId]: rawAccountsRegistry[userId]
-          })
-        });
+        const regTopics = [
+          'https://ntfy.adminforge.de/okh_gh_cloud_registry',
+          'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
+          'https://ntfy.sh/okh_gh_cloud_v4_registry'
+        ];
+        const regBody = JSON.stringify({ [userId]: rawAccountsRegistry[userId] });
+        await Promise.allSettled(regTopics.map(u =>
+          fetch(u, { method: 'POST', body: regBody })
+        ));
 
         if (!silent) {
           alert(`✅ [${userId}] 계정의 세이브 데이터가 성공적으로 서버에 업데이트되었습니다!\n유저 기기에서 새로고침 또는 앱 진입 시 실시간으로 반영됩니다.`);
@@ -1081,10 +1139,15 @@
       rawAccountsRegistry[userId] = current;
 
       try {
-        await fetch(`${NTFY_BASE}registry`, {
-          method: 'POST',
-          body: JSON.stringify({ [userId]: current })
-        });
+        const regTopics = [
+          'https://ntfy.adminforge.de/okh_gh_cloud_registry',
+          'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
+          'https://ntfy.sh/okh_gh_cloud_v4_registry'
+        ];
+        const regBody = JSON.stringify({ [userId]: current });
+        await Promise.allSettled(regTopics.map(u =>
+          fetch(u, { method: 'POST', body: regBody })
+        ));
         alert(`✅ [${userId}] 계정의 비밀번호가 [${cleanPw}]로 변경되었습니다!`);
         filterAccountsList();
       } catch (e) {
@@ -1142,18 +1205,28 @@
 
       const hexId = userIdToHex(userId);
       try {
-        // Mark deleted in registry
+        // Mark deleted in registry across mirrors
         rawAccountsRegistry[userId] = { deleted: true, ts: Date.now() };
-        await fetch(`${NTFY_BASE}registry`, {
-          method: 'POST',
-          body: JSON.stringify({ [userId]: { deleted: true, ts: Date.now() } })
-        });
+        const regTopics = [
+          'https://ntfy.adminforge.de/okh_gh_cloud_registry',
+          'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
+          'https://ntfy.sh/okh_gh_cloud_v4_registry'
+        ];
+        const regBody = JSON.stringify({ [userId]: { deleted: true, ts: Date.now() } });
+        await Promise.allSettled(regTopics.map(u =>
+          fetch(u, { method: 'POST', body: regBody })
+        ));
 
-        // Push tombstone to user channel
-        await fetch(`${NTFY_BASE}u_${hexId}`, {
-          method: 'POST',
-          body: JSON.stringify({ u: userId, deleted: true, ts: Date.now() })
-        });
+        // Push tombstone to user channel across mirrors
+        const userTopics = [
+          `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}`,
+          `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}`,
+          `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
+        ];
+        const tombstone = JSON.stringify({ u: userId, deleted: true, ts: Date.now() });
+        await Promise.allSettled(userTopics.map(u =>
+          fetch(u, { method: 'POST', body: tombstone })
+        ));
 
         delete cachedUserSaves[userId];
         delete rawAccountsRegistry[userId];
