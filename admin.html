@@ -2029,6 +2029,18 @@
       renderActivityTimeline(dateKey);
     }
 
+    function getQuestsCount(qObj, dKey) {
+      if (!qObj) return 0;
+      if (qObj.completedToday && typeof qObj.completedToday === 'object') {
+        const keys = Object.keys(qObj.completedToday);
+        if (keys.length > 0) return keys.length;
+      }
+      if (qObj.history && Array.isArray(qObj.history[dKey])) {
+        return qObj.history[dKey].length;
+      }
+      return 0;
+    }
+
     function renderActivityTimeline(dateKey) {
       const events = (actEventsByDate[dateKey] || []).slice().reverse(); // Show newest first
       document.getElementById('actTimelineTitle').textContent = `🗓️ ${dateKey} 활동 기록`;
@@ -2050,16 +2062,25 @@
         const timeStr = formatKoreanTime(ev.ts);
         const isTombstone = ev.data && ev.data.deleted === true;
         const actionType = (ev.data && ev.data.act) || (ev.data && ev.data.action) || null;
+
+        const allIdx = actAllEvents.indexOf(ev);
+        const prevEv = allIdx > 0 ? actAllEvents[allIdx - 1] : null;
+
+        // Current snapshot
         let player = (ev.data && ev.data.d && ev.data.d.player) || null;
         let raid = (ev.data && ev.data.d && ev.data.d.raid) || null;
         let quests = (ev.data && ev.data.d && ev.data.d.quests) || null;
 
-        // If snapshot wasn't directly in this event, check cachedUserSaves
         if (!player && actCurrentUserId && cachedUserSaves[actCurrentUserId]) {
           player = cachedUserSaves[actCurrentUserId].player || null;
           raid = cachedUserSaves[actCurrentUserId].raid || null;
           quests = cachedUserSaves[actCurrentUserId].quests || null;
         }
+
+        // Previous snapshot
+        let prevPlayer = (prevEv && prevEv.data && prevEv.data.d && prevEv.data.d.player) || null;
+        let prevRaid = (prevEv && prevEv.data && prevEv.data.d && prevEv.data.d.raid) || null;
+        let prevQuests = (prevEv && prevEv.data && prevEv.data.d && prevEv.data.d.quests) || null;
 
         const item = document.createElement('div');
         item.className = 'timeline-item' + (isTombstone ? ' tombstone' : '');
@@ -2093,21 +2114,36 @@
             </div>
             <div class="timeline-stats-row">
               <span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.08);">${actionLabel}</span>
+              <span class="stat-chip" style="color:#64748b; border-color:rgba(100,116,139,0.3);">📜 퀘스트 0개 수행</span>
             </div>
             <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">${actionDesc}</div>
           `;
         } else {
-          const lv = player.level || 1;
-          const gold = formatGold(player.gold || 0);
-          const bossText = getBossStageText(raid);
-          const questCount = quests && quests.completedToday ? Object.keys(quests.completedToday).length : 0;
-          const stats = player.stats ? `STR ${player.stats.str || 14} · INT ${player.stats.int || 12} · END ${player.stats.end || 14} · GRO ${player.stats.gro || 15}` : '';
+          // Compute deltas
+          const currLv = Number(player.level) || 1;
+          const prevLv = prevPlayer ? (Number(prevPlayer.level) || 1) : null;
+          const lvGained = prevLv != null ? (currLv - prevLv) : 0;
 
+          const currGold = Number(player.gold) || 0;
+          const prevGold = prevPlayer ? Number(prevPlayer.gold) : null;
+          const goldDiff = prevGold != null ? (currGold - prevGold) : 0;
+
+          const currCleared = (raid && Array.isArray(raid.clearedStages)) ? raid.clearedStages : [];
+          const prevCleared = (prevRaid && Array.isArray(prevRaid.clearedStages)) ? prevRaid.clearedStages : [];
+          const newlyCleared = (prevCleared.length > 0 || prevEv) ? currCleared.filter(s => !prevCleared.includes(s)) : [];
+
+          const currQuests = getQuestsCount(quests, dateKey);
+          const prevQuestsCount = prevQuests ? getQuestsCount(prevQuests, dateKey) : 0;
+          const questDiff = (prevEv && prevQuests) ? (currQuests - prevQuestsCount) : 0;
+
+          // Action badge
           let actionBadge = '';
           if (actionType === 'connect') {
             actionBadge = '<span class="stat-chip" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">🟢 게임 접속</span>';
           } else if (actionType === 'login') {
             actionBadge = '<span class="stat-chip" style="color:#a855f7; border-color:rgba(168,85,247,0.3); background:rgba(168,85,247,0.08);">🔑 로그인</span>';
+          } else if (actionType === 'register') {
+            actionBadge = '<span class="stat-chip" style="color:#ec4899; border-color:rgba(236,72,153,0.3); background:rgba(236,72,153,0.08);">✨ 신규 가입</span>';
           } else if (actionType === 'boss_defeat') {
             actionBadge = '<span class="stat-chip" style="color:#ef4444; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">⚔️ 보스 격파</span>';
           } else if (actionType === 'level_up') {
@@ -2115,8 +2151,52 @@
           } else if (actionType === 'quest_complete') {
             actionBadge = '<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08);">📜 퀘스트 완료</span>';
           } else if (actionType === 'active_play') {
-            actionBadge = '<span class="stat-chip" style="color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.08);">🎮 게임 플레이</span>';
+            actionBadge = '<span class="stat-chip" style="color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.08);">🎮 플레이 중</span>';
           }
+
+          // Build dynamic chips
+          const dynamicChips = [];
+          if (actionBadge) dynamicChips.push(actionBadge);
+
+          // 1. Level: show ONLY when increased! (if !prevEv, show baseline)
+          if (lvGained > 0) {
+            dynamicChips.push(`<span class="stat-chip level" style="font-weight:700; color:#38bdf8; border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.12);">🔥 Lv.${currLv}로 상승 (+${lvGained} UP)</span>`);
+          } else if (!prevEv) {
+            dynamicChips.push(`<span class="stat-chip level">Lv.${currLv}</span>`);
+          }
+
+          // 2. Gold: show ONLY when changed! (if !prevEv, show baseline)
+          if (goldDiff > 0) {
+            dynamicChips.push(`<span class="stat-chip gold" style="font-weight:700; color:#facc15; border-color:rgba(250,204,21,0.4); background:rgba(250,204,21,0.12);">💰 +${formatGold(goldDiff)} G 획득</span>`);
+          } else if (goldDiff < 0) {
+            dynamicChips.push(`<span class="stat-chip gold" style="color:#fb923c; border-color:rgba(251,146,60,0.3); background:rgba(251,146,60,0.08);">🪙 ${formatGold(Math.abs(goldDiff))} G 사용</span>`);
+          } else if (!prevEv) {
+            dynamicChips.push(`<span class="stat-chip gold">${formatGold(currGold)} G 보유</span>`);
+          }
+
+          // 3. Boss: show ONLY when newly cleared! (if !prevEv, show baseline)
+          if (newlyCleared.length > 0) {
+            const bossNames = newlyCleared.sort((a,b)=>a-b).map(s => s === 100 ? '100단계 절대 거신' : `보스 스테이지 ${s}`).join(', ');
+            dynamicChips.push(`<span class="stat-chip stage" style="font-weight:700; color:#f87171; border-color:rgba(248,113,113,0.4); background:rgba(248,113,113,0.12);">⚔️ ${bossNames} 클리어</span>`);
+          } else if (!prevEv) {
+            dynamicChips.push(`<span class="stat-chip stage">${getBossStageText(raid)}</span>`);
+          }
+
+          // 4. Quests count: always show how many performed
+          if (questDiff > 0) {
+            dynamicChips.push(`<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08); font-weight:700;">📜 퀘스트 ${currQuests}개 수행 (+${questDiff}개 완료)</span>`);
+          } else {
+            dynamicChips.push(`<span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.08);">📜 퀘스트 ${currQuests}개 수행</span>`);
+          }
+
+          // 5. If nothing changed compared to previous
+          const hasProgressionChange = lvGained > 0 || goldDiff !== 0 || newlyCleared.length > 0;
+          if (prevEv && !hasProgressionChange) {
+            dynamicChips.push(`<span class="stat-chip" style="color:#94a3b8; border-color:rgba(148,163,184,0.3); background:rgba(148,163,184,0.06);">🟢 인게임 활동 (변동 없음)</span>`);
+          }
+
+          const stats = player.stats ? `STR ${player.stats.str || 14} · INT ${player.stats.int || 12} · END ${player.stats.end || 14} · GRO ${player.stats.gro || 15}` : '';
+          const currentStatusText = `현재 상태: Lv.${currLv} · ${formatGold(currGold)} G · ${getBossStageText(raid)}`;
 
           item.innerHTML = `
             <div class="timeline-item-top">
@@ -2124,13 +2204,11 @@
               <span style="font-size:0.75rem; color:#94a3b8;">#${events.length - idx}</span>
             </div>
             <div class="timeline-stats-row">
-              ${actionBadge}
-              <span class="stat-chip level">Lv.${lv}</span>
-              <span class="stat-chip gold">${gold} G</span>
-              <span class="stat-chip stage">${bossText}</span>
-              ${questCount > 0 ? `<span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3);">퀘스트 ${questCount}개 완료</span>` : ''}
+              ${dynamicChips.join('\n              ')}
             </div>
-            ${stats ? `<div style="font-size:0.75rem; color:#64748b; font-family:Consolas, monospace;">스탯: ${stats}</div>` : ''}
+            <div style="font-size:0.75rem; color:#64748b; font-family:Consolas, monospace; margin-top:4px;">
+              ${prevEv && !hasProgressionChange ? `${currentStatusText} · 스탯: ${stats}` : `스탯: ${stats} (${currentStatusText})`}
+            </div>
           `;
         }
 
