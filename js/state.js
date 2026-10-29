@@ -1,9 +1,10 @@
 // Game State & Persistence Manager: High School 2nd Grade (173cm -> 178cm)
-function getLocalDateString() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+// Daily reset is at 04:00 AM (game day runs from 04:00 AM to 03:59:59 AM the next morning)
+function getLocalDateString(d = new Date()) {
+  const adjusted = new Date(d.getTime() - 4 * 60 * 60 * 1000);
+  const year = adjusted.getFullYear();
+  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
+  const day = String(adjusted.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -129,6 +130,7 @@ class GameState {
         const parsed = JSON.parse(saved);
         this.loadFromObject(parsed, false);
         this.checkDailyReset();
+        this.checkRetroactiveUnlocks();
         this.data.quests.dailyStreak = this.getDailyStreak();
       }
     } catch (e) {
@@ -139,6 +141,7 @@ class GameState {
           const parsed = JSON.parse(mirror);
           this.loadFromObject(parsed, false);
           this.checkDailyReset();
+          this.checkRetroactiveUnlocks();
           return;
         }
       } catch (err2) {
@@ -208,6 +211,7 @@ class GameState {
       this.data.player.freeStatPoints = 0;
     }
     this.data.quests.dailyStreak = this.getDailyStreak();
+    this.checkRetroactiveUnlocks();
     if (triggerSave) {
       this.save();
     }
@@ -378,42 +382,43 @@ class GameState {
     const todayCompletedCount = Object.keys(this.data.quests.completedToday || {}).length;
 
     let streak = 0;
-    const d = new Date();
+    // Current game day cursor (shifted by -4 hours so reset is at 04:00 AM)
+    const curGameDay = new Date(Date.now() - 4 * 60 * 60 * 1000);
 
     if (todayCompletedCount > 0) {
       // Completed at least 1 quest today: start streak from 1 and count consecutive past days
       streak = 1;
-      d.setDate(d.getDate() - 1);
+      curGameDay.setDate(curGameDay.getDate() - 1);
       while (true) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
+        const y = curGameDay.getFullYear();
+        const m = String(curGameDay.getMonth() + 1).padStart(2, '0');
+        const day = String(curGameDay.getDate()).padStart(2, '0');
         const dateStr = `${y}-${m}-${day}`;
         if (this.data.quests.history && (this.data.quests.history[dateStr] || 0) > 0) {
           streak += 1;
-          d.setDate(d.getDate() - 1);
+          curGameDay.setDate(curGameDay.getDate() - 1);
         } else {
           break;
         }
       }
     } else {
       // No quest completed today yet: check ongoing streak up to yesterday
-      d.setDate(d.getDate() - 1);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
+      curGameDay.setDate(curGameDay.getDate() - 1);
+      const y = curGameDay.getFullYear();
+      const m = String(curGameDay.getMonth() + 1).padStart(2, '0');
+      const day = String(curGameDay.getDate()).padStart(2, '0');
       const yesterdayStr = `${y}-${m}-${day}`;
       if (this.data.quests.history && (this.data.quests.history[yesterdayStr] || 0) > 0) {
         streak = 1;
-        d.setDate(d.getDate() - 1);
+        curGameDay.setDate(curGameDay.getDate() - 1);
         while (true) {
-          const cy = d.getFullYear();
-          const cm = String(d.getMonth() + 1).padStart(2, '0');
-          const cday = String(d.getDate()).padStart(2, '0');
+          const cy = curGameDay.getFullYear();
+          const cm = String(curGameDay.getMonth() + 1).padStart(2, '0');
+          const cday = String(curGameDay.getDate()).padStart(2, '0');
           const dateStr = `${cy}-${cm}-${cday}`;
           if (this.data.quests.history && (this.data.quests.history[dateStr] || 0) > 0) {
             streak += 1;
-            d.setDate(d.getDate() - 1);
+            curGameDay.setDate(curGameDay.getDate() - 1);
           } else {
             break;
           }
@@ -646,10 +651,43 @@ class GameState {
   }
 
   unlockTitle(titleName) {
+    if (!titleName) return false;
     if (!this.data.player.unlockedTitles.includes(titleName)) {
       this.data.player.unlockedTitles.push(titleName);
       this.save();
+      return true;
     }
+    return false;
+  }
+
+  checkRetroactiveUnlocks() {
+    if (!this.data || !this.data.player) return;
+    const completed = this.data.quests.completedToday || {};
+
+    if (completed['height_rope_1000'] || completed['height_rope_2000'] || completed['height_rope_3500']) {
+      this.unlockTitle("줄넘기 입문자");
+    }
+    if (completed['height_rope_3500']) {
+      this.unlockTitle("줄넘기 3,500회 극한 달성자");
+    }
+    if (completed['height_spine_stretch']) {
+      this.unlockTitle("자세 교정 수련생");
+    }
+    if (completed['height_nutrition']) {
+      this.unlockTitle("성장 영양 보급자");
+    }
+    if (completed['height_golden_sleep']) {
+      this.unlockTitle("성장 골든타임의 수호자");
+    }
+    if (completed['detox_shorts_24h']) {
+      this.unlockTitle("디톡스 24시간 철인");
+    }
+
+    const currentHeight = this.getCurrentHeight();
+    if (currentHeight >= 174.0) this.unlockTitle("성장판 해방자 (174cm)");
+    if (currentHeight >= 176.0) this.unlockTitle("불굴의 수험생 (176cm)");
+    if (currentHeight >= 177.0) this.unlockTitle("골격 파괴의 거인 (177cm)");
+    if (currentHeight >= 178.0) this.unlockTitle("178cm 신화의 절대 각성자");
   }
 
   setActiveTitle(titleName) {
@@ -673,6 +711,51 @@ class GameState {
     if (!this.data.quests.history) this.data.quests.history = {};
     this.data.quests.history[today] = Object.keys(this.data.quests.completedToday).length;
 
+    // Maintain cumulative quest completions count
+    if (!this.data.quests.completionCounts) this.data.quests.completionCounts = {};
+    this.data.quests.completionCounts[questId] = (this.data.quests.completionCounts[questId] || 0) + 1;
+
+    // Check title unlocks from quests
+    const newlyUnlockedTitles = [];
+    const checkAndUnlock = (title) => {
+      if (this.unlockTitle(title)) {
+        newlyUnlockedTitles.push(title);
+      }
+    };
+
+    // 1. Jump rope quests -> 줄넘기 입문자 & 줄넘기 3,500회 극한 달성자
+    if (questId === 'height_rope_1000' || questId === 'height_rope_2000' || questId === 'height_rope_3500') {
+      checkAndUnlock("줄넘기 입문자");
+    }
+    if (questId === 'height_rope_3500') {
+      checkAndUnlock("줄넘기 3,500회 극한 달성자");
+    }
+    // 2. Spine stretch -> 자세 교정 수련생 & 척추 기립의 대천사 (20회)
+    if (questId === 'height_spine_stretch') {
+      checkAndUnlock("자세 교정 수련생");
+      if ((this.data.quests.completionCounts['height_spine_stretch'] || 0) >= 20) {
+        checkAndUnlock("척추 기립의 대천사");
+      }
+    }
+    // 3. Nutrition -> 성장 영양 보급자
+    if (questId === 'height_nutrition') {
+      checkAndUnlock("성장 영양 보급자");
+    }
+    // 4. Sleep -> 성장 골든타임의 수호자
+    if (questId === 'height_golden_sleep') {
+      checkAndUnlock("성장 골든타임의 수호자");
+    }
+    // 5. Detox -> 디톡스 24시간 철인 & 도파민의 종결자 (누적 15회)
+    if (questId === 'detox_shorts_24h') {
+      checkAndUnlock("디톡스 24시간 철인");
+    }
+    const totalDetox = Object.keys(this.data.quests.completionCounts || {})
+      .filter(id => id.startsWith('detox_'))
+      .reduce((sum, id) => sum + (this.data.quests.completionCounts[id] || 0), 0);
+    if (totalDetox >= 15) {
+      checkAndUnlock("도파민의 종결자");
+    }
+
     // Immediately recalculate streak on every quest completion
     this.data.quests.dailyStreak = this.getDailyStreak();
 
@@ -689,6 +772,7 @@ class GameState {
       goldResult,
       gold: goldResult ? goldResult.goldAdded : quest.gold,
       growthPoints: quest.growthPoints || 0,
+      newlyUnlockedTitles,
       titleMultipliers: this.getActiveTitleMultipliers()
     };
   }

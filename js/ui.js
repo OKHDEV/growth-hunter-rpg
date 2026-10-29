@@ -278,6 +278,10 @@ class UIManager {
   }
 
   upgradeStatWithGold(statKey) {
+    if (this._isUpgradingStat) return;
+    this._isUpgradingStat = true;
+    setTimeout(() => { this._isUpgradingStat = false; }, 250);
+
     sound.playClick();
     const res = state.upgradeStatWithGold(statKey);
     if (!res || !res.success) {
@@ -1281,16 +1285,6 @@ class UIManager {
 
     const closeProfileBtn = document.getElementById('btnCloseProfileModal');
     if (closeProfileBtn) closeProfileBtn.addEventListener('click', () => this.closeProfileModal());
-
-    document.querySelectorAll('.btn-upgrade-stat, .btn-add-stat').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const row = e.target.closest('.stat-row');
-        const statKey = row ? row.dataset.stat : null;
-        if (statKey) {
-          this.upgradeStatWithGold(statKey);
-        }
-      });
-    });
 
     const bgmToggle = document.getElementById('bgmToggle');
     const sfxToggle = document.getElementById('sfxToggle');

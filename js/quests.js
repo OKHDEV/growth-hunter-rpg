@@ -27,16 +27,21 @@ class QuestManager {
       if (!el) return;
 
       const now = new Date();
-      // Next midnight (00:00:00 tomorrow)
-      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-      const diffMs = nextMidnight - now;
+      // Reset is at 04:00:00 every day.
+      // If before 04:00 today, reset is today 04:00:00.
+      // If at or after 04:00 today, reset is tomorrow 04:00:00.
+      let nextReset = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 4, 0, 0, 0);
+      if (now.getTime() >= nextReset.getTime()) {
+        nextReset.setDate(nextReset.getDate() + 1);
+      }
+      const diffMs = nextReset - now;
 
       if (diffMs <= 0) {
         state.checkDailyReset();
         this.renderQuestList();
         if (typeof ui !== 'undefined') ui.updateHeaderAndStats();
         if (typeof ui !== 'undefined' && ui.showToast) {
-          ui.showToast("🌅 자정(00:00)이 되어 일일 퀘스트가 새롭게 갱신되었습니다!", "success");
+          ui.showToast("🌅 새벽 04:00가 되어 일일 퀘스트가 새롭게 갱신되었습니다!", "success");
         }
         return;
       }
@@ -49,7 +54,7 @@ class QuestManager {
       const mStr = String(mins).padStart(2, '0');
       const sStr = String(secs).padStart(2, '0');
 
-      el.textContent = `${hStr}시간 ${mStr}분 ${sStr}초 남음 (자정 00:00 초기화)`;
+      el.textContent = `${hStr}시간 ${mStr}분 ${sStr}초 남음 (새벽 04:00 초기화)`;
     };
 
     update();
@@ -762,7 +767,7 @@ class QuestManager {
 
     const titleMults = result.titleMultipliers || state.getActiveTitleMultipliers();
     const finalExp = result.expResult ? result.expResult.expAdded : result.quest.exp;
-    const finalGold = result.gold;
+    const finalGold = (result.goldResult && result.goldResult.goldAdded) ? result.goldResult.goldAdded : (result.gold || (result.quest ? result.quest.gold : 0));
 
     let toastMsg = `✨ 퀘스트 완수! +${finalExp.toLocaleString()} EXP`;
     if (titleMults && titleMults.expMultiplier > 1) {
@@ -775,6 +780,15 @@ class QuestManager {
     toastMsg += `, +${result.growthPoints} 성장치 획득!`;
 
     ui.showToast(toastMsg);
+
+    if (result.newlyUnlockedTitles && result.newlyUnlockedTitles.length > 0) {
+      result.newlyUnlockedTitles.forEach(tName => {
+        ui.showToast(`🎉 각성 칭호 획득! [${tName}]`, "gold");
+      });
+      if (typeof ui !== 'undefined' && ui.renderInventory) {
+        ui.renderInventory();
+      }
+    }
 
     if (result.expResult && result.expResult.leveledUp) {
       sound.playLevelUp();
