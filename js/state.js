@@ -585,8 +585,10 @@ class GameState {
   // --- Calculations ---
 
   getExpRequired(level) {
-    // Scaling exponential formula for leveling
-    return Math.floor(120 * Math.pow(1.22, level - 1) + (level - 1) * 40);
+    // 2~3 Year Long-term daily leveling curve (Polynomial scaling)
+    // Lv 1: 180, Lv 15: ~3,900, Lv 25: ~10,400, Lv 50: ~39,000, Lv 80: ~98,000, Lv 100: ~153,000
+    // Perfectly matches ~2,000~4,000 EXP earned per day across 730~1,095 days!
+    return Math.floor(180 + (level - 1) * 60 + Math.pow(level - 1, 1.95) * 14);
   }
 
   getRank(level) {
@@ -707,14 +709,18 @@ class GameState {
       leveledUp = true;
       required = this.getExpRequired(this.data.player.level);
     }
+    let levelUpGoldGained = 0;
     if (levelsGained > 0) {
-      this.data.player.gold += 300 * levelsGained; // Level-up gold reward!
+      // Scale level-up gold reward with level to support long-term stat upgrading
+      levelUpGoldGained = Math.round(500 + this.data.player.level * 50) * levelsGained;
+      this.data.player.gold += levelUpGoldGained;
     }
 
     this.save();
     return {
       leveledUp,
       levelsGained,
+      levelUpGoldGained,
       newLevel: this.data.player.level,
       currentExp: this.data.player.exp,
       requiredExp: required,
@@ -933,7 +939,8 @@ class GameState {
     const boss = BOSSES_DATA.find(b => b.id === bossId);
     if (!boss) return null;
 
-    if (!this.data.raid.clearedStages.includes(boss.stage)) {
+    const isFirstClear = !this.data.raid.clearedStages.includes(boss.stage);
+    if (isFirstClear) {
       this.data.raid.clearedStages.push(boss.stage);
       if (this.data.raid.unlockedStage <= boss.stage && boss.stage < BOSSES_DATA.length) {
         this.data.raid.unlockedStage = boss.stage + 1;
@@ -942,19 +949,40 @@ class GameState {
 
     this.data.raid.clearCounts[bossId] = (this.data.raid.clearCounts[bossId] || 0) + 1;
 
-    // Grants rewards
-    const expResult = this.addExp(boss.rewards.exp);
-    const goldResult = this.addGold(boss.rewards.gold);
-    this.addGrowthPoints(boss.rewards.growthPoints);
+    // Grants rewards:
+    // First Clear: 100% full EXP, Gold, Growth Points, Item, Title!
+    // Repeat Clear: 25% Training EXP & Gold for practice, 0 Growth Points (Real-life height requires real-life daily habit completion!)
+    let awardedExp = boss.rewards.exp;
+    let awardedGold = boss.rewards.gold;
+    let awardedGrowth = boss.rewards.growthPoints;
+
+    if (!isFirstClear) {
+      awardedExp = Math.max(30, Math.round(boss.rewards.exp * 0.25));
+      awardedGold = Math.max(20, Math.round(boss.rewards.gold * 0.25));
+      awardedGrowth = 0; // Growth Points awarded strictly on first milestone breakthrough!
+    }
+
+    const expResult = this.addExp(awardedExp);
+    const goldResult = this.addGold(awardedGold);
+    if (awardedGrowth > 0) {
+      this.addGrowthPoints(awardedGrowth);
+    }
     this.addToInventory(boss.rewards.item);
     this.unlockTitle(boss.rewards.title);
 
     this.save();
     return {
       boss,
+      isFirstClear,
       expResult,
       goldResult,
-      rewards: boss.rewards,
+      awardedGrowth,
+      rewards: {
+        ...boss.rewards,
+        exp: awardedExp,
+        gold: awardedGold,
+        growthPoints: awardedGrowth
+      },
       titleMultipliers: this.getActiveTitleMultipliers()
     };
   }
@@ -962,14 +990,14 @@ class GameState {
   addCustomQuest(questData) {
     const newQuest = {
       id: "custom_" + Date.now(),
-      title: questData.title,
-      description: questData.description || "사용자 지정 각성 퀘스트",
+      title: (questData.title || '').trim(),
+      description: (questData.description || "사용자 지정 각성 퀘스트").trim(),
       category: questData.category || "height",
       categoryName: questData.categoryName || "신체 & 키 성장",
       tier: questData.tier || "B",
-      exp: parseInt(questData.exp) || 300,
-      gold: parseInt(questData.gold) || 100,
-      growthPoints: parseInt(questData.growthPoints) || 10,
+      exp: Math.min(2000, Math.max(50, parseInt(questData.exp) || 300)),
+      gold: Math.min(1000, Math.max(20, parseInt(questData.gold) || 100)),
+      growthPoints: Math.min(30, Math.max(1, parseInt(questData.growthPoints) || 10)),
       type: questData.type || "check",
       targetCount: questData.targetCount ? parseInt(questData.targetCount) : null,
       targetSeconds: questData.targetSeconds ? parseInt(questData.targetSeconds) : null,

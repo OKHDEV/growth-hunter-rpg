@@ -415,19 +415,19 @@ const BOSS_VISUAL_EVOLUTIONS = [
 function generate50Bosses() {
   return BOSS_NAMES_DATA.map((info, idx) => {
     const stage = idx + 1;
-    // Balanced 1-month-per-boss scaling:
-    // Stage 1: Req Lv.15 (1달간 매일 퀘스트 수행 시 도달).
-    // Level 15 Player (~1,400 HP, ~231 ATK, ~81 DEF) vs Boss 1 (1,400 HP, 215 ATK, 35 DEF):
-    // Player deals ~194 dmg/turn -> Defeats boss in 7~8 turns.
-    // Boss deals ~154 dmg/turn -> Player survives with ~470 HP (tight 1:1 clutch victory)!
-    // If challenged at Level 1 (700 HP), player dies in 3 turns!
-    const reqLevel = 15 + (stage - 1) * 10;
-    const trainingDays = stage * 30;
-    const trainingMonths = stage;
+    // Balanced 2~3 Year progression scaling (~15~20 days of daily habit grind per stage):
+    // Stage 1: Req Lv.10 (~15일차 수련 시 도달)
+    // Stage 50: Req Lv.100 (~2.5년 매일 꾸준한 수련 시 도달)
+    const reqLevel = Math.min(100, Math.round(10 + (stage - 1) * 1.85));
+    const trainingDays = Math.round(stage * 18);
+    const trainingMonths = parseFloat((stage * 0.6).toFixed(1));
 
-    const maxHp = Math.round(1400 * Math.pow(1.12, stage - 1) + (stage - 1) * 1200);
-    const atk = Math.round(215 * Math.pow(1.11, stage - 1) + (stage - 1) * 120);
-    const def = Math.round(35 * Math.pow(1.10, stage - 1) + (stage - 1) * 45);
+    // Balanced Linear + Mild Quadratic curve:
+    // Stage 1: HP 1,400, ATK 180, DEF 35 (Tight 7-turn duel vs Lv.10-15 player)
+    // Stage 50: HP 41,859, ATK 5,115, DEF 1,842 (Epic 8-turn climax vs Lv.100 player with max gear & stats)
+    const maxHp = Math.round(1400 + (stage - 1) * 650 + Math.pow(stage - 1, 1.35) * 45);
+    const atk = Math.round(180 + (stage - 1) * 75 + Math.pow(stage - 1, 1.30) * 8);
+    const def = Math.round(35 + (stage - 1) * 35 + Math.pow(stage - 1, 1.20) * 3);
 
     const rewardsExp = Math.round(350 * Math.pow(1.085, stage - 1) + stage * 90);
     const rewardsGold = Math.round(120 * Math.pow(1.08, stage - 1) + stage * 40);
@@ -464,12 +464,12 @@ function generate50Bosses() {
           slot,
           name: itemName,
           rarity,
-          statsText: `공격력 +${stage * 12} | 방어력 +${stage * 6} | 키 성장 가속 +${stage}%`,
+          statsText: `공격력 +${stage * 14} | 방어력 +${stage * 8} | 키 성장 가속 +${stage}%`,
           stats: {
-            atk: stage * 12,
-            def: stage * 6,
-            str: Math.round(stage * 2.5),
-            gro: Math.round(stage * 1.8)
+            atk: stage * 14,
+            def: stage * 8,
+            str: Math.round(stage * 2.8),
+            gro: Math.round(stage * 2.2)
           }
         },
         title: `${info.name.split(' ')[0]} 격파자`
@@ -488,12 +488,12 @@ const SECRET_FINAL_BOSS = {
   name: "절대 거신, 오메가 크로노스",
   subName: "True Ultimate Colossal God · 100레벨 찐막 최종보스",
   title: "100단계: 신화의 절대 거신 (100레벨)",
-  recommendedLevel: 999, // 50단계(Lv.505)를 압도적으로 초월하는 신화급 권장레벨
-  trainingDays: 3000,
-  trainingMonths: 100,
-  maxHp: 999999,
-  atk: 8888,
-  def: 3500,
+  recommendedLevel: 120, // 50단계(Lv.100)를 초월한 3년차 극한 목표 레벨
+  trainingDays: 1095,
+  trainingMonths: 36,
+  maxHp: 180000,
+  atk: 6800,
+  def: 3200,
   crit: 0.25,
   image: "assets/bosses/boss_secret_omega.jpg",
   introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 100단계 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
@@ -501,7 +501,7 @@ const SECRET_FINAL_BOSS = {
   rewards: {
     exp: 250000,
     gold: 100000,
-    growthPoints: 5000, // +0.50 cm 대폭 성장!
+    growthPoints: 1000, // +0.10 cm 최종 각성 성장!
     item: {
       id: "item_omega_sword",
       slot: "weapon",
@@ -838,7 +838,7 @@ function getTitleMetadata(tName) {
   const goldMult = parseFloat((1.01 + stage * 0.0048).toFixed(2));
   const expPct = Math.round((expMult - 1) * 100);
   const goldPct = Math.round((goldMult - 1) * 100);
-  const reqLvl = 15 + (stage - 1) * 10;
+  const reqLvl = Math.min(100, Math.round(10 + (stage - 1) * 1.85));
   const atk = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.55) * 4);
   const def = Math.round(15 + (stage - 1) * 12 + Math.pow(stage, 1.45) * 2.2);
   const allStats = Math.round(5 + (stage - 1) * 3 + Math.pow(stage, 1.35));
@@ -863,7 +863,7 @@ function registerAll50BossTitles() {
   BOSS_NAMES_DATA.forEach(b => {
     const stage = b.stage;
     const rarity = stage >= 40 ? "mythic" : (stage >= 20 ? "legendary" : (stage >= 5 ? "epic" : "rare"));
-    const reqLvl = 15 + (stage - 1) * 10;
+    const reqLvl = Math.min(100, Math.round(10 + (stage - 1) * 1.85));
 
     const atk = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.55) * 4);
     const def = Math.round(15 + (stage - 1) * 12 + Math.pow(stage, 1.45) * 2.2);

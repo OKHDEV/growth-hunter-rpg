@@ -1249,7 +1249,8 @@ class UIManager {
     const lvlEl = document.getElementById('lvlUpNewLevel');
     const ptsEl = document.getElementById('lvlUpFreePoints');
     if (lvlEl) lvlEl.textContent = `LEVEL ${expResult.newLevel}`;
-    if (ptsEl) ptsEl.textContent = `+${expResult.levelsGained * 5} STAT POINTS`;
+    const goldGained = expResult.levelUpGoldGained || (expResult.levelsGained * 500);
+    if (ptsEl) ptsEl.textContent = `+${goldGained.toLocaleString()} GOLD (골드 스탯 강화 자금)`;
 
     modal.classList.remove('hidden');
   }
@@ -1290,7 +1291,15 @@ class UIManager {
         ? `+${finalGold.toLocaleString()} G (칭호 x${mults.goldMultiplier})` 
         : `+${finalGold.toLocaleString()} G`;
     }
-    if (growthEl) growthEl.textContent = `+${boss.rewards.growthPoints} 키 성장치 (+${(boss.rewards.growthPoints / 1000 * 0.1).toFixed(3)}cm)`;
+    if (growthEl) {
+      if (result && result.isFirstClear === false) {
+        growthEl.textContent = `0 키 성장치 (재도전 수련 완료 · 일일 퀘스트로 키를 키우세요!)`;
+        growthEl.style.color = '#94a3b8';
+      } else {
+        growthEl.textContent = `+${boss.rewards.growthPoints} 키 성장치 (+${(boss.rewards.growthPoints / 1000 * 0.1).toFixed(3)}cm) [최초 토벌 돌파 보너스]`;
+        growthEl.style.color = '#34d399';
+      }
+    }
 
     if (dropItemEl) {
       dropItemEl.innerHTML = `
