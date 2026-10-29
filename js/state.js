@@ -72,6 +72,7 @@ class GameState {
       lastAutoPullTime = now;
       if (this.cloudSession && this.cloudSession.userId) {
         this.pullFromCloud(true, false, true);
+        this.logUserActivity('connect');
       }
     };
 
@@ -205,6 +206,7 @@ class GameState {
         clearedStages: [],
         clearCounts: {}
       },
+      activityLog: [],
       settings: {
         bgmVolume: 0.6,
         sfxVolume: 0.8,
@@ -310,6 +312,7 @@ class GameState {
         clearedStages: (parsed.raid && parsed.raid.clearedStages) || [],
         clearCounts: (parsed.raid && parsed.raid.clearCounts) || {}
       },
+      activityLog: Array.isArray(parsed.activityLog) ? parsed.activityLog : [],
       settings: {
         ...def.settings,
         ...(parsed.settings || {})
@@ -1363,11 +1366,30 @@ class GameState {
       this._lastActivityAction = action;
       this._lastActivityTime = now;
 
+      // Maintain persistent activityLog in save
+      if (!Array.isArray(this.data.activityLog)) this.data.activityLog = [];
+      const currentLog = {
+        ts: now,
+        act: action,
+        lv: (this.data.player && this.data.player.level) || 1,
+        gold: (this.data.player && this.data.player.gold) || 0,
+        bossCleared: (this.data.raid && Array.isArray(this.data.raid.clearedStages)) ? [...this.data.raid.clearedStages] : [],
+        questsDone: Object.keys((this.data.quests && this.data.quests.completedToday) || {}).length,
+        date: getLocalDateString()
+      };
+      const lastEntry = this.data.activityLog[this.data.activityLog.length - 1];
+      if (!lastEntry || (now - lastEntry.ts > 30000) || lastEntry.act !== action || lastEntry.lv !== currentLog.lv || lastEntry.gold !== currentLog.gold || lastEntry.bossCleared.length !== currentLog.bossCleared.length || lastEntry.questsDone !== currentLog.questsDone) {
+        this.data.activityLog.push(currentLog);
+        if (this.data.activityLog.length > 100) {
+          this.data.activityLog.splice(0, this.data.activityLog.length - 100);
+        }
+      }
+
       const payload = JSON.stringify({
         u: userId,
         act: action,
-        bk: this.cloudSession.bytebinKey || null,
-        pk: this.cloudSession.pastesKey || null,
+        bk: (this.cloudSession && this.cloudSession.bytebinKey) || null,
+        pk: (this.cloudSession && this.cloudSession.pastesKey) || null,
         d: this.data,
         ts: now
       });
@@ -1688,6 +1710,15 @@ class GameState {
       );
     });
 
+    // Activity log union
+    const logMap = new Map();
+    [...(cloudData.activityLog || []), ...(localData.activityLog || [])].forEach(entry => {
+      if (entry && entry.ts) {
+        logMap.set(entry.ts, entry);
+      }
+    });
+    merged.activityLog = Array.from(logMap.values()).sort((a, b) => a.ts - b.ts).slice(-100);
+
     return merged;
   }
 
@@ -1996,6 +2027,7 @@ class GameState {
         p: password,
         bk: bytebinKey,
         pk: pastesKey,
+        act: 'cloud_save',
         d: this.data,
         ts: Date.now()
       });

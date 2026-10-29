@@ -985,16 +985,16 @@
 
     function getBossStageText(raid) {
       if (!raid || !Array.isArray(raid.clearedStages) || raid.clearedStages.length === 0) {
-        return '🛡️ 보스 미토벌';
+        return '';
       }
       const regularCleared = raid.clearedStages.filter(s => s <= 50);
       const maxCleared = regularCleared.length > 0 ? Math.max(...regularCleared) : 0;
       if (maxCleared === 0) {
-        return '🛡️ 보스 미토벌';
+        return raid.clearedStages.includes(100) ? 'Stage 100 보스 처치함 (절대 거신)' : '';
       }
-      let txt = `🏆 보스 ${maxCleared}단계 토벌`;
+      let txt = `Stage ${maxCleared} 보스 처치함`;
       if (raid.clearedStages.includes(100)) {
-        txt += ' (오메가 격파)';
+        txt += ' (절대 거신 처치)';
       }
       return txt;
     }
@@ -1121,7 +1121,7 @@
       document.getElementById('kpiTotalGold').textContent = `${formatGold(totalGold)} G`;
       const avgLv = lvCount > 0 ? (lvSum / lvCount).toFixed(1) : 1;
       document.getElementById('kpiLevelInfo').textContent = `Lv.${maxLv} (평균 Lv.${avgLv})`;
-      document.getElementById('kpiMaxStage').textContent = maxStageCleared > 0 ? `보스 ${maxStageCleared}단계 토벌` : '보스 미토벌';
+      document.getElementById('kpiMaxStage').textContent = maxStageCleared > 0 ? `Stage ${maxStageCleared} 보스 처치함` : '-';
     }
 
     function filterAccountsList() {
@@ -2188,19 +2188,25 @@
       document.getElementById('actModalLoading').style.display = 'none';
       document.getElementById('actModalLayout').style.display = 'grid';
 
-      // Pick selected date: most recent active date, or today
-      const dateKeys = Object.keys(actEventsByDate).sort();
-      if (dateKeys.length > 0) {
-        actSelectedDate = dateKeys[dateKeys.length - 1]; // latest active date
-        const [y, m] = actSelectedDate.split('-').map(Number);
-        actCalendarYear = y;
-        actCalendarMonth = m - 1;
-      } else {
+      // Pick selected date: default to today if today has events, otherwise latest active date, or today
+      const todayStr = (() => {
         const now = new Date();
-        actCalendarYear = now.getFullYear();
-        actCalendarMonth = now.getMonth();
-        actSelectedDate = `${actCalendarYear}-${String(actCalendarMonth + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      })();
+
+      if (actEventsByDate[todayStr] && actEventsByDate[todayStr].length > 0) {
+        actSelectedDate = todayStr;
+      } else {
+        const dateKeys = Object.keys(actEventsByDate).sort();
+        if (dateKeys.length > 0) {
+          actSelectedDate = dateKeys[dateKeys.length - 1]; // latest active date
+        } else {
+          actSelectedDate = todayStr;
+        }
       }
+      const [y, m] = actSelectedDate.split('-').map(Number);
+      actCalendarYear = y;
+      actCalendarMonth = m - 1;
 
       renderActivityCalendar();
       renderActivityTimeline(actSelectedDate);
@@ -2220,9 +2226,11 @@
     async function fetchAndProcessUserActivity(userId) {
       const hexId = userIdToHex(userId);
       const endpoints = [
-        `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
-        `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
-        `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=0`
+        `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}/json?poll=1&since=all`,
+        `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}/json?poll=1&since=all`,
+        `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=all`,
+        `https://ntfy.sh/okh_gh_cloud_prod_v3_u_${hexId}/json?poll=1&since=all`,
+        `https://ntfy.sh/okh_gh_cloud_v2_u_${hexId}/json?poll=1&since=all`
       ];
 
       const rawEvents = [];
@@ -2252,45 +2260,109 @@
         console.error('Failed to fetch activity stream:', err);
       }
 
-      // Also include registry or cached save ONLY if rawEvents is empty
-      if (rawEvents.length === 0) {
-        const reg = rawAccountsRegistry[userId];
-        if (reg && reg.ts) {
-          rawEvents.push({ ts: reg.ts, data: { p: reg.p, bk: reg.bk, pk: reg.pk, ts: reg.ts, fromRegistry: true } });
+      // Incorporate save data from cache or registry
+      const cached = cachedUserSaves[userId];
+      if (cached) {
+        // 1. Incorporate persistent activityLog from save
+        if (Array.isArray(cached.activityLog)) {
+          for (const item of cached.activityLog) {
+            if (item && item.ts) {
+              rawEvents.push({
+                ts: item.ts,
+                data: {
+                  act: item.act || 'play',
+                  d: cached,
+                  ts: item.ts
+                }
+              });
+            }
+          }
         }
-        const cached = cachedUserSaves[userId];
-        if (cached && cached.lastSaved) {
+
+        // 2. Incorporate dates from quests.history
+        if (cached.quests && cached.quests.history) {
+          for (const [dateStr, cnt] of Object.entries(cached.quests.history)) {
+            const count = Number(cnt) || 0;
+            if (count > 0) {
+              const [y, m, d] = dateStr.split('-').map(Number);
+              const dateTs = new Date(y, m - 1, d, 12, 0, 0).getTime();
+              rawEvents.push({
+                ts: dateTs,
+                data: {
+                  act: 'quest_complete',
+                  d: {
+                    ...cached,
+                    quests: {
+                      ...cached.quests,
+                      completedToday: count,
+                      history: { [dateStr]: count }
+                    }
+                  },
+                  ts: dateTs
+                }
+              });
+            }
+          }
+        }
+
+        // 3. Incorporate lastSaved timestamp
+        if (cached.lastSaved) {
           const d = new Date(cached.lastSaved).getTime();
           if (!isNaN(d)) {
-            rawEvents.push({ ts: d, data: { d: cached, ts: d, fromCached: true } });
+            rawEvents.push({ ts: d, data: { act: 'cloud_save', d: cached, ts: d } });
+          }
+        }
+
+        // 4. Fill missing d on rawEvents
+        for (const ev of rawEvents) {
+          if (ev.data && !ev.data.d) {
+            ev.data.d = cached;
           }
         }
       } else {
-        // If an event has bk or pk but no d, attach cachedUserSaves[userId] if available
-        const cached = cachedUserSaves[userId];
-        if (cached) {
-          for (const ev of rawEvents) {
-            if (ev.data && !ev.data.d && (ev.data.bk || ev.data.pk)) {
-              ev.data.d = cached;
-            }
-          }
+        const reg = rawAccountsRegistry[userId];
+        if (reg && reg.ts) {
+          rawEvents.push({ ts: reg.ts, data: { p: reg.p, bk: reg.bk, pk: reg.pk, ts: reg.ts, fromRegistry: true } });
         }
       }
 
       // Sort chronologically ascending
       rawEvents.sort((a, b) => a.ts - b.ts);
 
-      // Deduplicate events within 3000ms window
+      // Deduplicate mirror replicas and duplicate messages
       const deduped = [];
+      const seenMsgIds = new Set();
       for (const ev of rawEvents) {
-        if (deduped.length === 0 || Math.abs(ev.ts - deduped[deduped.length - 1].ts) > 3000) {
+        if (ev.rawMsg && ev.rawMsg.id) {
+          if (seenMsgIds.has(ev.rawMsg.id)) continue;
+          seenMsgIds.add(ev.rawMsg.id);
+        }
+        if (deduped.length === 0) {
           deduped.push(ev);
-        } else {
-          // If the newer one has full save snapshot (.d), prefer it
-          if (ev.data && ev.data.d && (!deduped[deduped.length - 1].data || !deduped[deduped.length - 1].data.d)) {
+          continue;
+        }
+        const last = deduped[deduped.length - 1];
+        const timeDiff = Math.abs(ev.ts - last.ts);
+        const evAct = (ev.data && ev.data.act) || '';
+        const lastAct = (last.data && last.data.act) || '';
+
+        // Exact replica from multiple ntfy mirrors (within 400ms)
+        if (timeDiff < 400) {
+          if (ev.data && ev.data.d && (!last.data || !last.data.d)) {
             deduped[deduped.length - 1] = ev;
           }
+          continue;
         }
+
+        // Same repeated action within 1200ms
+        if (evAct && evAct === lastAct && timeDiff < 1200) {
+          if (ev.data && ev.data.d && (!last.data || !last.data.d)) {
+            deduped[deduped.length - 1] = ev;
+          }
+          continue;
+        }
+
+        deduped.push(ev);
       }
 
       actAllEvents = deduped;
@@ -2406,12 +2478,27 @@
 
     function getQuestsCount(qObj, dKey) {
       if (!qObj) return 0;
-      if (qObj.completedToday && typeof qObj.completedToday === 'object') {
-        const keys = Object.keys(qObj.completedToday);
-        if (keys.length > 0) return keys.length;
+      // 1. History record for specific date (number or array or object)
+      if (qObj.history && dKey && qObj.history[dKey] !== undefined) {
+        const val = qObj.history[dKey];
+        if (typeof val === 'number') return val;
+        if (Array.isArray(val)) return val.length;
+        if (typeof val === 'object' && val !== null) return Object.keys(val).filter(k => val[k]).length;
       }
-      if (qObj.history && Array.isArray(qObj.history[dKey])) {
-        return qObj.history[dKey].length;
+      // 2. completedToday
+      if (qObj.completedToday) {
+        if (typeof qObj.completedToday === 'number') return qObj.completedToday;
+        if (Array.isArray(qObj.completedToday)) {
+          if (qObj.completedToday.length > 0) return qObj.completedToday.length;
+        } else if (typeof qObj.completedToday === 'object' && qObj.completedToday !== null) {
+          const validKeys = Object.keys(qObj.completedToday).filter(k => qObj.completedToday[k]);
+          if (validKeys.length > 0) return validKeys.length;
+        }
+      }
+      // 3. Fallback: cumulative completionCounts
+      if (qObj.completionCounts && typeof qObj.completionCounts === 'object') {
+        const sum = Object.values(qObj.completionCounts).reduce((a, b) => a + (Number(b) || 0), 0);
+        if (sum > 0) return sum;
       }
       return 0;
     }
@@ -2472,10 +2559,10 @@
           `;
         } else if (!player) {
           // If user connected and did nothing, or data not yet initialized
-          let actionLabel = '🟢 접속만 함 (활동 없음)';
+          let actionLabel = '🟢 접속만 함';
           let actionDesc = '게임 접속 및 클라우드 연결 확인 (스탯 변동 없음)';
           if (actionType === 'connect') {
-            actionLabel = '🟢 게임 접속 (클라이언트 실행)';
+            actionLabel = '🟢 게임 접속';
             actionDesc = '기기에서 게임을 실행하고 서버에 연결되었습니다.';
           } else if (actionType === 'login') {
             actionLabel = '🔑 계정 로그인';
@@ -2509,12 +2596,14 @@
 
           const currQuests = getQuestsCount(quests, dateKey);
           const prevQuestsCount = prevQuests ? getQuestsCount(prevQuests, dateKey) : 0;
-          const questDiff = (prevEv && prevQuests) ? (currQuests - prevQuestsCount) : 0;
+          const questDiff = (prevEv && prevQuests) ? Math.max(0, currQuests - prevQuestsCount) : 0;
 
           // Action badge
           let actionBadge = '';
           if (actionType === 'connect') {
             actionBadge = '<span class="stat-chip" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">🟢 게임 접속</span>';
+          } else if (actionType === 'cloud_save') {
+            actionBadge = '<span class="stat-chip" style="color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.08);">💾 클라우드 저장</span>';
           } else if (actionType === 'login') {
             actionBadge = '<span class="stat-chip" style="color:#a855f7; border-color:rgba(168,85,247,0.3); background:rgba(168,85,247,0.08);">🔑 로그인</span>';
           } else if (actionType === 'register') {
@@ -2549,29 +2638,34 @@
             dynamicChips.push(`<span class="stat-chip gold">${formatGold(currGold)} G 보유</span>`);
           }
 
-          // 3. Boss: show ONLY when newly cleared! (if !prevEv, show baseline)
+          // 3. Boss: show ONLY when newly cleared or baseline has cleared bosses!
           if (newlyCleared.length > 0) {
-            const bossNames = newlyCleared.sort((a,b)=>a-b).map(s => s === 100 ? '100단계 절대 거신' : `보스 스테이지 ${s}`).join(', ');
-            dynamicChips.push(`<span class="stat-chip stage" style="font-weight:700; color:#f87171; border-color:rgba(248,113,113,0.4); background:rgba(248,113,113,0.12);">⚔️ ${bossNames} 클리어</span>`);
-          } else if (!prevEv) {
-            dynamicChips.push(`<span class="stat-chip stage">${getBossStageText(raid)}</span>`);
+            const bossNames = newlyCleared.sort((a,b)=>a-b).map(s => s === 100 ? 'Stage 100' : `Stage ${s}`).join(', ');
+            dynamicChips.push(`<span class="stat-chip stage" style="font-weight:700; color:#f87171; border-color:rgba(248,113,113,0.4); background:rgba(248,113,113,0.12);">⚔️ ${bossNames} 보스 처치함</span>`);
+          } else if (!prevEv && currCleared.length > 0) {
+            const maxStage = Math.max(...currCleared);
+            dynamicChips.push(`<span class="stat-chip stage" style="color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);">🏆 Stage ${maxStage} 보스 처치함</span>`);
           }
+          // NEVER display "보스 미토벌"!
 
           // 4. Quests count: always show how many performed
           if (questDiff > 0) {
             dynamicChips.push(`<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08); font-weight:700;">📜 퀘스트 ${currQuests}개 수행 (+${questDiff}개 완료)</span>`);
-          } else {
+          } else if (currQuests > 0) {
             dynamicChips.push(`<span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.08);">📜 퀘스트 ${currQuests}개 수행</span>`);
+          } else if (!prevEv) {
+            dynamicChips.push(`<span class="stat-chip" style="color:#94a3b8; border-color:rgba(148,163,184,0.3); background:rgba(148,163,184,0.06);">📜 퀘스트 0개 수행</span>`);
           }
 
-          // 5. If nothing changed compared to previous
-          const hasProgressionChange = lvGained > 0 || goldDiff !== 0 || newlyCleared.length > 0;
-          if (prevEv && !hasProgressionChange) {
-            dynamicChips.push(`<span class="stat-chip" style="color:#94a3b8; border-color:rgba(148,163,184,0.3); background:rgba(148,163,184,0.06);">🟢 인게임 활동 (변동 없음)</span>`);
+          // 5. If nothing changed compared to previous and no actionBadge
+          const hasProgressionChange = lvGained > 0 || goldDiff !== 0 || newlyCleared.length > 0 || questDiff > 0;
+          if (prevEv && !hasProgressionChange && !actionBadge) {
+            dynamicChips.push(`<span class="stat-chip" style="color:#94a3b8; border-color:rgba(148,163,184,0.3); background:rgba(148,163,184,0.06);">🟢 접속만 함</span>`);
           }
 
           const stats = player.stats ? `STR ${player.stats.str || 14} · INT ${player.stats.int || 12} · END ${player.stats.end || 14} · GRO ${player.stats.gro || 15}` : '';
-          const currentStatusText = `현재 상태: Lv.${currLv} · ${formatGold(currGold)} G · ${getBossStageText(raid)}`;
+          const bossStatus = currCleared.length > 0 ? ` · Stage ${Math.max(...currCleared)} 보스 처치함` : '';
+          const currentStatusText = `현재 상태: Lv.${currLv} · ${formatGold(currGold)} G${bossStatus}`;
 
           item.innerHTML = `
             <div class="timeline-item-top">
