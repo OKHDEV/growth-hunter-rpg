@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=20261029_19">
-  <link rel="stylesheet" href="css/battle.css?v=20261029_19">
-  <link rel="stylesheet" href="css/animations.css?v=20261029_19">
-  <link rel="stylesheet" href="css/mobile.css?v=20261029_19">
+  <link rel="stylesheet" href="css/style.css?v=20261029_20">
+  <link rel="stylesheet" href="css/battle.css?v=20261029_20">
+  <link rel="stylesheet" href="css/animations.css?v=20261029_20">
+  <link rel="stylesheet" href="css/mobile.css?v=20261029_20">
 </head>
 <body>
 
@@ -48,6 +48,10 @@
 
       <!-- Quick Header Stats -->
       <div class="header-quick-stats">
+        <div class="quick-stat-badge" id="hdrCloudBtn" onclick="ui.openCloudModal()" style="cursor:pointer; border-color: rgba(0, 229, 255, 0.5); background: rgba(0, 229, 255, 0.12);">
+          <span class="stat-badge-title" style="color:#38bdf8;">클라우드</span>
+          <span class="stat-badge-val" id="hdrCloudStatus" style="color:#00e5ff; font-size:11px;">☁️ 로그인</span>
+        </div>
         <div class="quick-stat-badge">
           <span class="stat-badge-title" id="hdrPlayerRank">E급 각성자</span>
           <span class="stat-badge-val" id="hdrPlayerLevel">Lv.1</span>
@@ -100,6 +104,9 @@
 
           <button class="btn btn-sm btn-outline-cyan" id="btnEditProfile" onclick="ui.openProfileModal()" style="width: 100%;">
             ✏️ 프로필 & 현재 키 / 목표 키 수정
+          </button>
+          <button class="btn btn-sm btn-primary" id="btnStatusCloud" onclick="ui.openCloudModal()" style="width: 100%; margin-top: 8px; background: linear-gradient(135deg, rgba(2, 132, 199, 0.85), rgba(99, 102, 241, 0.85)); border: 1px solid #38bdf8; font-size: 12px;">
+            ☁️ 클라우드 서버 계정 (<span id="statusCloudLabel">미연동 - 클릭하여 로그인</span>)
           </button>
         </div>
 
@@ -516,6 +523,19 @@
     <!-- ==================== TAB 6: SETTINGS ==================== -->
     <section id="settingsTab" class="tab-screen hidden">
       <div class="hunter-stats-panel" style="max-width: 650px; margin: 0 auto; width:100%;">
+        <!-- Cloud Account Login Card -->
+        <div class="panel-card" style="border-color: #38bdf8; box-shadow: 0 0 28px rgba(56, 189, 248, 0.22); margin-bottom: 14px;">
+          <div class="panel-card-header">
+            <span class="panel-title" style="color: #38bdf8;">☁️ 클라우드 서버 로그인 & 기기 연동 (구글·사파리·타기기)</span>
+          </div>
+          <p style="font-size: 12px; color: #cbd5e1; line-height: 1.6; margin-bottom: 12px;">
+            아이디와 비밀번호로 로그인하면 <strong>구글 앱, 사파리, 크롬, 다른 휴대폰/PC</strong> 어디서 접속하든 모든 기록이 서버에 실시간 자동 저장되며, <strong>로그인 전 플레이했던 기존 기록도 계정에 그대로 자동 반영</strong>됩니다!
+          </p>
+          <div id="settingsCloudAccountSummary" style="padding: 12px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="ui.openCloudModal()" style="width: 100%;">🔑 아이디/비밀번호 로그인 및 계정 관리 열기</button>
+          </div>
+        </div>
+
         <div class="panel-card">
           <div class="panel-card-header">
             <span class="panel-title">사운드 & 환경 설정</span>
@@ -1014,16 +1034,81 @@
     </div>
   </div>
 
+  <!-- 12. Cloud Account Login & Sync Modal -->
+  <div id="cloudAccountModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: #38bdf8; text-align: left; width: calc(100vw - 28px); max-width: 400px; background: rgba(10, 15, 28, 0.98); padding: 18px 16px; box-shadow: 0 0 38px rgba(56, 189, 248, 0.38);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+        <h3 style="color: #38bdf8; font-size: 17px; margin: 0; display:flex; align-items:center; gap:6px;">
+          ☁️ 클라우드 계정 로그인 & 서버 연동
+        </h3>
+        <button type="button" class="btn-close" onclick="ui.closeCloudModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✕</button>
+      </div>
+
+      <!-- View A: Login / Register Form -->
+      <div id="cloudLoginFormView">
+        <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #e2e8f0; line-height: 1.5; margin-bottom: 14px;">
+          ✨ <strong>아이디와 비밀번호</strong>를 입력해 로그인하세요.<br>
+          • <strong>처음 입력하는 아이디</strong>면 새 계정이 즉시 만들어지며, <strong>로그인 전 현재 기기에서 플레이했던 모든 기록이 이 계정에 100% 자동 반영</strong>되어 서버에 저장됩니다!<br>
+          • 사파리·구글·다른 폰에서도 같은 아이디/비번으로 로그인하면 그대로 이어집니다. (나와 동생 각자 아이디로 따로 저장 가능!)
+        </div>
+
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label class="form-label" style="font-size: 12px; color: #94a3b8; display:block; margin-bottom:4px;">계정 아이디 (예: 경호, 동생)</label>
+          <input type="text" id="cloudIdInput" class="form-input" placeholder="사용할 아이디 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#0f172a; color:#fff; font-size:15px;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" style="font-size: 12px; color: #94a3b8; display:block; margin-bottom:4px;">비밀번호</label>
+          <input type="password" id="cloudPwInput" class="form-input" placeholder="비밀번호 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#0f172a; color:#fff; font-size:15px;" onkeydown="if(event.key==='Enter') ui.handleCloudLogin('modal');">
+        </div>
+
+        <div id="cloudModalFeedbackMsg" style="font-size: 12px; min-height: 18px; margin-bottom: 10px; font-weight: 700;"></div>
+
+        <button type="button" class="btn btn-primary" id="btnCloudLoginSubmit" onclick="ui.handleCloudLogin('modal')" style="width: 100%; padding: 12px; font-weight: 800; font-size: 14px;">
+          🔑 로그인 / 새 계정 생성 (현재 기록 서버 연동)
+        </button>
+      </div>
+
+      <!-- View B: Logged-in Status & Sync Controls -->
+      <div id="cloudLoggedInView" class="hidden">
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+          <div style="font-size: 12px; color: #94a3b8;">현재 클라우드 연동 계정</div>
+          <div style="font-size: 20px; font-weight: 900; color: #34d399; margin: 4px 0;">
+            🟢 <span id="cloudActiveUserId">오경호</span>
+          </div>
+          <div style="font-size: 11px; color: #cbd5e1;">
+            마지막 서버 자동 저장: <strong id="cloudLastSyncTime" style="color:#38bdf8;">방금 전</strong>
+          </div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 6px;">
+            * 스탯 강화, 퀘스트 완료, 보스 클리어 시마다 서버에 실시간 자동 저장됩니다.
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <button type="button" class="btn btn-sm btn-outline-cyan" onclick="ui.handleCloudForceUpload()" style="width:100%; padding:10px; font-weight:700;">
+            ⬆️ 현재 기기 기록을 서버에 즉시 강제 저장 (업로드)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-gold" onclick="ui.handleCloudForceDownload()" style="width:100%; padding:10px; font-weight:700;">
+            ⬇️ 서버 최신 기록을 현재 기기로 불러오기 (동기화)
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="ui.handleCloudLogout()" style="width:100%; padding:10px; margin-top:6px; border-color:#ef4444; color:#ef4444;">
+            🚪 로그아웃 (다른 계정으로 전환)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261029_19"></script>
-  <script src="js/audio.js?v=20261029_19"></script>
-  <script src="js/state.js?v=20261029_19"></script>
-  <script src="js/battle.js?v=20261029_19"></script>
-  <script src="js/quests.js?v=20261029_19"></script>
-  <script src="js/ui.js?v=20261029_19"></script>
-  <script src="js/app.js?v=20261029_19"></script>
+  <script src="js/data.js?v=20261029_20"></script>
+  <script src="js/audio.js?v=20261029_20"></script>
+  <script src="js/state.js?v=20261029_20"></script>
+  <script src="js/battle.js?v=20261029_20"></script>
+  <script src="js/quests.js?v=20261029_20"></script>
+  <script src="js/ui.js?v=20261029_20"></script>
+  <script src="js/app.js?v=20261029_20"></script>
 </body>
 </html>

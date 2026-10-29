@@ -265,6 +265,11 @@ class UIManager {
     if (derivedAtk) derivedAtk.textContent = effective.atk.toLocaleString();
     if (derivedDef) derivedDef.textContent = effective.def.toLocaleString();
     if (derivedCrit) derivedCrit.textContent = `${(effective.crit * 100).toFixed(1)}%`;
+
+    if (typeof state.updateSaveIndicator === 'function') {
+      state.updateSaveIndicator();
+    }
+    this.renderCloudModalState();
   }
 
   renderAll() {
@@ -1411,6 +1416,158 @@ class UIManager {
     // Enable drag-to-scroll & mouse wheel scrolling on zone & category tabs
     this.enableDragToScroll(document.getElementById('bossZoneTabs'));
     this.enableDragToScroll(document.getElementById('questCategoryTabs'));
+    this.renderCloudModalState();
+  }
+
+  // --- Cloud Account Login & Multi-Device Sync UI ---
+
+  openCloudModal() {
+    sound.playClick();
+    this.renderCloudModalState();
+    const modal = document.getElementById('cloudAccountModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  closeCloudModal() {
+    sound.playClick();
+    const modal = document.getElementById('cloudAccountModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  renderCloudModalState() {
+    const sess = state.cloudSession;
+    const loggedInView = document.getElementById('cloudLoggedInView');
+    const loginFormView = document.getElementById('cloudLoginFormView');
+    const activeUserEl = document.getElementById('cloudActiveUserId');
+    const lastSyncEl = document.getElementById('cloudLastSyncTime');
+    const settingsStatusBox = document.getElementById('settingsCloudAccountSummary');
+
+    if (sess && sess.userId) {
+      if (loggedInView) loggedInView.classList.remove('hidden');
+      if (loginFormView) loginFormView.classList.add('hidden');
+      if (activeUserEl) activeUserEl.textContent = sess.userId;
+      if (lastSyncEl) {
+        const dt = sess.lastSyncTime ? new Date(sess.lastSyncTime) : new Date();
+        lastSyncEl.textContent = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+      if (settingsStatusBox) {
+        settingsStatusBox.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <div style="font-size:14px; font-weight:800; color:#34d399;">🟢 현재 연동된 계정: [${sess.userId}]</div>
+              <div style="font-size:11px; color:#94a3b8; margin-top:2px;">사파리·구글·타기기 어디서든 [${sess.userId}] 계정으로 로그인하면 자동 연동됩니다.</div>
+            </div>
+            <button type="button" class="btn btn-xs btn-outline-cyan" onclick="ui.openCloudModal()">계정 관리 / 동기화</button>
+          </div>
+        `;
+      }
+    } else {
+      if (loggedInView) loggedInView.classList.add('hidden');
+      if (loginFormView) loginFormView.classList.remove('hidden');
+      if (settingsStatusBox) {
+        settingsStatusBox.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <div style="font-size:14px; font-weight:800; color:#38bdf8;">☁️ 현재 클라우드 미연동 (기기 임시 저장 상태)</div>
+              <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">아이디·비밀번호로 로그인하면 지금 플레이한 기록이 그대로 계정에 반영되어 절대 날아가지 않습니다!</div>
+            </div>
+            <button type="button" class="btn btn-xs btn-primary" onclick="ui.openCloudModal()">🔑 아이디 로그인 / 계정 생성</button>
+          </div>
+        `;
+      }
+    }
+  }
+
+  async handleCloudLogin(prefix = 'modal') {
+    const idInput = document.getElementById(prefix === 'settings' ? 'settingsCloudIdInput' : 'cloudIdInput');
+    const pwInput = document.getElementById(prefix === 'settings' ? 'settingsCloudPwInput' : 'cloudPwInput');
+    const btn = document.getElementById(prefix === 'settings' ? 'btnSettingsCloudSubmit' : 'btnCloudLoginSubmit');
+    const msgBox = document.getElementById('cloudModalFeedbackMsg');
+
+    const userId = idInput ? idInput.value.trim() : '';
+    const password = pwInput ? pwInput.value.trim() : '';
+
+    if (!userId || !password) {
+      this.showToast("아이디와 비밀번호를 모두 입력해주세요!", "error");
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "⏳ 클라우드 서버 연동 중...";
+    }
+    if (msgBox) {
+      msgBox.textContent = "☁️ 서버와 통신하여 데이터를 안전하게 동기화하고 있습니다...";
+      msgBox.style.color = "#38bdf8";
+    }
+
+    const res = await state.loginOrRegisterCloud(userId, password);
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "🔑 로그인 / 새 계정 생성 (현재 기록 서버 연동)";
+    }
+
+    if (!res || !res.success) {
+      sound.playDefeat();
+      const errMsg = (res && res.message) || "로그인 실패";
+      if (msgBox) {
+        msgBox.textContent = errMsg;
+        msgBox.style.color = "#f87171";
+      }
+      this.showToast(errMsg, "error");
+      return;
+    }
+
+    sound.playLevelUp();
+    if (msgBox) {
+      msgBox.textContent = "";
+    }
+    this.renderCloudModalState();
+    this.renderAll();
+
+    if (res.isNew) {
+      this.showToast(`🎉 [${res.userId}] 새 클라우드 계정 생성 완료! 기존 기기 수련 기록이 100% 계정에 저장되었습니다!`);
+    } else if (res.mergedPreLogin) {
+      this.showToast(`☁️ [${res.userId}] 로그인 성공! 기기 기록과 서버 데이터가 완벽하게 통합 연동되었습니다!`);
+    } else {
+      this.showToast(`☁️ [${res.userId}] 계정 로그인 및 서버 데이터 불러오기 완료!`);
+    }
+  }
+
+  async handleCloudForceUpload() {
+    sound.playClick();
+    this.showToast("⏳ 현재 기기 데이터를 클라우드 서버에 저장 중...");
+    const res = await state.syncToCloud(true);
+    this.renderCloudModalState();
+    if (res && res.success) {
+      sound.playLevelUp();
+      this.showToast(`☁️ [${state.cloudSession.userId}] 계정에 현재 기록이 안전하게 서버 저장되었습니다!`);
+    } else {
+      this.showToast("서버 저장 중 일시적 지연이 발생했습니다. 다시 시도해주세요.", "error");
+    }
+  }
+
+  async handleCloudForceDownload() {
+    sound.playClick();
+    this.showToast("⏳ 클라우드 서버에서 최신 기록을 불러오는 중...");
+    const res = await state.pullFromCloud(false, false);
+    this.renderCloudModalState();
+    if (res && res.success) {
+      sound.playLevelUp();
+      this.showToast(`☁️ [${state.cloudSession.userId}] 서버 데이터 동기화 완료!`);
+    } else {
+      this.showToast("서버 불러오기 실패. 잠시 후 다시 시도해주세요.", "error");
+    }
+  }
+
+  handleCloudLogout() {
+    sound.playClick();
+    const prevUser = state.cloudSession ? state.cloudSession.userId : '';
+    state.logoutCloud();
+    this.renderCloudModalState();
+    this.updateHeaderAndStats();
+    this.showToast(`🚪 [${prevUser}] 계정에서 로그아웃되었습니다. 다른 계정으로 로그인할 수 있습니다.`);
   }
 }
 

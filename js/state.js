@@ -12,20 +12,32 @@ class GameState {
   constructor() {
     this.STORAGE_KEY = 'awakened_hunter_save_v2';
     this.MIRROR_KEY = 'awakened_hunter_save_mirror_v2';
+    this.CLOUD_SESSION_KEY = 'awakened_hunter_cloud_session_v1';
+    this.CLOUD_REGISTRY_ID = 'ff808181a09d98f701a186c07dd548c4';
+    this.CLOUD_API_BASE = 'https://api.restful-api.dev/objects';
+    this.BYTEBIN_URL = 'https://bytebin.lucko.me';
+    this.NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_prod_v3_';
+    this.cloudSession = this.loadCloudSession();
+    this._cloudSyncTimer = null;
+    this._isSyncingCloud = false;
     this.data = this.getDefaultState();
     this.load();
     this.setupAutoSaveHooks();
+    this.initCloudSyncOnStartup();
   }
 
   setupAutoSaveHooks() {
     // Save when leaving page, switching tabs, or locking phone
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-      window.addEventListener('beforeunload', () => this.save());
-      window.addEventListener('pagehide', () => this.save());
+      window.addEventListener('beforeunload', () => this.save(true));
+      window.addEventListener('pagehide', () => this.save(true));
       if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
         document.addEventListener('visibilitychange', () => {
           if (document.hidden) {
-            this.save();
+            this.save(true);
+          } else if (this.cloudSession && this.cloudSession.userId) {
+            // Pull latest cloud save when returning to browser/app
+            this.pullFromCloud(true);
           }
         });
       }
@@ -217,26 +229,65 @@ class GameState {
     }
   }
 
-  save() {
+  save(immediateCloud = false) {
     try {
       this.data.lastSaved = new Date().toISOString();
+      if (this.cloudSession && this.cloudSession.userId) {
+        this.data.ownerAccountId = this.cloudSession.userId;
+      }
       const serialized = JSON.stringify(this.data);
       localStorage.setItem(this.STORAGE_KEY, serialized);
       // Secondary Mirror Backup (protects against browser clearing single key)
       localStorage.setItem(this.MIRROR_KEY, serialized);
+      this.saveToIndexedDB(serialized);
       this.updateSaveIndicator();
+      if (this.cloudSession && this.cloudSession.userId) {
+        this.scheduleCloudSync(immediateCloud);
+      }
     } catch (e) {
       console.error("Failed to save data:", e);
     }
   }
 
-  updateSaveIndicator() {
+  updateSaveIndicator(cloudStatusText = null) {
     if (typeof document === 'undefined') return;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const el = document.getElementById('saveStatusIndicator');
     if (el) {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      el.innerHTML = `🟢 <strong>실시간 자동 보존 중</strong> (최근: ${timeStr})`;
+      if (this.cloudSession && this.cloudSession.userId) {
+        el.innerHTML = `🟢 <strong>클라우드 계정 [${this.cloudSession.userId}] 실시간 서버 동기화 중</strong> (${cloudStatusText || '최근: ' + timeStr})`;
+      } else {
+        el.innerHTML = `🟢 <strong>기기 자동 보존 중</strong> (최근: ${timeStr}) · <span style="color:#38bdf8; cursor:pointer; text-decoration:underline;" onclick="if(typeof ui!=='undefined') ui.openCloudModal();">☁️ 클라우드 로그인 연동하기</span>`;
+      }
+    }
+    const hdrCloudStatus = document.getElementById('hdrCloudStatus');
+    const hdrCloudBtn = document.getElementById('hdrCloudBtn');
+    const statusCloudLabel = document.getElementById('statusCloudLabel');
+    if (this.cloudSession && this.cloudSession.userId) {
+      if (hdrCloudStatus) {
+        hdrCloudStatus.textContent = `🟢 ${this.cloudSession.userId}`;
+        hdrCloudStatus.style.color = '#34d399';
+      }
+      if (hdrCloudBtn) {
+        hdrCloudBtn.style.borderColor = 'rgba(52, 211, 153, 0.5)';
+        hdrCloudBtn.style.background = 'rgba(16, 185, 129, 0.14)';
+      }
+      if (statusCloudLabel) {
+        statusCloudLabel.textContent = `🟢 [${this.cloudSession.userId}] 계정 서버 연동 중`;
+      }
+    } else {
+      if (hdrCloudStatus) {
+        hdrCloudStatus.textContent = '☁️ 로그인';
+        hdrCloudStatus.style.color = '#00e5ff';
+      }
+      if (hdrCloudBtn) {
+        hdrCloudBtn.style.borderColor = 'rgba(0, 229, 255, 0.5)';
+        hdrCloudBtn.style.background = 'rgba(0, 229, 255, 0.12)';
+      }
+      if (statusCloudLabel) {
+        statusCloudLabel.textContent = '미연동 - 클릭하여 아이디/비번 로그인';
+      }
     }
   }
 
@@ -912,6 +963,873 @@ class GameState {
     if (!this.data.quests.dayQuests || !this.data.quests.dayQuests[dayKey]) return;
     this.data.quests.dayQuests[dayKey] = this.data.quests.dayQuests[dayKey].filter(id => id !== questId);
     this.save();
+  }
+
+  // =========================================================================
+  // ☁️ CLOUD LOGIN & MULTI-DEVICE SYNC ENGINE (아이디/비밀번호 서버 영구 연동)
+  // =========================================================================
+
+  loadCloudSession() {
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      const raw = localStorage.getItem(this.CLOUD_SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  saveCloudSession(session) {
+    this.cloudSession = session;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        if (session) {
+          localStorage.setItem(this.CLOUD_SESSION_KEY, JSON.stringify(session));
+        } else {
+          localStorage.removeItem(this.CLOUD_SESSION_KEY);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to save cloud session:", e);
+    }
+  }
+
+  saveToIndexedDB(serialized) {
+    try {
+      if (typeof indexedDB === 'undefined') return;
+      const req = indexedDB.open('AwakenedHunterDB', 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('saves')) {
+          db.createObjectStore('saves');
+        }
+      };
+      req.onsuccess = (e) => {
+        const db = e.target.result;
+        const tx = db.transaction('saves', 'readwrite');
+        const store = tx.objectStore('saves');
+        store.put(serialized, this.STORAGE_KEY);
+        if (this.cloudSession) {
+          store.put(JSON.stringify(this.cloudSession), this.CLOUD_SESSION_KEY);
+        }
+      };
+    } catch (e) {
+      // Ignore IndexedDB errors in restricted webviews
+    }
+  }
+
+  initCloudSyncOnStartup() {
+    if (typeof window === 'undefined') return;
+    setTimeout(async () => {
+      this.updateSaveIndicator();
+      if (this.cloudSession && this.cloudSession.userId) {
+        await this.pullFromCloud(true);
+      } else {
+        // Check IndexedDB if localStorage was wiped by mobile browser
+        this.recoverFromIndexedDBIfNeeded();
+      }
+    }, 300);
+  }
+
+  recoverFromIndexedDBIfNeeded() {
+    try {
+      if (typeof indexedDB === 'undefined') return;
+      if (this.getProgressionScore(this.data) > 0) return;
+      const req = indexedDB.open('AwakenedHunterDB', 1);
+      req.onsuccess = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('saves')) return;
+        const tx = db.transaction('saves', 'readonly');
+        const store = tx.objectStore('saves');
+        const getSave = store.get(this.STORAGE_KEY);
+        getSave.onsuccess = () => {
+          if (getSave.result) {
+            try {
+              const parsed = JSON.parse(getSave.result);
+              if (this.getProgressionScore(parsed) > this.getProgressionScore(this.data)) {
+                this.loadFromObject(parsed, true);
+                if (typeof ui !== 'undefined') ui.renderAll();
+              }
+            } catch (err) {}
+          }
+        };
+        const getSess = store.get(this.CLOUD_SESSION_KEY);
+        getSess.onsuccess = () => {
+          if (getSess.result && !this.cloudSession) {
+            try {
+              const sess = JSON.parse(getSess.result);
+              if (sess && sess.userId) {
+                this.saveCloudSession(sess);
+                this.pullFromCloud(true);
+              }
+            } catch (err) {}
+          }
+        };
+      };
+    } catch (e) {}
+  }
+
+  scheduleCloudSync(immediate = false) {
+    if (!this.cloudSession || !this.cloudSession.userId) return;
+    if (this._cloudSyncTimer) {
+      clearTimeout(this._cloudSyncTimer);
+      this._cloudSyncTimer = null;
+    }
+    if (immediate) {
+      this.syncToCloud(true);
+    } else {
+      this._cloudSyncTimer = setTimeout(() => {
+        this.syncToCloud(false);
+      }, 1000);
+    }
+  }
+
+  userIdToHex(userId) {
+    const clean = String(userId || '').trim().toLowerCase();
+    let hex = '';
+    for (let i = 0; i < clean.length; i++) {
+      hex += clean.charCodeAt(i).toString(16);
+    }
+    return hex.slice(0, 32) || 'default';
+  }
+
+  getProgressionScore(d) {
+    if (!d || !d.player) return 0;
+    const p = d.player;
+    const stats = p.stats || {};
+    const statSum = (stats.str || 14) + (stats.int || 12) + (stats.end || 14) + (stats.gro || 15);
+    const qCount = Object.keys((d.quests && d.quests.completedToday) || {}).length;
+    const hCount = Object.values((d.quests && d.quests.history) || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+    const cCount = (d.raid && d.raid.clearedStages && d.raid.clearedStages.length) || 0;
+    const tCount = (p.unlockedTitles && p.unlockedTitles.length) || 1;
+    return (
+      (Math.max(1, p.level || 1) - 1) * 10000 +
+      (p.exp || 0) * 2 +
+      (p.growthPoints || 0) * 5 +
+      Math.max(0, statSum - 55) * 500 +
+      qCount * 300 +
+      hCount * 200 +
+      cCount * 2000 +
+      Math.max(0, tCount - 1) * 400
+    );
+  }
+
+  mergeSaveData(localData, cloudData) {
+    if (!cloudData || !cloudData.player) return JSON.parse(JSON.stringify(localData));
+    if (!localData || !localData.player) return JSON.parse(JSON.stringify(cloudData));
+
+    const localScore = this.getProgressionScore(localData);
+    const cloudScore = this.getProgressionScore(cloudData);
+
+    // If local is a brand new untouched state (e.g. opening Safari for the first time), use cloudData 100%
+    if (localScore === 0 && cloudScore > 0) {
+      return JSON.parse(JSON.stringify(cloudData));
+    }
+    // If cloud is brand new and local has pre-login progress, use localData 100%
+    if (cloudScore === 0 && localScore > 0) {
+      return JSON.parse(JSON.stringify(localData));
+    }
+
+    const isFirstTimePreLoginMerge = !localData.ownerAccountId;
+    const localTime = localData.lastSaved ? new Date(localData.lastSaved).getTime() : 0;
+    const cloudTime = cloudData.lastSaved ? new Date(cloudData.lastSaved).getTime() : 0;
+
+    let primary = cloudData;
+    let secondary = localData;
+    if (localScore > cloudScore || (localScore === cloudScore && localTime > cloudTime)) {
+      primary = localData;
+      secondary = cloudData;
+    }
+
+    const merged = JSON.parse(JSON.stringify(primary));
+    const lp = localData.player;
+    const cp = cloudData.player;
+
+    // Preserve highest level & exp
+    if ((lp.level || 1) > (cp.level || 1)) {
+      merged.player.level = lp.level;
+      merged.player.exp = lp.exp;
+    } else if ((cp.level || 1) > (lp.level || 1)) {
+      merged.player.level = cp.level;
+      merged.player.exp = cp.exp;
+    } else {
+      merged.player.exp = Math.max(lp.exp || 0, cp.exp || 0);
+    }
+
+    // Preserve highest growth points & stats
+    merged.player.growthPoints = Math.max(lp.growthPoints || 0, cp.growthPoints || 0);
+    ['str', 'int', 'end', 'gro'].forEach(k => {
+      merged.player.stats[k] = Math.max(
+        (lp.stats && lp.stats[k]) || 14,
+        (cp.stats && cp.stats[k]) || 14
+      );
+    });
+
+    if (isFirstTimePreLoginMerge) {
+      merged.player.gold = Math.max(lp.gold || 0, cp.gold || 0);
+    }
+
+    // Union of unlockedTitles
+    const titleSet = new Set([
+      ...(cp.unlockedTitles || ["초보 수련자 (173cm)"]),
+      ...(lp.unlockedTitles || ["초보 수련자 (173cm)"])
+    ]);
+    merged.player.unlockedTitles = Array.from(titleSet);
+
+    // Union of inventory items (by id)
+    const invMap = new Map();
+    [...(cp.inventory || []), ...(lp.inventory || [])].forEach(item => {
+      if (item && item.id) {
+        const existing = invMap.get(item.id);
+        if (!existing || (item.enhanceLevel || 0) > (existing.enhanceLevel || 0)) {
+          invMap.set(item.id, item);
+        }
+      }
+    });
+    merged.player.inventory = Array.from(invMap.values());
+
+    // Equipment: fill any empty slot from secondary
+    ['weapon', 'armor', 'shoes', 'ring', 'aura'].forEach(slot => {
+      if (!merged.player.equipment[slot] && secondary.player.equipment && secondary.player.equipment[slot]) {
+        merged.player.equipment[slot] = secondary.player.equipment[slot];
+      }
+    });
+
+    // Quests: union of today's completed quests if on the same active date
+    const today = getLocalDateString();
+    const lCompleted = (localData.quests && localData.quests.lastActiveDate === today) ? (localData.quests.completedToday || {}) : {};
+    const cCompleted = (cloudData.quests && cloudData.quests.lastActiveDate === today) ? (cloudData.quests.completedToday || {}) : {};
+    merged.quests.lastActiveDate = today;
+    merged.quests.completedToday = { ...cCompleted, ...lCompleted };
+
+    // Union of quest history (max count per day)
+    merged.quests.history = { ...((cloudData.quests && cloudData.quests.history) || {}) };
+    Object.entries((localData.quests && localData.quests.history) || {}).forEach(([dateKey, cnt]) => {
+      merged.quests.history[dateKey] = Math.max(merged.quests.history[dateKey] || 0, cnt || 0);
+    });
+    merged.quests.history[today] = Object.keys(merged.quests.completedToday).length;
+
+    // Union of completionCounts
+    merged.quests.completionCounts = { ...((cloudData.quests && cloudData.quests.completionCounts) || {}) };
+    Object.entries((localData.quests && localData.quests.completionCounts) || {}).forEach(([qId, cnt]) => {
+      merged.quests.completionCounts[qId] = Math.max(merged.quests.completionCounts[qId] || 0, cnt || 0);
+    });
+
+    // Union of customQuests
+    const cqMap = new Map();
+    [
+      ...((cloudData.quests && cloudData.quests.customQuests) || []),
+      ...((localData.quests && localData.quests.customQuests) || [])
+    ].forEach(q => {
+      if (q && q.id) cqMap.set(q.id, q);
+    });
+    merged.quests.customQuests = Array.from(cqMap.values());
+
+    // Raid progression union
+    const lRaid = localData.raid || {};
+    const cRaid = cloudData.raid || {};
+    merged.raid.unlockedStage = Math.max(lRaid.unlockedStage || 1, cRaid.unlockedStage || 1);
+    merged.raid.clearedStages = Array.from(new Set([
+      ...(cRaid.clearedStages || []),
+      ...(lRaid.clearedStages || [])
+    ])).sort((a, b) => a - b);
+
+    return merged;
+  }
+
+  packSaveData(d) {
+    const p = d.player || {};
+    const s = p.stats || {};
+    const q = d.quests || {};
+    const r = d.raid || {};
+    const allTitleKeys = typeof TITLES_DATA !== 'undefined' ? Object.keys(TITLES_DATA) : [];
+    const titleIndices = (p.unlockedTitles || []).map(t => {
+      const idx = allTitleKeys.indexOf(t);
+      return idx >= 0 ? idx : t;
+    });
+
+    const itemToCode = (it) => {
+      if (!it || !it.id) return null;
+      if (it.id === 'item_omega_sword') return 100;
+      const m = String(it.id).match(/item_stage_(\d+)/);
+      return m ? parseInt(m[1], 10) : null;
+    };
+
+    const eq = p.equipment || {};
+    const eqArr = [
+      itemToCode(eq.weapon),
+      itemToCode(eq.armor),
+      itemToCode(eq.shoes),
+      itemToCode(eq.ring),
+      itemToCode(eq.aura)
+    ];
+
+    const invArr = (p.inventory || []).map(itemToCode).filter(Boolean);
+    const questKeys = typeof INITIAL_QUESTS !== 'undefined' ? INITIAL_QUESTS.map(iq => iq.id) : [];
+    const doneToday = Object.keys(q.completedToday || {}).filter(k => q.completedToday[k]).map(k => {
+      const idx = questKeys.indexOf(k);
+      return idx >= 0 ? idx : k;
+    });
+
+    const histEntries = Object.entries(q.history || {}).slice(-14);
+    const histCompact = {};
+    histEntries.forEach(([k, v]) => { if (v > 0) histCompact[k.slice(5)] = v; });
+
+    const activeIdx = allTitleKeys.indexOf(p.activeTitle);
+
+    return {
+      p: [
+        p.name || '오경호',
+        p.level || 1,
+        p.exp || 0,
+        p.gold !== undefined ? p.gold : 500,
+        p.baseHeight || 173,
+        p.targetHeight || 178,
+        p.growthPoints || 0,
+        [s.str || 14, s.int || 12, s.end || 14, s.gro || 15],
+        activeIdx >= 0 ? activeIdx : (p.activeTitle || 0)
+      ],
+      t: titleIndices,
+      e: eqArr,
+      i: invArr,
+      q: [
+        q.dailyStreak || 1,
+        q.startDate || getLocalDateString(),
+        q.lastActiveDate || getLocalDateString(),
+        doneToday,
+        histCompact
+      ],
+      r: [
+        r.unlockedStage || 1,
+        (r.clearedStages || []).filter(st => st <= 50).length > 0
+          ? Math.max(...(r.clearedStages || []).filter(st => st <= 50))
+          : 0,
+        (r.clearedStages || []).includes(100) ? 1 : 0
+      ],
+      u: d.lastSaved || new Date().toISOString()
+    };
+  }
+
+  unpackSaveData(packed) {
+    if (!packed || !Array.isArray(packed.p)) return null;
+    const def = this.getDefaultState();
+    const allTitleKeys = typeof TITLES_DATA !== 'undefined' ? Object.keys(TITLES_DATA) : [];
+    const questKeys = typeof INITIAL_QUESTS !== 'undefined' ? INITIAL_QUESTS.map(iq => iq.id) : [];
+
+    const codeToItem = (code) => {
+      if (!code) return null;
+      if (code === 100 && typeof SECRET_FINAL_BOSS !== 'undefined') {
+        return JSON.parse(JSON.stringify(SECRET_FINAL_BOSS.rewards.item));
+      }
+      if (typeof BOSSES_DATA !== 'undefined' && BOSSES_DATA[code - 1] && BOSSES_DATA[code - 1].rewards) {
+        return JSON.parse(JSON.stringify(BOSSES_DATA[code - 1].rewards.item));
+      }
+      return null;
+    };
+
+    const [name, level, exp, gold, baseHeight, targetHeight, growthPoints, statsArr, activeTitleCode] = packed.p;
+    def.player.name = name || '오경호';
+    def.player.level = level || 1;
+    def.player.exp = exp || 0;
+    def.player.gold = gold !== undefined ? gold : 500;
+    def.player.baseHeight = baseHeight || 173;
+    def.player.targetHeight = targetHeight || 178;
+    def.player.growthPoints = growthPoints || 0;
+    if (Array.isArray(statsArr)) {
+      def.player.stats = {
+        str: statsArr[0] || 14,
+        int: statsArr[1] || 12,
+        end: statsArr[2] || 14,
+        gro: statsArr[3] || 15
+      };
+    }
+    def.player.activeTitle = typeof activeTitleCode === 'number'
+      ? (allTitleKeys[activeTitleCode] || '초보 수련자 (173cm)')
+      : (activeTitleCode || '초보 수련자 (173cm)');
+
+    if (Array.isArray(packed.t)) {
+      def.player.unlockedTitles = packed.t.map(idx => typeof idx === 'number' ? allTitleKeys[idx] : idx).filter(Boolean);
+      if (!def.player.unlockedTitles.includes('초보 수련자 (173cm)')) {
+        def.player.unlockedTitles.unshift('초보 수련자 (173cm)');
+      }
+    }
+
+    if (Array.isArray(packed.e)) {
+      const slots = ['weapon', 'armor', 'shoes', 'ring', 'aura'];
+      slots.forEach((slot, idx) => {
+        def.player.equipment[slot] = codeToItem(packed.e[idx]);
+      });
+    }
+
+    if (Array.isArray(packed.i)) {
+      def.player.inventory = packed.i.map(codeToItem).filter(Boolean);
+    }
+
+    if (Array.isArray(packed.q)) {
+      const [streak, startDate, lastActiveDate, doneTodayArr, histCompact] = packed.q;
+      def.quests.dailyStreak = streak || 1;
+      def.quests.startDate = startDate || getLocalDateString();
+      def.quests.lastActiveDate = lastActiveDate || getLocalDateString();
+      def.quests.completedToday = {};
+      if (Array.isArray(doneTodayArr)) {
+        doneTodayArr.forEach(idx => {
+          const qId = typeof idx === 'number' ? questKeys[idx] : idx;
+          if (qId) def.quests.completedToday[qId] = true;
+        });
+      }
+      const yearPrefix = new Date().getFullYear() + '-';
+      if (histCompact && typeof histCompact === 'object') {
+        Object.entries(histCompact).forEach(([mmdd, cnt]) => {
+          def.quests.history[yearPrefix + mmdd] = cnt;
+        });
+      }
+    }
+
+    if (Array.isArray(packed.r)) {
+      const [unlockedStage, maxCleared, hasOmega] = packed.r;
+      def.raid.unlockedStage = unlockedStage || 1;
+      def.raid.clearedStages = [];
+      for (let s = 1; s <= (maxCleared || 0); s++) {
+        def.raid.clearedStages.push(s);
+      }
+      if (hasOmega) def.raid.clearedStages.push(100);
+    }
+
+    def.lastSaved = packed.u || new Date().toISOString();
+    return def;
+  }
+
+  async fetchCloudRegistry() {
+    let reg = {};
+    try {
+      const res = await fetch(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}?t=${Date.now()}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.data && json.data.u) {
+          reg = typeof json.data.u === 'string' ? JSON.parse(json.data.u) : json.data.u;
+        }
+      }
+    } catch (e) {
+      console.warn("Primary registry fetch warning:", e);
+    }
+
+    // Also check Ntfy backup registry stream
+    try {
+      const nRes = await fetch(`${this.NTFY_BASE}registry/json?poll=1`);
+      if (nRes.ok) {
+        const text = (await nRes.text()).trim();
+        if (text) {
+          const lines = text.split('\n');
+          for (const line of lines) {
+            try {
+              const msg = JSON.parse(line);
+              if (msg && msg.message) {
+                const parsed = JSON.parse(msg.message);
+                reg = { ...reg, ...parsed };
+              }
+            } catch (err) {}
+          }
+        }
+      }
+    } catch (e) {}
+
+    return reg || {};
+  }
+
+  async updateCloudRegistry(reg) {
+    const str = JSON.stringify(reg);
+    try {
+      await fetch(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'gh_cloud_registry_v1',
+          data: { u: str }
+        })
+      });
+    } catch (e) {
+      console.warn("Primary registry update warning:", e);
+    }
+
+    try {
+      await fetch(`${this.NTFY_BASE}registry`, {
+        method: 'POST',
+        body: str
+      });
+    } catch (e) {}
+  }
+
+  async syncToCloud(forceImmediate = false) {
+    if (!this.cloudSession || !this.cloudSession.userId) return { success: false };
+    if (this._isSyncingCloud && !forceImmediate) return { success: false };
+    this._isSyncingCloud = true;
+
+    try {
+      const userId = this.cloudSession.userId;
+      const password = this.cloudSession.password;
+      this.data.ownerAccountId = userId;
+      this.data.lastSaved = new Date().toISOString();
+
+      // 1. Upload full uncompressed JSON to Bytebin
+      let bytebinKey = this.cloudSession.bytebinKey || null;
+      try {
+        const bRes = await fetch(`${this.BYTEBIN_URL}/post`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.data)
+        });
+        if (bRes.ok) {
+          const bJson = await bRes.json();
+          if (bJson && bJson.key) {
+            bytebinKey = bJson.key;
+            this.cloudSession.bytebinKey = bytebinKey;
+          }
+        }
+      } catch (e) {}
+
+      // 2. Upload full save to Ntfy user channel
+      const hexId = this.userIdToHex(userId);
+      try {
+        await fetch(`${this.NTFY_BASE}u_${hexId}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            u: userId,
+            p: password,
+            bk: bytebinKey,
+            d: this.data,
+            ts: Date.now()
+          })
+        });
+      } catch (e) {}
+
+      // 3. Upload compact permanent snapshot + bytebinKey to Restful-API permanent object
+      const packed = this.packSaveData(this.data);
+      const permPayload = {
+        name: `gh_save_${hexId}`,
+        data: {
+          p: password,
+          bk: bytebinKey || '',
+          s: JSON.stringify(packed)
+        }
+      };
+
+      if (this.cloudSession.objId) {
+        const putRes = await fetch(`${this.CLOUD_API_BASE}/${this.cloudSession.objId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(permPayload)
+        });
+        if (!putRes.ok && putRes.status === 404) {
+          this.cloudSession.objId = null;
+        }
+      }
+
+      if (!this.cloudSession.objId) {
+        const postRes = await fetch(this.CLOUD_API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(permPayload)
+        });
+        if (postRes.ok) {
+          const postJson = await postRes.json();
+          if (postJson && postJson.id) {
+            this.cloudSession.objId = postJson.id;
+            const reg = await this.fetchCloudRegistry();
+            reg[userId] = { p: password, o: postJson.id, k: bytebinKey || '' };
+            await this.updateCloudRegistry(reg);
+          }
+        }
+      }
+
+      this.cloudSession.lastSyncTime = new Date().toISOString();
+      this.saveCloudSession(this.cloudSession);
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      this.updateSaveIndicator(`서버 동기화 완료: ${timeStr}`);
+      return { success: true, timeStr };
+    } catch (e) {
+      console.error("Cloud sync error:", e);
+      return { success: false, error: e.message };
+    } finally {
+      this._isSyncingCloud = false;
+    }
+  }
+
+  async fetchAccountCloudData(userId, objId, fallbackBytebinKey = null) {
+    let fromPerm = null;
+    let fromBytebin = null;
+    let fromNtfy = null;
+    let latestBk = fallbackBytebinKey;
+    let storedPassword = null;
+
+    // 1. Fetch permanent object from Restful-API
+    if (objId) {
+      try {
+        const r = await fetch(`${this.CLOUD_API_BASE}/${objId}?t=${Date.now()}`);
+        if (r.ok) {
+          const j = await r.json();
+          if (j && j.data) {
+            if (j.data.p) storedPassword = j.data.p;
+            if (j.data.bk) latestBk = j.data.bk;
+            if (j.data.s) {
+              const packed = typeof j.data.s === 'string' ? JSON.parse(j.data.s) : j.data.s;
+              fromPerm = this.unpackSaveData(packed);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 2. Fetch Ntfy user stream
+    const hexId = this.userIdToHex(userId);
+    try {
+      const nRes = await fetch(`${this.NTFY_BASE}u_${hexId}/json?poll=1`);
+      if (nRes.ok) {
+        const text = (await nRes.text()).trim();
+        if (text) {
+          const lines = text.split('\n');
+          for (let i = lines.length - 1; i >= 0; i--) {
+            try {
+              const msg = JSON.parse(lines[i]);
+              if (msg && msg.message) {
+                const parsed = JSON.parse(msg.message);
+                if (parsed && parsed.d && parsed.d.player) {
+                  fromNtfy = parsed.d;
+                  if (parsed.p && !storedPassword) storedPassword = parsed.p;
+                  if (parsed.bk && !latestBk) latestBk = parsed.bk;
+                  break;
+                }
+              }
+            } catch (err) {}
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 3. Fetch full JSON from Bytebin if key available
+    if (latestBk) {
+      try {
+        const bRes = await fetch(`${this.BYTEBIN_URL}/${latestBk}`);
+        if (bRes.ok) {
+          const bJson = await bRes.json();
+          if (bJson && bJson.player) {
+            fromBytebin = bJson;
+          }
+        }
+      } catch (e) {}
+    }
+
+    let combined = fromBytebin || fromNtfy || fromPerm;
+    if (combined && fromPerm) {
+      combined = this.mergeSaveData(fromPerm, combined);
+    }
+    if (combined && fromNtfy) {
+      combined = this.mergeSaveData(fromNtfy, combined);
+    }
+
+    return {
+      cloudSave: combined,
+      storedPassword,
+      latestBk
+    };
+  }
+
+  async pullFromCloud(silent = false, forceOverwriteLocal = false) {
+    if (!this.cloudSession || !this.cloudSession.userId) {
+      return { success: false, message: '로그인된 클라우드 계정이 없습니다.' };
+    }
+
+    try {
+      const userId = this.cloudSession.userId;
+      let objId = this.cloudSession.objId;
+      const reg = await this.fetchCloudRegistry();
+      if (reg[userId] && reg[userId].o) {
+        objId = reg[userId].o;
+        this.cloudSession.objId = objId;
+      }
+
+      const { cloudSave, latestBk } = await this.fetchAccountCloudData(
+        userId,
+        objId,
+        (reg[userId] && reg[userId].k) || this.cloudSession.bytebinKey
+      );
+
+      if (!cloudSave) {
+        if (!silent) {
+          await this.syncToCloud(true);
+        }
+        return { success: true, uploadedCurrent: true };
+      }
+
+      if (latestBk) this.cloudSession.bytebinKey = latestBk;
+      this.saveCloudSession(this.cloudSession);
+
+      const finalData = forceOverwriteLocal
+        ? JSON.parse(JSON.stringify(cloudSave))
+        : this.mergeSaveData(this.data, cloudSave);
+
+      finalData.ownerAccountId = userId;
+      this.loadFromObject(finalData, false);
+      this.checkDailyReset();
+      this.checkRetroactiveUnlocks();
+
+      const serialized = JSON.stringify(this.data);
+      localStorage.setItem(this.STORAGE_KEY, serialized);
+      localStorage.setItem(this.MIRROR_KEY, serialized);
+      this.saveToIndexedDB(serialized);
+      this.updateSaveIndicator();
+
+      if (typeof ui !== 'undefined' && ui.renderAll) {
+        ui.renderAll();
+      }
+      return { success: true };
+    } catch (e) {
+      console.error("Pull from cloud failed:", e);
+      return { success: false, message: e.message };
+    }
+  }
+
+  async loginOrRegisterCloud(rawUserId, rawPassword) {
+    const userId = String(rawUserId || '').trim();
+    const password = String(rawPassword || '').trim();
+
+    if (!userId || userId.length < 1) {
+      return { success: false, message: '아이디를 입력해주세요. (예: 경호, 동생)' };
+    }
+    if (!password || password.length < 1) {
+      return { success: false, message: '비밀번호를 입력해주세요.' };
+    }
+
+    try {
+      const reg = await this.fetchCloudRegistry();
+      let existingRecord = reg[userId] || null;
+
+      // Also check Ntfy user channel in case account was created earlier
+      const { cloudSave, storedPassword, latestBk } = await this.fetchAccountCloudData(
+        userId,
+        existingRecord ? existingRecord.o : null,
+        existingRecord ? existingRecord.k : null
+      );
+
+      const actualPassword = (existingRecord && existingRecord.p) || storedPassword;
+
+      if (existingRecord || cloudSave) {
+        // Account exists -> Verify password
+        if (actualPassword && String(actualPassword) !== password) {
+          return {
+            success: false,
+            message: `❌ [${userId}] 계정의 비밀번호가 일치하지 않습니다!`
+          };
+        }
+
+        // Check if current browser has unclaimed pre-login progress (made before logging in)
+        const hasUnclaimedPreLoginData = !this.data.ownerAccountId || this.data.ownerAccountId === userId;
+        const preLoginScore = this.getProgressionScore(this.data);
+
+        let nextData;
+        if (hasUnclaimedPreLoginData && preLoginScore > 0 && cloudSave) {
+          // Smart merge pre-login progress with cloud account data!
+          nextData = this.mergeSaveData(this.data, cloudSave);
+        } else if (cloudSave) {
+          nextData = JSON.parse(JSON.stringify(cloudSave));
+        } else {
+          nextData = JSON.parse(JSON.stringify(this.data));
+        }
+
+        nextData.ownerAccountId = userId;
+        this.saveCloudSession({
+          userId,
+          password,
+          objId: existingRecord ? existingRecord.o : null,
+          bytebinKey: latestBk || null,
+          lastSyncTime: new Date().toISOString()
+        });
+
+        this.loadFromObject(nextData, false);
+        this.checkDailyReset();
+        this.checkRetroactiveUnlocks();
+        await this.syncToCloud(true);
+
+        const serialized = JSON.stringify(this.data);
+        localStorage.setItem(this.STORAGE_KEY, serialized);
+        localStorage.setItem(this.MIRROR_KEY, serialized);
+        this.saveToIndexedDB(serialized);
+        this.updateSaveIndicator();
+
+        if (typeof ui !== 'undefined' && ui.renderAll) {
+          ui.renderAll();
+        }
+
+        return {
+          success: true,
+          isNew: false,
+          userId,
+          mergedPreLogin: hasUnclaimedPreLoginData && preLoginScore > 0
+        };
+      } else {
+        // Brand new account registration!
+        // If current browser had a DIFFERENT logged-in owner previously, start clean for the new user.
+        // Otherwise (unclaimed pre-login progress on this browser!), absorb 100% of current progress into this new account!
+        const hadDifferentOwner = this.data.ownerAccountId && this.data.ownerAccountId !== userId;
+        const hadPreLoginProgress = !hadDifferentOwner && this.getProgressionScore(this.data) > 0;
+
+        if (hadDifferentOwner) {
+          this.data = this.getDefaultState();
+          if (userId !== '오경호') {
+            this.data.player.name = userId;
+          }
+        }
+
+        this.data.ownerAccountId = userId;
+        this.saveCloudSession({
+          userId,
+          password,
+          objId: null,
+          bytebinKey: null,
+          lastSyncTime: new Date().toISOString()
+        });
+
+        await this.syncToCloud(true);
+
+        // Save into master registry
+        reg[userId] = {
+          p: password,
+          o: this.cloudSession.objId || '',
+          k: this.cloudSession.bytebinKey || ''
+        };
+        await this.updateCloudRegistry(reg);
+
+        const serialized = JSON.stringify(this.data);
+        localStorage.setItem(this.STORAGE_KEY, serialized);
+        localStorage.setItem(this.MIRROR_KEY, serialized);
+        this.saveToIndexedDB(serialized);
+        this.updateSaveIndicator();
+
+        if (typeof ui !== 'undefined' && ui.renderAll) {
+          ui.renderAll();
+        }
+
+        return {
+          success: true,
+          isNew: true,
+          userId,
+          mergedPreLogin: hadPreLoginProgress
+        };
+      }
+    } catch (e) {
+      console.error("Login/Register error:", e);
+      return {
+        success: false,
+        message: '서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      };
+    }
+  }
+
+  logoutCloud() {
+    this.saveCloudSession(null);
+    this.updateSaveIndicator();
+    if (typeof ui !== 'undefined' && ui.renderCloudModalState) {
+      ui.renderCloudModalState();
+    }
   }
 }
 
