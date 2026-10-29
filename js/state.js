@@ -28,21 +28,47 @@ class GameState {
   }
 
   setupAutoSaveHooks() {
-    // Save when leaving page, switching tabs, or locking phone
-    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-      window.addEventListener('beforeunload', () => this.save(true));
-      window.addEventListener('pagehide', () => this.save(true));
-      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
-        document.addEventListener('visibilitychange', () => {
-          if (document.hidden) {
-            this.save(true);
-          } else if (this.cloudSession && this.cloudSession.userId) {
-            // Pull latest cloud save when returning to browser/app
-            this.pullFromCloud(true);
-          }
-        });
+    if (typeof window === 'undefined') return;
+
+    let lastAutoPullTime = 0;
+    const triggerAutoCloudPull = (reason = 'focus') => {
+      const now = Date.now();
+      // Throttle pulls to avoid flooding requests within 2.5 seconds
+      if (now - lastAutoPullTime < 2500) return;
+      lastAutoPullTime = now;
+      if (this.cloudSession && this.cloudSession.userId) {
+        this.pullFromCloud(true, false, true);
       }
+    };
+
+    // 1. Leaving page, switching tabs, or locking phone: save immediately to local storage and sync to cloud
+    window.addEventListener('beforeunload', () => this.save(true));
+    window.addEventListener('pagehide', () => this.save(true));
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          this.save(true);
+        } else {
+          // Returning to tab / unlocked phone: pull latest cloud record automatically
+          triggerAutoCloudPull('visibilitychange');
+        }
+      });
     }
+
+    // 2. iOS Safari / Android Chrome BFCache restore & Window focus
+    window.addEventListener('pageshow', () => {
+      triggerAutoCloudPull('pageshow');
+    });
+
+    window.addEventListener('focus', () => {
+      triggerAutoCloudPull('focus');
+    });
+
+    // 3. Online event (reconnected to internet after device sleep or power on)
+    window.addEventListener('online', () => {
+      triggerAutoCloudPull('online');
+    });
   }
 
   getDefaultState() {
@@ -1095,21 +1121,22 @@ class GameState {
 
   initCloudSyncOnStartup() {
     if (typeof window === 'undefined') return;
+    // Run after brief paint tick to immediately pull the freshest cloud save
     setTimeout(async () => {
       this.updateSaveIndicator();
       if (this.cloudSession && this.cloudSession.userId) {
-        await this.pullFromCloud(true);
+        await this.pullFromCloud(true, false, true);
       } else {
-        // Check IndexedDB if localStorage was wiped by mobile browser
+        // Check IndexedDB if localStorage was wiped by mobile browser on power reboot
         this.recoverFromIndexedDBIfNeeded();
       }
-    }, 300);
+    }, 120);
   }
 
   recoverFromIndexedDBIfNeeded() {
     try {
       if (typeof indexedDB === 'undefined') return;
-      if (this.getProgressionScore(this.data) > 0) return;
+      if (this.getProgressionScore(this.data) > 0 && this.cloudSession) return;
       const req = indexedDB.open('AwakenedHunterDB', 1);
       req.onsuccess = (e) => {
         const db = e.target.result;
@@ -1135,7 +1162,7 @@ class GameState {
               const sess = JSON.parse(getSess.result);
               if (sess && sess.userId) {
                 this.saveCloudSession(sess);
-                this.pullFromCloud(true);
+                this.pullFromCloud(true, false, true);
               }
             } catch (err) {}
           }
@@ -1205,15 +1232,35 @@ class GameState {
       return JSON.parse(JSON.stringify(localData));
     }
 
-    const isFirstTimePreLoginMerge = !localData.ownerAccountId;
     const localTime = localData.lastSaved ? new Date(localData.lastSaved).getTime() : 0;
     const cloudTime = cloudData.lastSaved ? new Date(cloudData.lastSaved).getTime() : 0;
+    const lpGold = (localData.player && localData.player.gold) || 0;
+    const cpGold = (cloudData.player && cloudData.player.gold) || 0;
 
     let primary = cloudData;
     let secondary = localData;
-    if (localScore > cloudScore || (localScore === cloudScore && localTime > cloudTime)) {
+
+    if (localScore > cloudScore) {
       primary = localData;
       secondary = cloudData;
+    } else if (cloudScore > localScore) {
+      primary = cloudData;
+      secondary = localData;
+    } else {
+      // Tied scores: pick whichever has higher gold, or newer timestamp if gold equal
+      if (lpGold > cpGold) {
+        primary = localData;
+        secondary = cloudData;
+      } else if (cpGold > lpGold) {
+        primary = cloudData;
+        secondary = localData;
+      } else if (localTime > cloudTime) {
+        primary = localData;
+        secondary = cloudData;
+      } else {
+        primary = cloudData;
+        secondary = localData;
+      }
     }
 
     const merged = JSON.parse(JSON.stringify(primary));
@@ -1240,9 +1287,11 @@ class GameState {
       );
     });
 
-    if (isFirstTimePreLoginMerge) {
-      merged.player.gold = Math.max(lp.gold || 0, cp.gold || 0);
-    }
+    // Always preserve the maximum gold earned across all devices
+    merged.player.gold = Math.max(
+      lp.gold !== undefined ? lp.gold : 500,
+      cp.gold !== undefined ? cp.gold : 500
+    );
 
     // Union of unlockedTitles
     const titleSet = new Set([
@@ -1251,7 +1300,12 @@ class GameState {
     ]);
     merged.player.unlockedTitles = Array.from(titleSet);
 
-    // Union of inventory items (by id)
+    // Active title
+    if (!merged.player.activeTitle || !merged.player.unlockedTitles.includes(merged.player.activeTitle)) {
+      merged.player.activeTitle = cp.activeTitle || lp.activeTitle || "초보 수련자 (173cm)";
+    }
+
+    // Union of inventory items (by id, keeping higher enhance level)
     const invMap = new Map();
     [...(cp.inventory || []), ...(lp.inventory || [])].forEach(item => {
       if (item && item.id) {
@@ -1263,10 +1317,26 @@ class GameState {
     });
     merged.player.inventory = Array.from(invMap.values());
 
-    // Equipment: fill any empty slot from secondary
+    // Equipment: smartly equip the best item between local and cloud for each slot
     ['weapon', 'armor', 'shoes', 'ring', 'aura'].forEach(slot => {
-      if (!merged.player.equipment[slot] && secondary.player.equipment && secondary.player.equipment[slot]) {
-        merged.player.equipment[slot] = secondary.player.equipment[slot];
+      const le = lp.equipment && lp.equipment[slot];
+      const ce = cp.equipment && cp.equipment[slot];
+      if (!le && !ce) {
+        merged.player.equipment[slot] = null;
+      } else if (!le) {
+        merged.player.equipment[slot] = ce;
+      } else if (!ce) {
+        merged.player.equipment[slot] = le;
+      } else {
+        const lEnh = le.enhanceLevel || 0;
+        const cEnh = ce.enhanceLevel || 0;
+        if (cEnh > lEnh) {
+          merged.player.equipment[slot] = ce;
+        } else if (lEnh > cEnh) {
+          merged.player.equipment[slot] = le;
+        } else {
+          merged.player.equipment[slot] = primary.player.equipment[slot] || ce;
+        }
       }
     });
 
@@ -1276,6 +1346,12 @@ class GameState {
     const cCompleted = (cloudData.quests && cloudData.quests.lastActiveDate === today) ? (cloudData.quests.completedToday || {}) : {};
     merged.quests.lastActiveDate = today;
     merged.quests.completedToday = { ...cCompleted, ...lCompleted };
+
+    // Daily streak max
+    merged.quests.dailyStreak = Math.max(
+      (localData.quests && localData.quests.dailyStreak) || 1,
+      (cloudData.quests && cloudData.quests.dailyStreak) || 1
+    );
 
     // Union of quest history (max count per day)
     merged.quests.history = { ...((cloudData.quests && cloudData.quests.history) || {}) };
@@ -1308,6 +1384,19 @@ class GameState {
       ...(cRaid.clearedStages || []),
       ...(lRaid.clearedStages || [])
     ])).sort((a, b) => a - b);
+
+    // Raid clearCounts union
+    const allStageKeys = new Set([
+      ...Object.keys(lRaid.clearCounts || {}),
+      ...Object.keys(cRaid.clearCounts || {})
+    ]);
+    merged.raid.clearCounts = {};
+    allStageKeys.forEach(k => {
+      merged.raid.clearCounts[k] = Math.max(
+        (lRaid.clearCounts && lRaid.clearCounts[k]) || 0,
+        (cRaid.clearCounts && cRaid.clearCounts[k]) || 0
+      );
+    });
 
     return merged;
   }
@@ -1486,9 +1575,9 @@ class GameState {
       }
     } catch (e) {}
 
-    // Multi-device Ntfy registry stream (using &since=all for reliable persistence)
+    // Multi-device Ntfy registry stream (using &since=0 for reliable persistence)
     try {
-      const nRes = await fetch(`${this.NTFY_BASE}registry/json?poll=1&since=all`);
+      const nRes = await fetch(`${this.NTFY_BASE}registry/json?poll=1&since=0`);
       if (nRes.ok) {
         const text = (await nRes.text()).trim();
         if (text) {
@@ -1518,14 +1607,16 @@ class GameState {
         body: JSON.stringify({
           name: 'gh_cloud_registry_v1',
           data: { u: str }
-        })
+        }),
+        keepalive: true
       });
     } catch (e) {}
 
     try {
       await fetch(`${this.NTFY_BASE}registry`, {
         method: 'POST',
-        body: str
+        body: str,
+        keepalive: true
       });
     } catch (e) {}
   }
@@ -1541,13 +1632,14 @@ class GameState {
       this.data.ownerAccountId = userId;
       this.data.lastSaved = new Date().toISOString();
 
-      // 1. Upload full save JSON to Bytebin
+      // 1. Upload full save JSON to Bytebin (with keepalive: true for pageleave safety)
       let bytebinKey = this.cloudSession.bytebinKey || null;
       try {
         const bRes = await fetch(`${this.BYTEBIN_URL}/post`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.data)
+          body: JSON.stringify(this.data),
+          keepalive: true
         });
         if (bRes.ok) {
           const bJson = await bRes.json();
@@ -1564,7 +1656,8 @@ class GameState {
         const pRes = await fetch(`${this.PASTES_URL}/post`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.data)
+          body: JSON.stringify(this.data),
+          keepalive: true
         });
         if (pRes.ok) {
           const pJson = await pRes.json();
@@ -1589,7 +1682,8 @@ class GameState {
       try {
         await fetch(`${this.NTFY_BASE}u_${hexId}`, {
           method: 'POST',
-          body: userPayload
+          body: userPayload,
+          keepalive: true
         });
       } catch (e) {}
 
@@ -1598,7 +1692,8 @@ class GameState {
       try {
         await fetch(`${this.NTFY_BASE}registry`, {
           method: 'POST',
-          body: JSON.stringify(regUpdate)
+          body: JSON.stringify(regUpdate),
+          keepalive: true
         });
       } catch (e) {}
 
@@ -1619,19 +1714,19 @@ class GameState {
     let fromBytebin = null;
     let fromPastes = null;
     let fromNtfy = null;
-    let latestBk = fallbackBytebinKey;
+    let latestBk = null;
     let latestPk = null;
     let storedPassword = null;
+    let highestTs = 0;
 
-    // 1. Fetch from Ntfy user stream with &since=all for full cross-device catchup
+    // 1. Fetch from Ntfy user stream with &since=0 for full cross-device catchup
     const hexId = this.userIdToHex(userId);
     try {
-      const nRes = await fetch(`${this.NTFY_BASE}u_${hexId}/json?poll=1&since=all`);
+      const nRes = await fetch(`${this.NTFY_BASE}u_${hexId}/json?poll=1&since=0`);
       if (nRes.ok) {
         const text = (await nRes.text()).trim();
         if (text) {
           const lines = text.split('\n');
-          let highestTs = 0;
           for (let i = lines.length - 1; i >= 0; i--) {
             try {
               const msg = JSON.parse(lines[i]);
@@ -1639,12 +1734,14 @@ class GameState {
                 const parsed = JSON.parse(msg.message);
                 if (parsed) {
                   if (parsed.p && !storedPassword) storedPassword = parsed.p;
-                  if (parsed.bk && !latestBk) latestBk = parsed.bk;
-                  if (parsed.pk && !latestPk) latestPk = parsed.pk;
                   const ts = parsed.ts || (msg.time * 1000) || 0;
-                  if (parsed.d && parsed.d.player && ts >= highestTs) {
+                  if (ts >= highestTs) {
                     highestTs = ts;
-                    fromNtfy = parsed.d;
+                    if (parsed.bk) latestBk = parsed.bk;
+                    if (parsed.pk) latestPk = parsed.pk;
+                    if (parsed.d && parsed.d.player) {
+                      fromNtfy = parsed.d;
+                    }
                   }
                 }
               }
@@ -1653,6 +1750,9 @@ class GameState {
         }
       }
     } catch (e) {}
+
+    // Fall back to registry/session keys if Ntfy message didn't contain keys
+    if (!latestBk) latestBk = fallbackBytebinKey;
 
     // 2. Fetch full pristine save from Bytebin if key available
     if (latestBk) {
@@ -1696,7 +1796,7 @@ class GameState {
     };
   }
 
-  async pullFromCloud(silent = false, forceOverwriteLocal = false) {
+  async pullFromCloud(silent = false, forceOverwriteLocal = false, notifyIfChanged = true) {
     if (!this.cloudSession || !this.cloudSession.userId) {
       return { success: false, message: '로그인된 클라우드 계정이 없습니다.' };
     }
@@ -1724,6 +1824,12 @@ class GameState {
       if (latestPk) this.cloudSession.pastesKey = latestPk;
       this.saveCloudSession(this.cloudSession);
 
+      // Track whether local state actually changes
+      const prevScore = this.getProgressionScore(this.data);
+      const prevGold = (this.data.player && this.data.player.gold) || 0;
+      const prevLevel = (this.data.player && this.data.player.level) || 1;
+      const prevCleared = ((this.data.raid && this.data.raid.clearedStages) || []).length;
+
       const finalData = forceOverwriteLocal
         ? JSON.parse(JSON.stringify(cloudSave))
         : this.mergeSaveData(this.data, cloudSave);
@@ -1733,16 +1839,30 @@ class GameState {
       this.checkDailyReset();
       this.checkRetroactiveUnlocks();
 
+      const newScore = this.getProgressionScore(this.data);
+      const newGold = (this.data.player && this.data.player.gold) || 0;
+      const newLevel = (this.data.player && this.data.player.level) || 1;
+      const newCleared = ((this.data.raid && this.data.raid.clearedStages) || []).length;
+      const hasMeaningfulUpdate = (newScore > prevScore || newGold > prevGold || newLevel > prevLevel || newCleared > prevCleared);
+
       const serialized = JSON.stringify(this.data);
       localStorage.setItem(this.STORAGE_KEY, serialized);
       localStorage.setItem(this.MIRROR_KEY, serialized);
       this.saveToIndexedDB(serialized);
       this.updateSaveIndicator();
 
-      if (typeof ui !== 'undefined' && ui.renderAll) {
-        ui.renderAll();
+      if (typeof ui !== 'undefined') {
+        if (ui.renderAll) ui.renderAll();
+        if (ui.updateAuthGateVisibility) ui.updateAuthGateVisibility();
+        if (ui.renderCloudModalState) ui.renderCloudModalState();
+
+        if (hasMeaningfulUpdate && notifyIfChanged) {
+          ui.showToast(`☁️ [${userId}] 최신 기록 자동 동기화 완료! (Lv.${newLevel} · ${newGold.toLocaleString()} G)`, 'success');
+        } else if (!silent) {
+          ui.showToast(`☁️ [${userId}] 서버 데이터 동기화 완료!`, 'success');
+        }
       }
-      return { success: true };
+      return { success: true, hasMeaningfulUpdate };
     } catch (e) {
       console.error("Pull from cloud failed:", e);
       return { success: false, message: e.message };
