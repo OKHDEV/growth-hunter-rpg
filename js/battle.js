@@ -109,7 +109,8 @@ class BattleEngine {
 
     this.bossHp = Math.max(0, this.bossHp - playerNetDmg);
     this.updateBattleUI();
-    this.addLog(`⚔️ [턴 ${this.turn}] 오경호의 전력 일격! 보스에게 ${playerNetDmg.toLocaleString()}의 피해! ${isPlayerCrit ? '(💥 치명타 작렬!)' : ''}`, isPlayerCrit ? 'player-crit' : 'normal');
+    const pName = (state.data && state.data.player && state.data.player.name) || '헌터';
+    this.addLog(`⚔️ [턴 ${this.turn}] ${pName}의 전력 일격! 보스에게 ${playerNetDmg.toLocaleString()}의 피해! ${isPlayerCrit ? '(💥 치명타 작렬!)' : ''}`, isPlayerCrit ? 'player-crit' : 'normal');
 
     // Check Boss Victory
     if (this.bossHp <= 0) {
@@ -152,7 +153,8 @@ class BattleEngine {
         this.spawnFloatingText(`💀 보스 반격! -${bossNetDmg.toLocaleString()}`, '#ff0055', 'player', true);
         this.playerHp = Math.max(0, this.playerHp - bossNetDmg);
         this.updateBattleUI();
-        this.addLog(`💀 [보스 반격] ${this.boss.name}의 파괴적 강타! 오경호에게 ${bossNetDmg.toLocaleString()} 치명타 피해!`, 'boss-action');
+        const defPName = (state.data && state.data.player && state.data.player.name) || '헌터';
+        this.addLog(`💀 [보스 반격] ${this.boss.name}의 파괴적 강타! ${defPName}에게 ${bossNetDmg.toLocaleString()} 치명타 피해!`, 'boss-action');
 
         // Check Player Defeat
         if (this.playerHp <= 0) {

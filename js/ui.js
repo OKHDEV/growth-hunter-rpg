@@ -159,6 +159,24 @@ class UIManager {
     if (tabId === 'inventoryTab') this.renderInventory();
   }
 
+  // Format huge gold numbers compactly for mobile headers (e.g. 238.7조, 15.2억, 450만)
+  formatCompactGold(val) {
+    const num = Number(val) || 0;
+    if (num >= 1e12) {
+      const jo = (num / 1e12).toFixed(1).replace(/\.0$/, '');
+      return `${jo}조`;
+    }
+    if (num >= 1e8) {
+      const eok = (num / 1e8).toFixed(1).replace(/\.0$/, '');
+      return `${eok}억`;
+    }
+    if (num >= 1e6) {
+      const man = Math.floor(num / 1e4).toLocaleString();
+      return `${man}만`;
+    }
+    return num.toLocaleString();
+  }
+
   // --- Header & Status Updates ---
 
   updateHeaderAndStats() {
@@ -170,21 +188,29 @@ class UIManager {
     const currentHeight = state.getCurrentHeight();
 
     const hdrName = document.getElementById('hdrPlayerName');
+    const hdrBrandNickname = document.getElementById('hdrBrandNickname');
     const hdrLevel = document.getElementById('hdrPlayerLevel');
     const hdrRank = document.getElementById('hdrPlayerRank');
     const hdrGold = document.getElementById('hdrPlayerGold');
     const hdrStreak = document.getElementById('hdrDailyStreak');
 
     if (hdrName) hdrName.textContent = p.name;
+    if (hdrBrandNickname) hdrBrandNickname.textContent = p.name || '헌터';
     if (hdrLevel) hdrLevel.textContent = `Lv.${p.level}`;
     if (hdrRank) {
       hdrRank.textContent = rank.name;
       hdrRank.style.color = rank.color;
     }
-    if (hdrGold) hdrGold.textContent = p.gold.toLocaleString();
+    if (hdrGold) {
+      hdrGold.textContent = this.formatCompactGold(p.gold);
+      hdrGold.setAttribute('title', `${Number(p.gold || 0).toLocaleString()} G`);
+    }
     const streak = state.getDailyStreak ? state.getDailyStreak() : state.data.quests.dailyStreak;
     state.data.quests.dailyStreak = streak;
-    if (hdrStreak) hdrStreak.textContent = `${streak}일 연속`;
+    if (hdrStreak) {
+      hdrStreak.textContent = `${streak}일`;
+      hdrStreak.setAttribute('title', `${streak}일 연속 달성 중`);
+    }
 
     const statName = document.getElementById('statPlayerName');
     const statTitle = document.getElementById('statPlayerTitle');

@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=20261029_30">
-  <link rel="stylesheet" href="css/battle.css?v=20261029_30">
-  <link rel="stylesheet" href="css/animations.css?v=20261029_30">
-  <link rel="stylesheet" href="css/mobile.css?v=20261029_30">
+  <link rel="stylesheet" href="css/style.css?v=20261029_31">
+  <link rel="stylesheet" href="css/battle.css?v=20261029_31">
+  <link rel="stylesheet" href="css/animations.css?v=20261029_31">
+  <link rel="stylesheet" href="css/mobile.css?v=20261029_31">
 </head>
 <body class="auth-gate-locked">
 
@@ -31,11 +31,11 @@
       </div>
 
       <div class="auth-gate-avatar-wrap">
-        <img src="assets/player/hunter.jpg" alt="성장형 오경호" class="auth-gate-avatar-img">
+        <img src="assets/player/hunter.jpg" alt="성장형 헌터" class="auth-gate-avatar-img">
         <div class="auth-gate-avatar-rank">AWAKENED</div>
       </div>
 
-      <h1 class="auth-gate-title">성장형 오경호</h1>
+      <h1 class="auth-gate-title">성장형 헌터 RPG</h1>
       <div class="auth-gate-subtitle">고2 178cm 각성 프로젝트 · 50 Boss Action RPG</div>
 
       <!-- Existing Device Record Detection Banner -->
@@ -46,7 +46,7 @@
 
       <!-- Inputs -->
       <div class="auth-input-group">
-        <label class="auth-input-label" for="authGateIdInput">👤 각성자 아이디 (예: 경호, 동생)</label>
+        <label class="auth-input-label" for="authGateIdInput">👤 각성자 아이디</label>
         <input type="text" id="authGateIdInput" class="auth-input-field" placeholder="아이디를 입력하세요" autocomplete="username">
       </div>
 
@@ -99,7 +99,7 @@
       <div class="brand-wrap">
         <div class="brand-logo-icon">⚡</div>
         <div>
-          <h1 class="brand-title">성장형 오경호</h1>
+          <h1 class="brand-title" id="hdrBrandTitle">성장형 <span id="hdrBrandNickname">헌터</span></h1>
           <div class="brand-sub">고2 178cm 각성 프로젝트 · 50 Boss Raid</div>
         </div>
       </div>
@@ -128,9 +128,9 @@
           <span class="stat-badge-title">골드</span>
           <span class="stat-badge-val gold" id="hdrPlayerGold">0</span>
         </div>
-        <div class="quick-stat-badge">
-          <span class="stat-badge-title">연속 달성</span>
-          <span class="stat-badge-val streak" id="hdrDailyStreak">1일차</span>
+        <div class="quick-stat-badge" title="연속 출석">
+          <span class="stat-badge-title">연속</span>
+          <span class="stat-badge-val streak" id="hdrDailyStreak">1일</span>
         </div>
       </div>
     </header>
@@ -147,7 +147,7 @@
           </div>
 
           <div class="hunter-name-title">
-            <h2 class="hunter-display-name" id="statPlayerName">오경호</h2>
+            <h2 class="hunter-display-name" id="statPlayerName">헌터</h2>
             <div style="font-size: 12px; color: #94a3b8; font-weight: 600;">고등학교 2학년 (수험생 각성자)</div>
             <div class="hunter-active-title" id="statPlayerTitle">초보 수련자 (173cm)</div>
           </div>
@@ -493,7 +493,7 @@
               <div class="player-mini-profile">
                 <img src="assets/player/hunter.jpg" alt="헌터" class="player-mini-avatar" id="battlePlayerAvatar">
                 <div class="player-name-col">
-                  <span class="p-combat-name" id="battlePlayerName">오경호</span>
+                  <span class="p-combat-name" id="battlePlayerName">헌터</span>
                   <span class="p-combat-title" id="battlePlayerTitle">초보 수련자 (173cm)</span>
                 </div>
               </div>
@@ -1117,7 +1117,7 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 12px;">
-          <label class="form-label" style="font-size: 12px; color: #94a3b8; display:block; margin-bottom:4px;">계정 아이디 (예: 경호, 동생)</label>
+          <label class="form-label" style="font-size: 12px; color: #94a3b8; display:block; margin-bottom:4px;">계정 아이디</label>
           <input type="text" id="cloudIdInput" class="form-input" placeholder="사용할 아이디 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#0f172a; color:#fff; font-size:15px;">
         </div>
 
@@ -1143,7 +1143,7 @@
         <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; padding: 14px; margin-bottom: 14px;">
           <div style="font-size: 12px; color: #94a3b8;">현재 클라우드 연동 계정</div>
           <div style="font-size: 20px; font-weight: 900; color: #34d399; margin: 4px 0;">
-            🟢 <span id="cloudActiveUserId">오경호</span>
+            🟢 <span id="cloudActiveUserId">헌터</span>
           </div>
           <div style="font-size: 11px; color: #cbd5e1;">
             마지막 서버 자동 저장: <strong id="cloudLastSyncTime" style="color:#38bdf8;">방금 전</strong>
@@ -1175,12 +1175,12 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261029_30"></script>
-  <script src="js/audio.js?v=20261029_30"></script>
-  <script src="js/state.js?v=20261029_30"></script>
-  <script src="js/battle.js?v=20261029_30"></script>
-  <script src="js/quests.js?v=20261029_30"></script>
-  <script src="js/ui.js?v=20261029_30"></script>
-  <script src="js/app.js?v=20261029_30"></script>
+  <script src="js/data.js?v=20261029_31"></script>
+  <script src="js/audio.js?v=20261029_31"></script>
+  <script src="js/state.js?v=20261029_31"></script>
+  <script src="js/battle.js?v=20261029_31"></script>
+  <script src="js/quests.js?v=20261029_31"></script>
+  <script src="js/ui.js?v=20261029_31"></script>
+  <script src="js/app.js?v=20261029_31"></script>
 </body>
 </html>

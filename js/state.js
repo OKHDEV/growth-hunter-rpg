@@ -75,7 +75,7 @@ class GameState {
     return {
       lastSaved: new Date().toISOString(),
       player: {
-        name: "오경호",
+        name: "헌터",
         grade: "고등학교 2학년",
         title: "초보 수련자 (173cm)",
         avatar: "assets/player/hunter.jpg",
@@ -455,7 +455,7 @@ class GameState {
 
       if (fetchedSave && fetchedSave.player) {
         this.loadFromObject(fetchedSave, true);
-        const ownerId = fetchedSave.ownerAccountId || fetchedSave.player.name || '오경호';
+        const ownerId = fetchedSave.ownerAccountId || fetchedSave.player.name || '헌터';
         this.saveCloudSession({
           userId: ownerId,
           password: '',
@@ -1471,7 +1471,7 @@ class GameState {
 
     return {
       p: [
-        p.name || '오경호',
+        p.name || '헌터',
         p.level || 1,
         p.exp || 0,
         p.gold !== undefined ? p.gold : 500,
@@ -1520,7 +1520,7 @@ class GameState {
     };
 
     const [name, level, exp, gold, baseHeight, targetHeight, growthPoints, statsArr, activeTitleCode] = packed.p;
-    def.player.name = name || '오경호';
+    def.player.name = name || '헌터';
     def.player.level = level || 1;
     def.player.exp = exp || 0;
     def.player.gold = gold !== undefined ? gold : 500;
@@ -1906,7 +1906,7 @@ class GameState {
     const password = String(rawPassword || '').trim();
 
     if (!userId || userId.length < 1) {
-      return { success: false, message: '아이디를 입력해주세요. (예: 경호, 동생)' };
+      return { success: false, message: '아이디를 입력해주세요.' };
     }
     if (!password || password.length < 1) {
       return { success: false, message: '비밀번호를 입력해주세요.' };
@@ -1960,7 +1960,7 @@ class GameState {
         }
 
         // Put account ID into character name field if default
-        if (!nextData.player.name || nextData.player.name === '오경호') {
+        if (!nextData.player.name || nextData.player.name === '오경호' || nextData.player.name === '헌터') {
           nextData.player.name = userId;
         }
 
