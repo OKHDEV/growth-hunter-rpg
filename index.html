@@ -12,16 +12,69 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=20261029_20">
-  <link rel="stylesheet" href="css/battle.css?v=20261029_20">
-  <link rel="stylesheet" href="css/animations.css?v=20261029_20">
-  <link rel="stylesheet" href="css/mobile.css?v=20261029_20">
+  <link rel="stylesheet" href="css/style.css?v=20261029_21">
+  <link rel="stylesheet" href="css/battle.css?v=20261029_21">
+  <link rel="stylesheet" href="css/animations.css?v=20261029_21">
+  <link rel="stylesheet" href="css/mobile.css?v=20261029_21">
 </head>
-<body>
+<body class="auth-gate-locked">
 
   <!-- Background Particle & Overlay Canvas -->
   <canvas id="particleCanvas"></canvas>
   <div id="screenFlashOverlay"></div>
+
+  <!-- ==================== AWAKENED HUNTER INTRO LOGIN & SIGN-UP GATE ==================== -->
+  <div id="authGateScreen" class="auth-gate-overlay">
+    <div class="auth-gate-card">
+      <div class="auth-gate-system-badge">
+        <span>⚡ HUNTER CLOUD SERVER GATE</span>
+      </div>
+
+      <div class="auth-gate-avatar-wrap">
+        <img src="assets/player/hunter.jpg" alt="성장형 오경호" class="auth-gate-avatar-img">
+        <div class="auth-gate-avatar-rank">AWAKENED</div>
+      </div>
+
+      <h1 class="auth-gate-title">성장형 오경호</h1>
+      <div class="auth-gate-subtitle">고2 178cm 각성 프로젝트 · 50 Boss Action RPG</div>
+
+      <!-- Existing Device Record Detection Banner -->
+      <div id="authGateRecordBanner" class="auth-gate-record-banner">
+        ✨ <strong>클라우드 계정 연동 안내</strong><br>
+        로그인 전 이 기기에서 플레이했던 모든 기록은 <strong>회원가입 또는 로그인 시 계정에 100% 그대로 자동 반영</strong>됩니다!
+      </div>
+
+      <!-- Inputs -->
+      <div class="auth-input-group">
+        <label class="auth-input-label" for="authGateIdInput">👤 각성자 아이디 (예: 경호, 동생)</label>
+        <input type="text" id="authGateIdInput" class="auth-input-field" placeholder="아이디를 입력하세요" autocomplete="username">
+      </div>
+
+      <div class="auth-input-group">
+        <label class="auth-input-label" for="authGatePwInput">🔒 비밀번호</label>
+        <input type="password" id="authGatePwInput" class="auth-input-field" placeholder="비밀번호를 입력하세요" autocomplete="current-password" onkeydown="if(event.key==='Enter') ui.handleCloudAuth('gate', 'login');">
+      </div>
+
+      <div id="authGateFeedbackMsg" style="font-size: 12px; min-height: 20px; margin: 6px 0 8px; font-weight: 800; color: #38bdf8;"></div>
+
+      <!-- Separate Login & Sign-Up Buttons -->
+      <div class="auth-action-buttons-grid">
+        <button type="button" id="btnAuthGateLogin" class="btn-auth-login" onclick="ui.handleCloudAuth('gate', 'login')">
+          🔑 로그인
+          <div style="font-size: 10px; font-weight: 600; opacity: 0.88; margin-top: 2px;">기존 계정 입장</div>
+        </button>
+        <button type="button" id="btnAuthGateRegister" class="btn-auth-register" onclick="ui.handleCloudAuth('gate', 'register')">
+          ✨ 회원가입
+          <div style="font-size: 10px; font-weight: 600; opacity: 0.92; margin-top: 2px;">새 계정 생성</div>
+        </button>
+      </div>
+
+      <div class="auth-gate-footer-note">
+        * 사파리 · 구글 앱 · 다른 휴대폰 어디서든 로그인하면 데이터가 실시간 연동됩니다.<br>
+        * 로그인이 완료되어야 메인 게임 화면으로 입장할 수 있습니다.
+      </div>
+    </div>
+  </div>
 
   <!-- Main App Container -->
   <div class="app-container">
@@ -1047,9 +1100,8 @@
       <!-- View A: Login / Register Form -->
       <div id="cloudLoginFormView">
         <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #e2e8f0; line-height: 1.5; margin-bottom: 14px;">
-          ✨ <strong>아이디와 비밀번호</strong>를 입력해 로그인하세요.<br>
-          • <strong>처음 입력하는 아이디</strong>면 새 계정이 즉시 만들어지며, <strong>로그인 전 현재 기기에서 플레이했던 모든 기록이 이 계정에 100% 자동 반영</strong>되어 서버에 저장됩니다!<br>
-          • 사파리·구글·다른 폰에서도 같은 아이디/비번으로 로그인하면 그대로 이어집니다. (나와 동생 각자 아이디로 따로 저장 가능!)
+          ✨ <strong>아이디와 비밀번호</strong>를 입력한 뒤 <strong>[🔑 로그인]</strong> 또는 <strong>[✨ 회원가입]</strong>을 눌러주세요.<br>
+          • 로그인 전 기기에서 플레이했던 기록은 계정에 100% 자동 반영됩니다!
         </div>
 
         <div class="form-group" style="margin-bottom: 12px;">
@@ -1059,14 +1111,19 @@
 
         <div class="form-group" style="margin-bottom: 14px;">
           <label class="form-label" style="font-size: 12px; color: #94a3b8; display:block; margin-bottom:4px;">비밀번호</label>
-          <input type="password" id="cloudPwInput" class="form-input" placeholder="비밀번호 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#0f172a; color:#fff; font-size:15px;" onkeydown="if(event.key==='Enter') ui.handleCloudLogin('modal');">
+          <input type="password" id="cloudPwInput" class="form-input" placeholder="비밀번호 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#0f172a; color:#fff; font-size:15px;" onkeydown="if(event.key==='Enter') ui.handleCloudAuth('modal', 'login');">
         </div>
 
         <div id="cloudModalFeedbackMsg" style="font-size: 12px; min-height: 18px; margin-bottom: 10px; font-weight: 700;"></div>
 
-        <button type="button" class="btn btn-primary" id="btnCloudLoginSubmit" onclick="ui.handleCloudLogin('modal')" style="width: 100%; padding: 12px; font-weight: 800; font-size: 14px;">
-          🔑 로그인 / 새 계정 생성 (현재 기록 서버 연동)
-        </button>
+        <div class="auth-action-buttons-grid">
+          <button type="button" class="btn-auth-login" id="btnCloudLoginSubmit" onclick="ui.handleCloudAuth('modal', 'login')">
+            🔑 로그인
+          </button>
+          <button type="button" class="btn-auth-register" id="btnCloudRegisterSubmit" onclick="ui.handleCloudAuth('modal', 'register')">
+            ✨ 회원가입
+          </button>
+        </div>
       </div>
 
       <!-- View B: Logged-in Status & Sync Controls -->
@@ -1092,7 +1149,7 @@
             ⬇️ 서버 최신 기록을 현재 기기로 불러오기 (동기화)
           </button>
           <button type="button" class="btn btn-sm btn-outline-danger" onclick="ui.handleCloudLogout()" style="width:100%; padding:10px; margin-top:6px; border-color:#ef4444; color:#ef4444;">
-            🚪 로그아웃 (다른 계정으로 전환)
+            🚪 로그아웃 (로그인 화면으로 이동)
           </button>
         </div>
       </div>
@@ -1103,12 +1160,12 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261029_20"></script>
-  <script src="js/audio.js?v=20261029_20"></script>
-  <script src="js/state.js?v=20261029_20"></script>
-  <script src="js/battle.js?v=20261029_20"></script>
-  <script src="js/quests.js?v=20261029_20"></script>
-  <script src="js/ui.js?v=20261029_20"></script>
-  <script src="js/app.js?v=20261029_20"></script>
+  <script src="js/data.js?v=20261029_21"></script>
+  <script src="js/audio.js?v=20261029_21"></script>
+  <script src="js/state.js?v=20261029_21"></script>
+  <script src="js/battle.js?v=20261029_21"></script>
+  <script src="js/quests.js?v=20261029_21"></script>
+  <script src="js/ui.js?v=20261029_21"></script>
+  <script src="js/app.js?v=20261029_21"></script>
 </body>
 </html>

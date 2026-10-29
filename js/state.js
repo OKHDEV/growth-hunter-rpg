@@ -1688,7 +1688,11 @@ class GameState {
     }
   }
 
-  async loginOrRegisterCloud(rawUserId, rawPassword) {
+  isCloudLoggedIn() {
+    return Boolean(this.cloudSession && this.cloudSession.userId);
+  }
+
+  async loginOrRegisterCloud(rawUserId, rawPassword, mode = 'auto') {
     const userId = String(rawUserId || '').trim();
     const password = String(rawPassword || '').trim();
 
@@ -1711,8 +1715,24 @@ class GameState {
       );
 
       const actualPassword = (existingRecord && existingRecord.p) || storedPassword;
+      const accountExists = Boolean(existingRecord || cloudSave || actualPassword);
 
-      if (existingRecord || cloudSave) {
+      // Strict mode validation when user explicitly clicked Login vs Register
+      if (mode === 'login' && !accountExists) {
+        return {
+          success: false,
+          message: `❌ [${userId}] 아이디는 존재하지 않습니다! 처음이시라면 [✨ 회원가입] 버튼을 눌러주세요.`
+        };
+      }
+
+      if (mode === 'register' && accountExists) {
+        return {
+          success: false,
+          message: `⚠️ [${userId}] 아이디는 이미 가입되어 있습니다! [🔑 로그인] 버튼을 눌러 접속해주세요.`
+        };
+      }
+
+      if (accountExists) {
         // Account exists -> Verify password
         if (actualPassword && String(actualPassword) !== password) {
           return {

@@ -7,6 +7,7 @@ class UIManager {
     this.currentCalMonth = new Date().getMonth();
     this.calendarViewMode = 'month';
     this.isUnownedTitlesExpanded = false;
+    this.authGateMode = 'login';
     this.particleCanvas = null;
     this.particleCtx = null;
     this.particles = [];
@@ -15,6 +16,7 @@ class UIManager {
   init() {
     this.initCanvas();
     this.setupTabNavigation();
+    this.updateAuthGateVisibility();
     this.updateHeaderAndStats();
     this.renderAttendanceCalendar();
     this.renderBossStageCards();
@@ -1421,6 +1423,69 @@ class UIManager {
 
   // --- Cloud Account Login & Multi-Device Sync UI ---
 
+  updateAuthGateVisibility() {
+    const gate = document.getElementById('authGateScreen');
+    const banner = document.getElementById('authGateRecordBanner');
+    const isLogged = state.isCloudLoggedIn();
+
+    if (isLogged) {
+      document.body.classList.remove('auth-gate-locked');
+      if (gate) gate.classList.add('hidden');
+    } else {
+      document.body.classList.add('auth-gate-locked');
+      if (gate) gate.classList.remove('hidden');
+
+      if (banner) {
+        const score = state.getProgressionScore(state.data);
+        const p = state.data.player;
+        const heightStr = typeof state.getCurrentHeight === 'function' ? state.getCurrentHeight().toFixed(2) : '173.00';
+        if (!state.data.ownerAccountId && score > 0) {
+          banner.innerHTML = `
+            🔥 <strong style="color:#34d399;">이 기기에서 플레이하던 기존 기록 감지!</strong><br>
+            • 현재 기기 기록: <strong style="color:#facc15;">Lv.${p.level} · ${p.gold.toLocaleString()} G · 신장 ${heightStr} cm</strong><br>
+            • 지금 <strong>[✨ 회원가입]</strong> 또는 <strong>[🔑 로그인]</strong>을 하시면 위 기록이 계정에 <strong>100% 그대로 자동 반영</strong>됩니다!
+          `;
+        } else {
+          banner.innerHTML = `
+            ✨ <strong>클라우드 계정 연동 안내</strong><br>
+            • 처음 오셨다면 아이디·비밀번호 입력 후 <strong>[✨ 회원가입]</strong>을 눌러주세요. (기존 기기 기록 100% 자동 흡수)<br>
+            • 이미 계정을 만드셨다면 <strong>[🔑 로그인]</strong>을 눌러 사파리·구글·타기기 어디서든 이어하세요!
+          `;
+        }
+      }
+    }
+  }
+
+  setAuthGateMode(mode) {
+    sound.playClick();
+    this.authGateMode = mode === 'register' ? 'register' : 'login';
+    const tabLogin = document.getElementById('authTabLogin');
+    const tabReg = document.getElementById('authTabRegister');
+    const guide = document.getElementById('authModeGuideText');
+    const msg = document.getElementById('authGateFeedbackMsg');
+    if (msg) msg.textContent = '';
+
+    if (this.authGateMode === 'register') {
+      if (tabLogin) tabLogin.className = 'auth-mode-tab';
+      if (tabReg) tabReg.className = 'auth-mode-tab active-register';
+      if (guide) {
+        guide.textContent = '사용할 새 아이디와 비밀번호를 입력하고 아래 [✨ 회원가입] 버튼을 눌러주세요! (기존 기록 자동 저장)';
+        guide.style.color = '#facc15';
+      }
+    } else {
+      if (tabLogin) tabLogin.className = 'auth-mode-tab active-login';
+      if (tabReg) tabReg.className = 'auth-mode-tab';
+      if (guide) {
+        guide.textContent = '기존에 만든 아이디와 비밀번호를 입력하고 아래 [🔑 로그인] 버튼을 눌러 입장하세요.';
+        guide.style.color = '#38bdf8';
+      }
+    }
+  }
+
+  submitActiveAuthGate() {
+    this.handleCloudAuth('gate', this.authGateMode || 'login');
+  }
+
   openCloudModal() {
     sound.playClick();
     this.renderCloudModalState();
@@ -1457,7 +1522,7 @@ class UIManager {
               <div style="font-size:14px; font-weight:800; color:#34d399;">🟢 현재 연동된 계정: [${sess.userId}]</div>
               <div style="font-size:11px; color:#94a3b8; margin-top:2px;">사파리·구글·타기기 어디서든 [${sess.userId}] 계정으로 로그인하면 자동 연동됩니다.</div>
             </div>
-            <button type="button" class="btn btn-xs btn-outline-cyan" onclick="ui.openCloudModal()">계정 관리 / 동기화</button>
+            <button type="button" class="btn btn-xs btn-outline-cyan" onclick="ui.openCloudModal()">계정 관리 / 로그아웃</button>
           </div>
         `;
       }
@@ -1468,71 +1533,86 @@ class UIManager {
         settingsStatusBox.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div>
-              <div style="font-size:14px; font-weight:800; color:#38bdf8;">☁️ 현재 클라우드 미연동 (기기 임시 저장 상태)</div>
-              <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">아이디·비밀번호로 로그인하면 지금 플레이한 기록이 그대로 계정에 반영되어 절대 날아가지 않습니다!</div>
+              <div style="font-size:14px; font-weight:800; color:#38bdf8;">☁️ 현재 클라우드 미연동</div>
+              <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">아이디·비밀번호로 로그인하면 기록이 서버에 영구 저장됩니다!</div>
             </div>
-            <button type="button" class="btn btn-xs btn-primary" onclick="ui.openCloudModal()">🔑 아이디 로그인 / 계정 생성</button>
+            <button type="button" class="btn btn-xs btn-primary" onclick="ui.openCloudModal()">🔑 로그인 / 회원가입</button>
           </div>
         `;
       }
     }
   }
 
-  async handleCloudLogin(prefix = 'modal') {
-    const idInput = document.getElementById(prefix === 'settings' ? 'settingsCloudIdInput' : 'cloudIdInput');
-    const pwInput = document.getElementById(prefix === 'settings' ? 'settingsCloudPwInput' : 'cloudPwInput');
-    const btn = document.getElementById(prefix === 'settings' ? 'btnSettingsCloudSubmit' : 'btnCloudLoginSubmit');
-    const msgBox = document.getElementById('cloudModalFeedbackMsg');
+  async handleCloudAuth(source = 'gate', mode = 'login') {
+    const isGate = source === 'gate';
+    const idInput = document.getElementById(isGate ? 'authGateIdInput' : 'cloudIdInput');
+    const pwInput = document.getElementById(isGate ? 'authGatePwInput' : 'cloudPwInput');
+    const msgBox = document.getElementById(isGate ? 'authGateFeedbackMsg' : 'cloudModalFeedbackMsg');
+    const btnLogin = document.getElementById(isGate ? 'btnAuthGateLogin' : 'btnCloudLoginSubmit');
+    const btnReg = document.getElementById(isGate ? 'btnAuthGateRegister' : 'btnCloudRegisterSubmit');
+
+    if (isGate) {
+      this.setAuthGateMode(mode);
+    }
 
     const userId = idInput ? idInput.value.trim() : '';
     const password = pwInput ? pwInput.value.trim() : '';
 
     if (!userId || !password) {
-      this.showToast("아이디와 비밀번호를 모두 입력해주세요!", "error");
+      const warn = '⚠️ 아이디와 비밀번호를 모두 입력해주세요!';
+      if (msgBox) {
+        msgBox.textContent = warn;
+        msgBox.style.color = '#f87171';
+      }
+      this.showToast(warn, 'error');
       return;
     }
 
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = "⏳ 클라우드 서버 연동 중...";
-    }
+    if (btnLogin) btnLogin.disabled = true;
+    if (btnReg) btnReg.disabled = true;
+
     if (msgBox) {
-      msgBox.textContent = "☁️ 서버와 통신하여 데이터를 안전하게 동기화하고 있습니다...";
-      msgBox.style.color = "#38bdf8";
+      msgBox.textContent = mode === 'register'
+        ? `⏳ [${userId}] 새 계정을 생성하고 기기 기록을 서버에 연동 중입니다...`
+        : `⏳ [${userId}] 계정 인증 및 서버 데이터를 불러오는 중입니다...`;
+      msgBox.style.color = '#38bdf8';
     }
 
-    const res = await state.loginOrRegisterCloud(userId, password);
+    const res = await state.loginOrRegisterCloud(userId, password, mode);
 
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = "🔑 로그인 / 새 계정 생성 (현재 기록 서버 연동)";
-    }
+    if (btnLogin) btnLogin.disabled = false;
+    if (btnReg) btnReg.disabled = false;
 
     if (!res || !res.success) {
       sound.playDefeat();
-      const errMsg = (res && res.message) || "로그인 실패";
+      const errMsg = (res && res.message) || '로그인/회원가입에 실패했습니다.';
       if (msgBox) {
         msgBox.textContent = errMsg;
-        msgBox.style.color = "#f87171";
+        msgBox.style.color = '#f87171';
       }
-      this.showToast(errMsg, "error");
+      this.showToast(errMsg, 'error');
       return;
     }
 
     sound.playLevelUp();
-    if (msgBox) {
-      msgBox.textContent = "";
-    }
+    if (msgBox) msgBox.textContent = '';
+
+    this.updateAuthGateVisibility();
+    this.closeCloudModal();
     this.renderCloudModalState();
     this.renderAll();
 
     if (res.isNew) {
-      this.showToast(`🎉 [${res.userId}] 새 클라우드 계정 생성 완료! 기존 기기 수련 기록이 100% 계정에 저장되었습니다!`);
+      this.showToast(`🎉 [${res.userId}] 회원가입 완료! 기존 기기 수련 기록이 100% 계정에 저장되어 메인 화면으로 입장합니다!`);
     } else if (res.mergedPreLogin) {
-      this.showToast(`☁️ [${res.userId}] 로그인 성공! 기기 기록과 서버 데이터가 완벽하게 통합 연동되었습니다!`);
+      this.showToast(`⚡ [${res.userId}] 로그인 성공! 기기 기록과 서버 데이터가 완벽하게 통합 연동되었습니다!`);
     } else {
-      this.showToast(`☁️ [${res.userId}] 계정 로그인 및 서버 데이터 불러오기 완료!`);
+      this.showToast(`⚡ [${res.userId}] 각성자님 환영합니다! 서버 데이터 동기화 완료!`);
     }
+  }
+
+  async handleCloudLogin(prefix = 'modal') {
+    return this.handleCloudAuth(prefix === 'gate' ? 'gate' : 'modal', 'login');
   }
 
   async handleCloudForceUpload() {
@@ -1565,9 +1645,11 @@ class UIManager {
     sound.playClick();
     const prevUser = state.cloudSession ? state.cloudSession.userId : '';
     state.logoutCloud();
+    this.closeCloudModal();
     this.renderCloudModalState();
     this.updateHeaderAndStats();
-    this.showToast(`🚪 [${prevUser}] 계정에서 로그아웃되었습니다. 다른 계정으로 로그인할 수 있습니다.`);
+    this.updateAuthGateVisibility();
+    this.showToast(`🚪 [${prevUser}] 계정에서 로그아웃되어 로그인/회원가입 화면으로 돌아왔습니다.`);
   }
 }
 

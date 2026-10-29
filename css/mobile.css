@@ -63,9 +63,10 @@
   transform: translateY(-2px);
 }
 
-/* Battle Full Immersion Mode (Hides Header & Bottom Nav on Mobile Combat) */
+/* Battle Full Immersion Mode & Auth Gate Lock (Hides Header & Bottom Nav) */
 body.in-battle .main-header,
-body.in-battle .mobile-nav-bar {
+body.in-battle .mobile-nav-bar,
+body.auth-gate-locked .mobile-nav-bar {
   display: none !important;
 }
 
