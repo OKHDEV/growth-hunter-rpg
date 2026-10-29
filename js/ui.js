@@ -1459,12 +1459,32 @@ class UIManager {
 
     const resetBtn = document.getElementById('btnResetData');
     if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        if (confirm("⚠️ 정말로 모든 수련 기록과 50단계 보스 클리어 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다!")) {
-          if (confirm("확인: 정말 모든 데이터를 삭제하시겠습니까?")) {
-            state.resetAll();
+      resetBtn.addEventListener('click', async () => {
+        const isCloud = Boolean(state.cloudSession && state.cloudSession.userId);
+        const userId = isCloud ? state.cloudSession.userId : '';
+
+        const msg1 = isCloud
+          ? `⚠️ 정말로 모든 수련 기록과 50단계 보스 클리어 데이터를 초기화하시겠습니까?\n\n현재 연동된 클라우드 계정 [${userId}]의 서버 데이터까지 모두 Lv.1(처음 상태)로 완전 초기화됩니다!\n이 작업은 되돌릴 수 없습니다!`
+          : "⚠️ 정말로 모든 수련 기록과 50단계 보스 클리어 데이터를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다!";
+
+        if (!confirm(msg1)) return;
+        if (!confirm("확인: 정말 모든 데이터를 삭제하고 처음부터 다시 시작하시겠습니까?")) return;
+
+        try {
+          if (typeof sound !== 'undefined') sound.playDefeat();
+          ui.showToast('⏳ 데이터를 완전히 초기화하고 서버에 반영 중입니다...', 'warning', 4000);
+          resetBtn.disabled = true;
+          resetBtn.textContent = '⏳ 초기화 진행 중...';
+
+          await state.resetAll(false);
+
+          ui.showToast('✅ 데이터 전체 초기화 완료! 처음부터 다시 시작합니다.', 'success', 2000);
+          setTimeout(() => {
             location.reload();
-          }
+          }, 400);
+        } catch (err) {
+          console.error("Reset error:", err);
+          location.reload();
         }
       });
     }
@@ -1762,10 +1782,10 @@ class UIManager {
     }
   }
 
-  handleCloudLogout() {
+  async handleCloudLogout() {
     sound.playClick();
     const prevUser = state.cloudSession ? state.cloudSession.userId : '';
-    state.logoutCloud();
+    await state.logoutCloud();
     this.closeCloudModal();
     this.renderCloudModalState();
     this.updateHeaderAndStats();

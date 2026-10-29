@@ -74,6 +74,7 @@ class GameState {
   getDefaultState() {
     return {
       lastSaved: new Date().toISOString(),
+      resetTimestamp: 0,
       player: {
         name: "헌터",
         grade: "고등학교 2학년",
@@ -195,6 +196,7 @@ class GameState {
     this.data = {
       ...def,
       ...parsed,
+      resetTimestamp: Number(parsed.resetTimestamp) || 0,
       player: {
         ...def.player,
         ...(parsed.player || {}),
@@ -475,11 +477,48 @@ class GameState {
     }
   }
 
-  resetAll() {
-    localStorage.removeItem(this.STORAGE_KEY);
-    localStorage.removeItem(this.MIRROR_KEY);
+  async resetAll(logoutFromCloud = false) {
+    const isCloud = Boolean(this.cloudSession && this.cloudSession.userId);
+    const userId = isCloud ? this.cloudSession.userId : null;
+
+    // 1. Reset in-memory data to fresh default Lv.1 state
     this.data = this.getDefaultState();
-    this.save();
+    this.data.resetTimestamp = Date.now();
+    this.data.lastSaved = new Date().toISOString();
+
+    if (isCloud && !logoutFromCloud) {
+      this.data.player.name = userId;
+      this.data.ownerAccountId = userId;
+    }
+
+    // 2. Clear IndexedDB completely so no old saves linger
+    await this.clearIndexedDB();
+
+    // 3. Clear and re-save fresh state to localStorage & IndexedDB
+    const serialized = JSON.stringify(this.data);
+    localStorage.setItem(this.STORAGE_KEY, serialized);
+    localStorage.setItem(this.MIRROR_KEY, serialized);
+    this.saveToIndexedDB(serialized);
+
+    // 4. If logged into cloud:
+    if (isCloud) {
+      if (logoutFromCloud) {
+        this.saveCloudSession(null);
+      } else {
+        // Force push the Lv.1 reset state to all cloud endpoints (Bytebin, Pastes, Ntfy)
+        try {
+          await this.syncToCloud(true);
+        } catch (err) {
+          console.error("Failed to sync reset state to cloud:", err);
+        }
+      }
+    }
+
+    this.updateSaveIndicator();
+    if (typeof ui !== 'undefined' && ui.renderAll) {
+      ui.renderAll();
+    }
+    return true;
   }
 
   checkDailyReset() {
@@ -1118,9 +1157,51 @@ class GameState {
           localStorage.removeItem(this.CLOUD_SESSION_KEY);
         }
       }
+      if (typeof indexedDB !== 'undefined') {
+        const req = indexedDB.open('AwakenedHunterDB', 1);
+        req.onsuccess = (e) => {
+          try {
+            const db = e.target.result;
+            if (db.objectStoreNames.contains('saves')) {
+              const tx = db.transaction('saves', 'readwrite');
+              const store = tx.objectStore('saves');
+              if (session) {
+                store.put(JSON.stringify(session), this.CLOUD_SESSION_KEY);
+              } else {
+                store.delete(this.CLOUD_SESSION_KEY);
+              }
+            }
+          } catch (err) {}
+        };
+      }
     } catch (e) {
       console.error("Failed to save cloud session:", e);
     }
+  }
+
+  async clearIndexedDB() {
+    return new Promise((resolve) => {
+      try {
+        if (typeof indexedDB === 'undefined') return resolve(false);
+        const req = indexedDB.open('AwakenedHunterDB', 1);
+        req.onerror = () => resolve(false);
+        req.onsuccess = (e) => {
+          try {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('saves')) return resolve(true);
+            const tx = db.transaction('saves', 'readwrite');
+            const store = tx.objectStore('saves');
+            const clearReq = store.clear();
+            clearReq.onsuccess = () => resolve(true);
+            clearReq.onerror = () => resolve(false);
+          } catch (err) {
+            resolve(false);
+          }
+        };
+      } catch (e) {
+        resolve(false);
+      }
+    });
   }
 
   saveToIndexedDB(serialized) {
@@ -1134,13 +1215,17 @@ class GameState {
         }
       };
       req.onsuccess = (e) => {
-        const db = e.target.result;
-        const tx = db.transaction('saves', 'readwrite');
-        const store = tx.objectStore('saves');
-        store.put(serialized, this.STORAGE_KEY);
-        if (this.cloudSession) {
-          store.put(JSON.stringify(this.cloudSession), this.CLOUD_SESSION_KEY);
-        }
+        try {
+          const db = e.target.result;
+          const tx = db.transaction('saves', 'readwrite');
+          const store = tx.objectStore('saves');
+          store.put(serialized, this.STORAGE_KEY);
+          if (this.cloudSession) {
+            store.put(JSON.stringify(this.cloudSession), this.CLOUD_SESSION_KEY);
+          } else {
+            store.delete(this.CLOUD_SESSION_KEY);
+          }
+        } catch (err) {}
       };
     } catch (e) {
       // Ignore IndexedDB errors in restricted webviews
@@ -1167,34 +1252,41 @@ class GameState {
       if (this.getProgressionScore(this.data) > 0 && this.cloudSession) return;
       const req = indexedDB.open('AwakenedHunterDB', 1);
       req.onsuccess = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains('saves')) return;
-        const tx = db.transaction('saves', 'readonly');
-        const store = tx.objectStore('saves');
-        const getSave = store.get(this.STORAGE_KEY);
-        getSave.onsuccess = () => {
-          if (getSave.result) {
-            try {
-              const parsed = JSON.parse(getSave.result);
-              if (this.getProgressionScore(parsed) > this.getProgressionScore(this.data)) {
-                this.loadFromObject(parsed, true);
-                if (typeof ui !== 'undefined') ui.renderAll();
-              }
-            } catch (err) {}
-          }
-        };
-        const getSess = store.get(this.CLOUD_SESSION_KEY);
-        getSess.onsuccess = () => {
-          if (getSess.result && !this.cloudSession) {
-            try {
-              const sess = JSON.parse(getSess.result);
-              if (sess && sess.userId) {
-                this.saveCloudSession(sess);
-                this.pullFromCloud(true, false, true);
-              }
-            } catch (err) {}
-          }
-        };
+        try {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('saves')) return;
+          const tx = db.transaction('saves', 'readonly');
+          const store = tx.objectStore('saves');
+          const getSave = store.get(this.STORAGE_KEY);
+          getSave.onsuccess = () => {
+            if (getSave.result) {
+              try {
+                const parsed = JSON.parse(getSave.result);
+                const localReset = Number(this.data && this.data.resetTimestamp) || 0;
+                const parsedTime = parsed.lastSaved ? new Date(parsed.lastSaved).getTime() : 0;
+                if (localReset > 0 && localReset >= parsedTime) {
+                  return; // Do not recover pre-reset historical data!
+                }
+                if (this.getProgressionScore(parsed) > this.getProgressionScore(this.data)) {
+                  this.loadFromObject(parsed, true);
+                  if (typeof ui !== 'undefined') ui.renderAll();
+                }
+              } catch (err) {}
+            }
+          };
+          const getSess = store.get(this.CLOUD_SESSION_KEY);
+          getSess.onsuccess = () => {
+            if (getSess.result && !this.cloudSession) {
+              try {
+                const sess = JSON.parse(getSess.result);
+                if (sess && sess.userId) {
+                  this.saveCloudSession(sess);
+                  this.pullFromCloud(true, false, true);
+                }
+              } catch (err) {}
+            }
+          };
+        } catch (err) {}
       };
     } catch (e) {}
   }
@@ -1248,20 +1340,33 @@ class GameState {
     if (!cloudData || !cloudData.player) return JSON.parse(JSON.stringify(localData));
     if (!localData || !localData.player) return JSON.parse(JSON.stringify(cloudData));
 
+    const localReset = Number(localData.resetTimestamp) || 0;
+    const cloudReset = Number(cloudData.resetTimestamp) || 0;
+    const localTime = localData.lastSaved ? new Date(localData.lastSaved).getTime() : 0;
+    const cloudTime = cloudData.lastSaved ? new Date(cloudData.lastSaved).getTime() : 0;
+
+    // 1. If local was intentionally reset after cloud save was created, LOCAL RESET WINS 100%!
+    if (localReset > 0 && localReset >= cloudTime && localReset > cloudReset) {
+      return JSON.parse(JSON.stringify(localData));
+    }
+
+    // 2. If cloud was intentionally reset after local save was created, CLOUD RESET WINS 100%!
+    if (cloudReset > 0 && cloudReset >= localTime && cloudReset > localReset) {
+      return JSON.parse(JSON.stringify(cloudData));
+    }
+
     const localScore = this.getProgressionScore(localData);
     const cloudScore = this.getProgressionScore(cloudData);
 
     // If local is a brand new untouched state (e.g. opening Safari for the first time), use cloudData 100%
-    if (localScore === 0 && cloudScore > 0) {
+    if (localScore === 0 && cloudScore > 0 && localReset === 0) {
       return JSON.parse(JSON.stringify(cloudData));
     }
     // If cloud is brand new and local has pre-login progress, use localData 100%
-    if (cloudScore === 0 && localScore > 0) {
+    if (cloudScore === 0 && localScore > 0 && cloudReset === 0) {
       return JSON.parse(JSON.stringify(localData));
     }
 
-    const localTime = localData.lastSaved ? new Date(localData.lastSaved).getTime() : 0;
-    const cloudTime = cloudData.lastSaved ? new Date(cloudData.lastSaved).getTime() : 0;
     const lpGold = (localData.player && localData.player.gold) || 0;
     const cpGold = (cloudData.player && cloudData.player.gold) || 0;
 
@@ -2055,11 +2160,20 @@ class GameState {
     }
   }
 
-  logoutCloud() {
+  async logoutCloud() {
     this.saveCloudSession(null);
+    this.data = this.getDefaultState();
+    this.data.resetTimestamp = Date.now();
+    await this.clearIndexedDB();
+    const serialized = JSON.stringify(this.data);
+    localStorage.setItem(this.STORAGE_KEY, serialized);
+    localStorage.setItem(this.MIRROR_KEY, serialized);
+    this.saveToIndexedDB(serialized);
     this.updateSaveIndicator();
-    if (typeof ui !== 'undefined' && ui.renderCloudModalState) {
-      ui.renderCloudModalState();
+    if (typeof ui !== 'undefined') {
+      if (ui.renderCloudModalState) ui.renderCloudModalState();
+      if (ui.renderAll) ui.renderAll();
+      if (ui.updateAuthGateVisibility) ui.updateAuthGateVisibility();
     }
   }
 }
