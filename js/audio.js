@@ -2,6 +2,7 @@
 class SoundEngine {
   constructor() {
     this.ctx = null;
+    this.unmuteHandle = null;
     this.isMuted = false;
     this.volume = 0.7;
     this.bgmPlaying = false;
@@ -9,11 +10,39 @@ class SoundEngine {
     this.bgmTimer = null;
     this.bgmStep = 0;
     this.iosUnlocked = false;
-    this.silentAudio = null;
 
     if (typeof window !== 'undefined') {
+      this.ensureContext();
       this.setupIOSSilentBypass();
     }
+  }
+
+  // Ensure AudioContext is created and attached to unmute.js
+  ensureContext() {
+    if (!this.ctx && typeof window !== 'undefined') {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        try {
+          this.ctx = new AudioCtx();
+        } catch (e) {
+          console.warn("AudioContext instantiation error:", e);
+        }
+      }
+    }
+
+    if (this.ctx && !this.unmuteHandle && typeof window !== 'undefined' && typeof window.unmute === 'function') {
+      try {
+        this.unmuteHandle = window.unmute(this.ctx);
+      } catch (e) {
+        console.warn("unmute(context) attach error:", e);
+      }
+    }
+
+    if (typeof window !== 'undefined' && typeof window.applyAudioSessionPlayback === 'function') {
+      window.applyAudioSessionPlayback();
+    }
+
+    return this.ctx;
   }
 
   // iOS Safari hardware silent/mute switch bypass (forces media playback channel instead of ambient/ringer)
@@ -22,29 +51,24 @@ class SoundEngine {
       this.unlockIOSSilentMode();
     };
 
-    ['touchstart', 'touchend', 'pointerdown', 'mousedown', 'click'].forEach(evt => {
+    ['touchstart', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'keydown'].forEach(evt => {
       window.addEventListener(evt, onUserInteraction, { passive: true, capture: true });
     });
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
+        if (typeof window !== 'undefined' && typeof window.applyAudioSessionPlayback === 'function') {
+          window.applyAudioSessionPlayback();
+        }
         if (this.ctx && this.ctx.state === 'suspended') {
           this.ctx.resume().catch(() => {});
-        }
-        if (this.silentAudio && this.silentAudio.paused) {
-          this.silentAudio.play().catch(() => {});
         }
       }
     });
   }
 
   unlockIOSSilentMode() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
-    }
+    this.ensureContext();
 
     if (this.ctx) {
       if (this.ctx.state === 'suspended') {
@@ -57,43 +81,13 @@ class SoundEngine {
         src.buffer = buffer;
         src.connect(this.ctx.destination);
         src.start(0);
+        this.iosUnlocked = true;
       } catch (e) {}
-    }
-
-    if (!this.silentAudio) {
-      try {
-        const audio = document.createElement('audio');
-        audio.setAttribute('x-webkit-airplay', 'deny');
-        audio.setAttribute('playsinline', 'true');
-        audio.setAttribute('webkit-playsinline', 'true');
-        audio.loop = true;
-        audio.preload = 'auto';
-        audio.volume = 0.001;
-        // 0.5s silent mp3 that switches iOS audio session from Ambient to Media Playback
-        audio.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjM2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAACbACwv7///7////v7////v7////v7////v7////v7////v7////v7////v7//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA══';
-        this.silentAudio = audio;
-      } catch (e) {
-        console.warn("Could not create silent audio element:", e);
-      }
-    }
-
-    if (this.silentAudio && this.silentAudio.paused) {
-      const p = this.silentAudio.play();
-      if (p !== undefined) {
-        p.then(() => {
-          this.iosUnlocked = true;
-        }).catch(() => {});
-      }
     }
   }
 
   init() {
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
-    }
+    this.ensureContext();
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
     }
