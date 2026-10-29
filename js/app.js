@@ -54,20 +54,21 @@ document.addEventListener('DOMContentLoaded', () => {
     quests.openDeleteQuestModal();
   }
 
-  // First user interaction starts Web Audio context and ambient BGM
+  // First user interaction starts Web Audio context, unlocks iOS silent mode, and ambient BGM
   const startAudioOnFirstInteraction = () => {
     sound.init();
+    sound.unlockIOSSilentMode();
     if (state.data.settings.bgmEnabled) {
       sound.startBGM('ambient');
     }
-    window.removeEventListener('click', startAudioOnFirstInteraction);
-    window.removeEventListener('keydown', startAudioOnFirstInteraction);
-    window.removeEventListener('touchstart', startAudioOnFirstInteraction);
+    ['click', 'keydown', 'touchstart', 'touchend', 'pointerdown'].forEach(evt => {
+      window.removeEventListener(evt, startAudioOnFirstInteraction);
+    });
   };
 
-  window.addEventListener('click', startAudioOnFirstInteraction, { once: true });
-  window.addEventListener('keydown', startAudioOnFirstInteraction, { once: true });
-  window.addEventListener('touchstart', startAudioOnFirstInteraction, { once: true });
+  ['click', 'keydown', 'touchstart', 'touchend', 'pointerdown'].forEach(evt => {
+    window.addEventListener(evt, startAudioOnFirstInteraction, { once: true, passive: true });
+  });
 
   console.log("Awakened Hunter Growth RPG initialized successfully.");
 });

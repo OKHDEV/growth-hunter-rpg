@@ -1,4 +1,4 @@
-// Web Audio API Procedural Sound Engine with 3D Boxing & Combat Sounds
+// Web Audio API Procedural Sound Engine with 3D Boxing & Combat Sounds & iOS Silent Mode Bypass
 class SoundEngine {
   constructor() {
     this.ctx = null;
@@ -8,6 +8,83 @@ class SoundEngine {
     this.bgmType = null;
     this.bgmTimer = null;
     this.bgmStep = 0;
+    this.iosUnlocked = false;
+    this.silentAudio = null;
+
+    if (typeof window !== 'undefined') {
+      this.setupIOSSilentBypass();
+    }
+  }
+
+  // iOS Safari hardware silent/mute switch bypass (forces media playback channel instead of ambient/ringer)
+  setupIOSSilentBypass() {
+    const onUserInteraction = () => {
+      this.unlockIOSSilentMode();
+    };
+
+    ['touchstart', 'touchend', 'pointerdown', 'mousedown', 'click'].forEach(evt => {
+      window.addEventListener(evt, onUserInteraction, { passive: true, capture: true });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+        if (this.silentAudio && this.silentAudio.paused) {
+          this.silentAudio.play().catch(() => {});
+        }
+      }
+    });
+  }
+
+  unlockIOSSilentMode() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
+    }
+
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+      try {
+        // Warm up Web Audio buffer node
+        const buffer = this.ctx.createBuffer(1, 1, 22050);
+        const src = this.ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(this.ctx.destination);
+        src.start(0);
+      } catch (e) {}
+    }
+
+    if (!this.silentAudio) {
+      try {
+        const audio = document.createElement('audio');
+        audio.setAttribute('x-webkit-airplay', 'deny');
+        audio.setAttribute('playsinline', 'true');
+        audio.setAttribute('webkit-playsinline', 'true');
+        audio.loop = true;
+        audio.preload = 'auto';
+        audio.volume = 0.001;
+        // 0.5s silent mp3 that switches iOS audio session from Ambient to Media Playback
+        audio.src = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjM2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAACbACwv7///7////v7////v7////v7////v7////v7////v7////v7////v7//wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA══';
+        this.silentAudio = audio;
+      } catch (e) {
+        console.warn("Could not create silent audio element:", e);
+      }
+    }
+
+    if (this.silentAudio && this.silentAudio.paused) {
+      const p = this.silentAudio.play();
+      if (p !== undefined) {
+        p.then(() => {
+          this.iosUnlocked = true;
+        }).catch(() => {});
+      }
+    }
   }
 
   init() {
@@ -18,8 +95,9 @@ class SoundEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
+    this.unlockIOSSilentMode();
   }
 
   setVolume(vol) {
