@@ -7,15 +7,20 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(10, 14, 26, 0.96);
+  width: 100%;
+  background: rgba(10, 14, 26, 0.98);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-top: 1px solid var(--bg-card-border);
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)) 4px;
   justify-content: space-between;
   align-items: center;
-  z-index: 8000;
+  z-index: 99999;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  touch-action: manipulation;
 }
 
 .mobile-nav-btn {
@@ -90,6 +95,10 @@ body.in-battle .app-container {
 
 /* Tablet & Mobile Breakpoints */
 @media (max-width: 868px) {
+  body {
+    background-attachment: scroll !important;
+  }
+
   /* Prevent iOS automatic zoom on focus */
   input, select, textarea {
     font-size: 16px !important;
