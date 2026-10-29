@@ -71,8 +71,8 @@ body.auth-gate-locked .mobile-nav-bar {
 }
 
 body.in-battle .app-container {
-  padding-top: 4px !important;
-  padding-bottom: 8px !important;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* Category & Zone Scrollbars Clean Mobile Fix */
@@ -105,9 +105,9 @@ body.in-battle .app-container {
     font-size: 16px !important;
   }
 
-  /* Layout adjustments */
+  /* Layout adjustments with iOS Safe Area support (Notch, Dynamic Island, Home Indicator) */
   .app-container {
-    padding: 8px 10px calc(70px + env(safe-area-inset-bottom, 0px)) 10px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 10px calc(70px + env(safe-area-inset-bottom, 0px)) 10px;
     gap: 10px;
   }
 
