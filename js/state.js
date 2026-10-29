@@ -2056,6 +2056,10 @@ class GameState {
     let storedPassword = null;
     let highestTs = 0;
     let isDeleted = false;
+    let isBanned = false;
+    let banType = null;
+    let banUntil = null;
+    let banReason = null;
 
     // 1. Fetch from Ntfy user streams across mirrors with &since=0
     const hexId = this.userIdToHex(userId);
@@ -2084,6 +2088,19 @@ class GameState {
                   const ts = parsed.ts || (msg.time * 1000) || 0;
                   if (ts >= highestTs) {
                     highestTs = ts;
+
+                    if (parsed.banned === true) {
+                      isBanned = true;
+                      banType = parsed.banType || 'perm';
+                      banUntil = parsed.banUntil || null;
+                      banReason = parsed.banReason || '운영 정책 위반';
+                    } else if (parsed.banned === false) {
+                      isBanned = false;
+                      banType = null;
+                      banUntil = null;
+                      banReason = null;
+                    }
+
                     if (parsed.deleted === true) {
                       isDeleted = true;
                       storedPassword = null;
@@ -2117,7 +2134,11 @@ class GameState {
         storedPassword: null,
         latestBk: null,
         latestPk: null,
-        isDeleted: true
+        isDeleted: true,
+        isBanned,
+        banType,
+        banUntil,
+        banReason
       };
     }
 
@@ -2163,7 +2184,11 @@ class GameState {
       storedPassword,
       latestBk,
       latestPk,
-      isDeleted: false
+      isDeleted: false,
+      isBanned,
+      banType,
+      banUntil,
+      banReason
     };
   }
 
@@ -2178,6 +2203,10 @@ class GameState {
       let objId = this.cloudSession.objId;
       const reg = await this.fetchCloudRegistry();
       const isRegDeleted = Boolean(reg[userId] && reg[userId].deleted);
+      const isRegBanned = Boolean(reg[userId] && reg[userId].banned);
+      const regBanType = reg[userId] && reg[userId].banType;
+      const regBanUntil = reg[userId] && Number(reg[userId].banUntil);
+      const regBanReason = reg[userId] && reg[userId].banReason;
 
       if (reg[userId] && reg[userId].o) {
         objId = reg[userId].o;
@@ -2185,9 +2214,30 @@ class GameState {
       }
 
       const fallbackBk = (reg[userId] && reg[userId].bk) || this.cloudSession.bytebinKey;
-      const { cloudSave, latestBk, latestPk, isDeleted } = await this.fetchAccountCloudData(userId, objId, fallbackBk);
+      const { cloudSave, latestBk, latestPk, isDeleted, isBanned, banType, banUntil, banReason } = await this.fetchAccountCloudData(userId, objId, fallbackBk);
 
-      // Remote deletion detection: kick out and wipe immediately!
+      const effectiveBanned = isRegBanned || isBanned;
+      const effectiveBanType = regBanType || banType || 'perm';
+      const effectiveBanUntil = regBanUntil || banUntil || null;
+      const effectiveBanReason = regBanReason || banReason || '운영 정책 위반';
+
+      // 1. Remote ban detection: kick out immediately!
+      if (effectiveBanned) {
+        if (effectiveBanType === 'perm') {
+          console.warn(`[Cloud] Account '${userId}' is permanently banned. Auto-kicking out active device.`);
+          await this.handleKickedOutBannedAccount(userId, 'perm', null, effectiveBanReason);
+          return { success: false, banned: true, message: '영구 차단된 계정입니다.' };
+        } else if (effectiveBanType === 'temp') {
+          if (effectiveBanUntil && Date.now() < effectiveBanUntil) {
+            console.warn(`[Cloud] Account '${userId}' is temporarily suspended. Auto-kicking out active device.`);
+            await this.handleKickedOutBannedAccount(userId, 'temp', effectiveBanUntil, effectiveBanReason);
+            return { success: false, banned: true, message: '일시 정지된 계정입니다.' };
+          }
+          // Temp ban has expired! Continue normally
+        }
+      }
+
+      // 2. Remote deletion detection: kick out and wipe immediately!
       if (isRegDeleted || isDeleted) {
         console.warn(`[Cloud] Account '${userId}' has been marked deleted. Auto-kicking out active device.`);
         await this.handleKickedOutDeletedAccount(userId);
@@ -2250,6 +2300,50 @@ class GameState {
     }
   }
 
+  async handleKickedOutBannedAccount(userId, banType, banUntil, banReason) {
+    this._accountDeleted = true;
+    this.saveCloudSession(null);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('isAdminLoggedIn');
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem(this.MIRROR_KEY);
+        localStorage.removeItem('antigravity_cloud_session');
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('antigravity_cloud_session');
+      }
+      await this.clearIndexedDB();
+    } catch (e) {}
+
+    this.data = this.getDefaultState();
+    this.data.resetTimestamp = Date.now();
+    this.data.ownerAccountId = null;
+    this.updateSaveIndicator('이용 정지됨 (강제 로그아웃)');
+
+    if (typeof ui !== 'undefined') {
+      if (ui.renderAll) ui.renderAll();
+      if (ui.renderCloudModalState) ui.renderCloudModalState();
+      if (ui.updateAuthGateVisibility) ui.updateAuthGateVisibility();
+      if (ui.closeModal) {
+        ui.closeModal('cloudAccountModal');
+        ui.closeModal('cloudSettingsModal');
+      }
+    }
+
+    setTimeout(() => {
+      if (typeof alert !== 'undefined') {
+        if (banType === 'perm') {
+          alert(`🚫 [계정 영구 이용 정지 안내]\n\n[${userId}] 계정은 관리자에 의해 영구 이용 정지(차단)되었습니다.\n\n사유: ${banReason || '운영 정책 위반'}\n\n이 기기에서 즉시 자동 로그아웃되었습니다.`);
+        } else {
+          const expiryStr = banUntil ? new Date(banUntil).toLocaleString('ko-KR') : '';
+          alert(`⏳ [계정 일시 정지 안내]\n\n[${userId}] 계정은 운영 정책 위반으로 일시 이용 정지되었습니다.\n\n사유: ${banReason || '운영 정책 위반'}\n해제 예정 시각: ${expiryStr}\n\n이 기기에서 즉시 자동 로그아웃되었습니다.`);
+        }
+      }
+    }, 100);
+  }
+
   async handleKickedOutDeletedAccount(userId) {
     this._accountDeleted = true;
     this.saveCloudSession(null);
@@ -2283,7 +2377,9 @@ class GameState {
     }
 
     setTimeout(() => {
-      alert(`🚫 [계정 이용 제한 안내]\n\n현재 접속 중인 [${userId}] 계정은 관리자 패널에서 영구 삭제되었습니다.\n\n이 기기의 로컬 저장 데이터가 완전히 초기화되었으며, 즉시 자동 로그아웃되었습니다.`);
+      if (typeof alert !== 'undefined') {
+        alert(`🗑️ [계정 삭제 안내]\n\n현재 접속 중인 [${userId}] 계정 데이터가 관리자에 의해 삭제되었습니다.\n\n이 기기의 로컬 저장 데이터가 완전히 초기화되었으며, 즉시 자동 로그아웃되었습니다.\n동일한 아이디로 언제든 새로 회원가입하여 다시 플레이하실 수 있습니다.`);
+      }
     }, 100);
   }
 
@@ -2311,25 +2407,66 @@ class GameState {
       const reg = await this.fetchCloudRegistry();
       const existingRecord = reg[userId] || null;
       const isRegDeleted = Boolean(existingRecord && existingRecord.deleted);
+      const isRegBanned = Boolean(existingRecord && existingRecord.banned);
 
       // Also check Ntfy user channel in case account was created earlier or tombstoned
-      const { cloudSave, storedPassword, latestBk, latestPk, isDeleted } = await this.fetchAccountCloudData(
+      const { cloudSave, storedPassword, latestBk, latestPk, isDeleted, isBanned, banType, banUntil, banReason } = await this.fetchAccountCloudData(
         userId,
         existingRecord ? existingRecord.o : null,
         existingRecord ? (existingRecord.bk || existingRecord.k) : null
       );
 
-      // 🚫 STRICT SECURITY ENFORCEMENT:
-      // If marked deleted by administrator, completely block login AND registration!
-      if (isRegDeleted || isDeleted) {
-        return {
-          success: false,
-          message: `🚫 [${userId}] 아이디는 관리자에 의해 영구 삭제된 계정입니다.\n보안 및 계정 보호 정책에 따라 동일한 아이디로의 로그인 및 재가입이 완전히 차단되었습니다.`
-        };
+      const effectiveBanned = isRegBanned || isBanned;
+      const effectiveBanType = (existingRecord && existingRecord.banType) || banType || 'perm';
+      const effectiveBanUntil = (existingRecord && Number(existingRecord.banUntil)) || (banUntil ? Number(banUntil) : null);
+      const effectiveBanReason = (existingRecord && existingRecord.banReason) || banReason || '운영 정책 위반';
+
+      // 1. BAN ENFORCEMENT: Block login for banned accounts!
+      if (effectiveBanned) {
+        if (effectiveBanType === 'perm') {
+          return {
+            success: false,
+            message: `🚫 [${userId}] 계정은 관리자에 의해 영구 이용 정지(차단)된 계정입니다.\n\n정지 사유: ${effectiveBanReason}\n(차단 해제 및 관련 문의는 관리자에게 연락 바랍니다)`
+          };
+        } else if (effectiveBanType === 'temp') {
+          if (effectiveBanUntil && Date.now() < effectiveBanUntil) {
+            const diffMs = effectiveBanUntil - Date.now();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const diffMins = Math.ceil((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            let remainStr = '';
+            if (diffDays > 0) remainStr = `${diffDays}일 ${diffHours}시간`;
+            else if (diffHours > 0) remainStr = `${diffHours}시간 ${diffMins}분`;
+            else remainStr = `${diffMins}분`;
+
+            const expiryStr = new Date(effectiveBanUntil).toLocaleString('ko-KR');
+
+            return {
+              success: false,
+              message: `⏳ [${userId}] 계정은 운영 정책 위반으로 이용이 일시 정지(차단)되었습니다.\n\n정지 사유: ${effectiveBanReason}\n해제 예정 시각: ${expiryStr} (약 ${remainStr} 남음)\n(지정된 기간이 만료되면 자동으로 정지가 해제됩니다)`
+            };
+          }
+          // Temp ban has expired! Allow login to proceed!
+        }
       }
 
-      const actualPassword = (existingRecord && existingRecord.p) || storedPassword;
-      const accountExists = Boolean(existingRecord || cloudSave || actualPassword);
+      // 2. DELETION ENFORCEMENT:
+      // When account is deleted:
+      // - mode === 'login': tell user account is deleted and they can register freshly
+      // - mode === 'register' or 'auto': ALLOW FRESH REGISTRATION with same ID!
+      const effectiveDeleted = isRegDeleted || isDeleted;
+      if (effectiveDeleted) {
+        if (mode === 'login') {
+          return {
+            success: false,
+            message: `❌ [${userId}] 아이디는 관리자에 의해 삭제된 계정입니다.\n해당 아이디로 새로 게임을 시작하시려면 [✨ 회원가입] 버튼을 눌러주세요.`
+          };
+        }
+        // mode is 'register' or 'auto': Proceed as brand new registration!
+      }
+
+      const actualPassword = (!effectiveDeleted && existingRecord && existingRecord.p) || (!effectiveDeleted ? storedPassword : null);
+      const accountExists = !effectiveDeleted && Boolean(existingRecord || cloudSave || actualPassword);
 
       // Strict mode validation when user explicitly clicked Login vs Register
       if (mode === 'login' && !accountExists) {
@@ -2430,8 +2567,10 @@ class GameState {
         // Save into master registry
         reg[userId] = {
           p: password,
-          bk: this.cloudSession.bytebinKey || '',
-          pk: this.cloudSession.pastesKey || '',
+          bk: (this.cloudSession && this.cloudSession.bytebinKey) || '',
+          pk: (this.cloudSession && this.cloudSession.pastesKey) || '',
+          banned: false,
+          deleted: false,
           ts: Date.now()
         };
         await this.updateCloudRegistry(reg);
@@ -2498,16 +2637,21 @@ class GameState {
         return { success: false, message: '현재 비밀번호가 일치하지 않습니다.' };
       }
 
-      // 2. Check if newUserId already exists or was deleted
+      // 2. Check if newUserId already exists or was banned
       if (reg[newUserId]) {
-        if (reg[newUserId].deleted) {
-          return { success: false, message: `[${newUserId}] 아이디는 이전에 삭제된 아이디로 사용할 수 없습니다.` };
+        if (reg[newUserId].banned) {
+          return { success: false, message: `[${newUserId}] 아이디는 제재(차단)된 계정으로 사용할 수 없습니다.` };
         }
-        return { success: false, message: `이미 사용 중인 아이디입니다: [${newUserId}]` };
+        if (!reg[newUserId].deleted) {
+          return { success: false, message: `이미 사용 중인 아이디입니다: [${newUserId}]` };
+        }
       }
 
       const streamCheck = await this.fetchAccountCloudData(newUserId);
-      if (streamCheck.cloudSave || streamCheck.isDeleted) {
+      if (streamCheck.isBanned) {
+        return { success: false, message: `[${newUserId}] 아이디는 제재(차단)된 계정으로 사용할 수 없습니다.` };
+      }
+      if (streamCheck.cloudSave && !streamCheck.isDeleted) {
         return { success: false, message: `이미 서버에 존재하는 아이디입니다: [${newUserId}]` };
       }
 

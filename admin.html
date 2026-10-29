@@ -714,7 +714,105 @@
     🎮 메인 게임으로 돌아가기
   </a>
 
-  <!-- 📅 User Activity Calendar & Timeline Modal -->
+  <!-- 🚫 User Sanction & Ban Management Modal -->
+  <div id="sanctionModal" class="activity-modal-overlay" style="display:none;" onclick="handleSanctionModalOverlayClick(event)">
+    <div class="activity-modal-container" style="max-width:540px;" onclick="event.stopPropagation()">
+      <div class="activity-modal-header" style="border-bottom:1px solid rgba(239, 68, 68, 0.3);">
+        <h2>
+          <span>🚫</span>
+          <span>[<span id="sanctionModalUserId" style="color:#00e5ff;"></span>] 계정 제재 및 차단 관리</span>
+        </h2>
+        <button type="button" class="activity-modal-close" onclick="closeSanctionModal()" title="닫기">✕</button>
+      </div>
+
+      <div class="activity-modal-body" style="padding:18px;">
+        <!-- Current Status Banner -->
+        <div id="sanctionCurrentStatusBox" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; margin-bottom:16px;">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- ⏳ Section 1: Temporary Ban -->
+        <div style="background:rgba(245, 158, 11, 0.06); border:1px solid rgba(245, 158, 11, 0.25); border-radius:10px; padding:14px; margin-bottom:16px;">
+          <h4 style="color:#fbbf24; margin:0 0 8px 0; font-size:0.95rem; display:flex; align-items:center; gap:6px;">
+            <span>⏳</span> 일시 차단 (기간/일수 지정 정지)
+          </h4>
+          <p style="font-size:0.78rem; color:#94a3b8; margin:0 0 10px 0;">
+            정지 기간 동안 해당 계정의 로그인이 차단되며 기기에서 강제 로그아웃됩니다. 지정 기간이 만료되면 자동으로 정지가 해제됩니다.
+          </p>
+
+          <div style="margin-bottom:10px;">
+            <label style="font-size:0.8rem; color:#cbd5e1; font-weight:700; display:block; margin-bottom:4px;">정지 기간 설정 (숫자 입력 또는 프리셋 버튼):</label>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <input type="number" id="sanctionDaysInput" value="4" min="1" max="365" class="search-input" style="width:75px; text-align:center; font-weight:700; font-size:1rem;" oninput="updateSanctionDaysPreview()">
+              <span style="font-size:0.85rem; color:#cbd5e1;">일간 밴</span>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button type="button" class="btn-action" onclick="setSanctionDays(1)">1일</button>
+                <button type="button" class="btn-action" onclick="setSanctionDays(3)">3일</button>
+                <button type="button" class="btn-action" onclick="setSanctionDays(4)" style="border-color:#38bdf8; color:#38bdf8; font-weight:700;">4일 (추천)</button>
+                <button type="button" class="btn-action" onclick="setSanctionDays(7)">7일</button>
+                <button type="button" class="btn-action" onclick="setSanctionDays(14)">14일</button>
+                <button type="button" class="btn-action" onclick="setSanctionDays(30)">30일</button>
+              </div>
+            </div>
+            <div id="sanctionExpiryPreview" style="font-size:0.8rem; color:#38bdf8; margin-top:6px; font-weight:700;">
+              <!-- live preview -->
+            </div>
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <label style="font-size:0.78rem; color:#94a3b8; display:block; margin-bottom:3px;">또는 특정 해제 일시 직접 지정:</label>
+            <input type="datetime-local" id="sanctionDatetimeInput" class="search-input" style="width:230px;" onchange="updateSanctionDatetimePreview()">
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <label style="font-size:0.8rem; color:#cbd5e1; font-weight:700; display:block; margin-bottom:4px;">일시 정지 사유 (유저 화면에 표시):</label>
+            <input type="text" id="sanctionTempReason" class="search-input" style="width:100%;" placeholder="예: 비매너 행위 적발, 비인가 프로그램 사용 의심 등" value="운영 정책 위반 (비정상 플레이 의심)">
+            <div style="display:flex; gap:4px; margin-top:5px; flex-wrap:wrap;">
+              <button type="button" class="btn-action" style="font-size:0.72rem; padding:1px 6px;" onclick="setTempReason('비매너 행위 및 운영 방해')">비매너</button>
+              <button type="button" class="btn-action" style="font-size:0.72rem; padding:1px 6px;" onclick="setTempReason('비인가 매크로/프로그램 사용 의심')">매크로 의심</button>
+              <button type="button" class="btn-action" style="font-size:0.72rem; padding:1px 6px;" onclick="setTempReason('비정상 데이터 유입 및 임시 조사')">조사 목적</button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-action btn-amber" onclick="executeTemporaryBan()" style="width:100%; justify-content:center; padding:9px; font-size:0.92rem; font-weight:700;">
+            ⏳ 일시 차단 집행 (해당 기간 로그인 불가)
+          </button>
+        </div>
+
+        <!-- 🚫 Section 2: Permanent Ban -->
+        <div style="background:rgba(239, 68, 68, 0.06); border:1px solid rgba(239, 68, 68, 0.25); border-radius:10px; padding:14px; margin-bottom:16px;">
+          <h4 style="color:#f87171; margin:0 0 8px 0; font-size:0.95rem; display:flex; align-items:center; gap:6px;">
+            <span>🚫</span> 영구 차단 (영구 이용 정지)
+          </h4>
+          <p style="font-size:0.78rem; color:#94a3b8; margin:0 0 10px 0;">
+            계정 데이터(레벨/골드/세이브)는 삭제되지 않고 DB에 안전하게 보존되며, 로그인이 영구히 차단됩니다. 추후 언제든 <strong>[차단 해제]</strong> 버튼으로 원상 복구할 수 있습니다.
+          </p>
+
+          <div style="margin-bottom:12px;">
+            <label style="font-size:0.8rem; color:#cbd5e1; font-weight:700; display:block; margin-bottom:4px;">영구 차단 사유 (유저 화면에 표시):</label>
+            <input type="text" id="sanctionPermReason" class="search-input" style="width:100%;" placeholder="예: 악의적 치트 사용, 심각한 보안 규정 위반 등" value="심각한 운영 정책 위반 및 영구 제재">
+          </div>
+
+          <button type="button" class="btn-action btn-rose" onclick="executePermanentBan()" style="width:100%; justify-content:center; padding:9px; font-size:0.92rem; font-weight:700;">
+            🚫 영구 차단 집행 (영구 로그인 차단)
+          </button>
+        </div>
+
+        <!-- 🗑️ Section 3: Account Deletion (Permit Re-registration) -->
+        <div style="background:rgba(100, 116, 139, 0.08); border:1px dashed rgba(148, 163, 184, 0.3); border-radius:10px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <div style="font-size:0.85rem; font-weight:700; color:#e2e8f0;">🗑️ 계정 데이터 완전 삭제</div>
+              <div style="font-size:0.75rem; color:#94a3b8;">계정 세이브가 영구 삭제되며, 삭제 후 동일한 아이디로 재가입이 가능합니다.</div>
+            </div>
+            <button type="button" class="btn-action btn-rose" onclick="executeDeleteFromModal()" style="font-size:0.82rem; padding:5px 12px;">
+              🗑️ 계정 삭제
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <div id="activityDetailModal" class="activity-modal-overlay" style="display:none;" onclick="handleActivityModalOverlayClick(event)">
     <div class="activity-modal-container" onclick="event.stopPropagation()">
       <div class="activity-modal-header">
@@ -1090,12 +1188,51 @@
           lastActiveStr = '기록 없음';
         }
 
+        const isBanned = Boolean(accInfo.banned);
+        const banType = accInfo.banType;
+        const banUntil = Number(accInfo.banUntil) || null;
+        const banReason = accInfo.banReason || '운영 정책 위반';
+        const isTempActive = isBanned && banType === 'temp' && banUntil && Date.now() < banUntil;
+        const isPerm = isBanned && banType === 'perm';
+
+        let banBadgeHtml = '';
+        if (isPerm) {
+          banBadgeHtml = `
+            <span style="background:rgba(239,68,68,0.25); border:1px solid #ef4444; color:#f87171; padding:2px 8px; border-radius:4px; font-weight:800; font-size:0.8rem; display:inline-flex; align-items:center; gap:4px;">
+              🚫 영구 차단됨
+            </span>
+            <span style="font-size:0.75rem; color:#fca5a5;">(사유: ${banReason})</span>
+            <button type="button" class="btn-action" onclick="unbanUserAccount('${uid}')" style="background:rgba(34,197,94,0.25); border:1px solid #22c55e; color:#4ade80; font-weight:700; padding:2px 8px; font-size:0.75rem;">
+              🔓 차단 해제
+            </button>
+          `;
+        } else if (isTempActive) {
+          const diffMs = banUntil - Date.now();
+          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          banBadgeHtml = `
+            <span style="background:rgba(245,158,11,0.25); border:1px solid #f59e0b; color:#fbbf24; padding:2px 8px; border-radius:4px; font-weight:800; font-size:0.8rem; display:inline-flex; align-items:center; gap:4px;">
+              ⏳ 일시 정지 중 (~${formatKoreanDateTime(banUntil)}, 약 ${diffDays}일 남음)
+            </span>
+            <span style="font-size:0.75rem; color:#fde68a;">(사유: ${banReason})</span>
+            <button type="button" class="btn-action" onclick="unbanUserAccount('${uid}')" style="background:rgba(34,197,94,0.25); border:1px solid #22c55e; color:#4ade80; font-weight:700; padding:2px 8px; font-size:0.75rem;">
+              🔓 차단 해제
+            </button>
+          `;
+        } else if (isBanned && banType === 'temp' && banUntil && Date.now() >= banUntil) {
+          banBadgeHtml = `
+            <span style="background:rgba(148,163,184,0.15); border:1px solid #64748b; color:#94a3b8; padding:2px 8px; border-radius:4px; font-size:0.78rem;">
+              ⏳ 일시 차단 기간 만료됨 (정상 이용 가능)
+            </span>
+          `;
+        }
+
         card.innerHTML = `
           <div class="account-header">
             <div>
               <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:4px;">
                 <span class="user-badge">👤 ${uid}</span>
                 <span class="pw-badge">비밀번호: <strong>${accInfo.p || '미설정'}</strong></span>
+                ${banBadgeHtml}
                 <span style="font-size:0.82rem; color:#94a3b8;">🔄 최근 서버 동기화: <strong style="color:#e2e8f0;">${syncDateStr}</strong></span>
                 <span id="lastActive_${hexId}" style="font-size:0.82rem; color:#94a3b8; background:rgba(56, 189, 248, 0.1); padding:2px 8px; border-radius:4px; border:1px solid rgba(56, 189, 248, 0.2); display:inline-flex; align-items:center; gap:6px;">
                   <span><span style="color:#cbd5e1;">🎮 마지막 활동:</span> <strong id="lastActiveVal_${hexId}" style="color:#38bdf8;">${lastActiveStr}</strong></span>
@@ -1111,6 +1248,9 @@
               </button>
               <button class="btn-action btn-cyan" onclick="toggleUserDetails('${uid}', '${accInfo.bk || ''}', '${accInfo.pk || ''}')">
                 ⚡ 관리 도구 & 세이브 열기
+              </button>
+              <button class="btn-action btn-amber" onclick="openSanctionModal('${uid}')">
+                🚫 제재 / 차단 관리
               </button>
               <a href="${BYTEBIN_URL}/${accInfo.bk}" target="_blank" class="btn-action btn-emerald" style="text-decoration:none;">
                 💾 Bytebin 원본 ↗
@@ -1459,11 +1599,14 @@
             <button class="btn-action btn-amber" onclick="changeUserPasswordPrompt('${userId}')">
               🔑 비밀번호 강제 변경
             </button>
+            <button class="btn-action btn-amber" onclick="openSanctionModal('${userId}')">
+              🚫 제재 / 차단 관리 (일시/영구)
+            </button>
             <button class="btn-action btn-rose" onclick="resetUserProgressToLv1('${userId}')">
               🔄 캐릭터 데이터 초기화 (Lv.1 리셋)
             </button>
             <button class="btn-action btn-rose" onclick="deleteUserAccount('${userId}')">
-              🗑️ 계정 영구 삭제
+              🗑️ 계정 데이터 삭제 (재가입 허용)
             </button>
           </div>
         </div>
@@ -1753,39 +1896,271 @@
       renderUserDetailView(userId, hexId, resetSave);
     }
 
+    /* 🚫 Sanctions & Bans Management */
+    let currentSanctionUserId = null;
+
+    function openSanctionModal(userId) {
+      currentSanctionUserId = userId;
+      document.getElementById('sanctionModalUserId').textContent = userId;
+      document.getElementById('sanctionModal').style.display = 'flex';
+
+      const accInfo = rawAccountsRegistry[userId] || {};
+      const statusBox = document.getElementById('sanctionCurrentStatusBox');
+
+      const isBanned = Boolean(accInfo.banned);
+      const banType = accInfo.banType;
+      const banUntil = Number(accInfo.banUntil) || null;
+      const banReason = accInfo.banReason || '운영 정책 위반';
+      const isTempActive = isBanned && banType === 'temp' && banUntil && Date.now() < banUntil;
+      const isPerm = isBanned && banType === 'perm';
+
+      if (isPerm) {
+        statusBox.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="display:inline-block; background:rgba(239,68,68,0.25); border:1px solid #ef4444; color:#f87171; padding:3px 10px; border-radius:4px; font-weight:800; font-size:0.85rem; margin-bottom:4px;">
+                🚫 현재 상태: 영구 차단 중
+              </div>
+              <div style="font-size:0.8rem; color:#fca5a5;">정지 사유: ${banReason}</div>
+            </div>
+            <button type="button" class="btn-action" onclick="unbanUserAccount('${userId}')" style="background:rgba(34,197,94,0.3); border:1px solid #22c55e; color:#4ade80; font-weight:700; padding:6px 14px; font-size:0.85rem;">
+              🔓 영구 차단 해제 (정상 복구)
+            </button>
+          </div>
+        `;
+      } else if (isTempActive) {
+        const diffMs = banUntil - Date.now();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        statusBox.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <div style="display:inline-block; background:rgba(245,158,11,0.25); border:1px solid #f59e0b; color:#fbbf24; padding:3px 10px; border-radius:4px; font-weight:800; font-size:0.85rem; margin-bottom:4px;">
+                ⏳ 현재 상태: 일시 정지 중 (약 ${diffDays}일 남음)
+              </div>
+              <div style="font-size:0.8rem; color:#fde68a;">해제 예정: ${formatKoreanDateTime(banUntil)}</div>
+              <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">사유: ${banReason}</div>
+            </div>
+            <button type="button" class="btn-action" onclick="unbanUserAccount('${userId}')" style="background:rgba(34,197,94,0.3); border:1px solid #22c55e; color:#4ade80; font-weight:700; padding:6px 14px; font-size:0.85rem;">
+              🔓 일시 차단 즉시 해제
+            </button>
+          </div>
+        `;
+      } else {
+        statusBox.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="background:rgba(52,211,153,0.2); border:1px solid #10b981; color:#34d399; padding:3px 10px; border-radius:4px; font-weight:700; font-size:0.85rem;">
+              🟢 현재 상태: 정상 이용 중
+            </span>
+            <span style="font-size:0.8rem; color:#94a3b8;">제재 이력 없음</span>
+          </div>
+        `;
+      }
+
+      setSanctionDays(4);
+    }
+
+    function closeSanctionModal() {
+      document.getElementById('sanctionModal').style.display = 'none';
+      currentSanctionUserId = null;
+    }
+
+    function handleSanctionModalOverlayClick(e) {
+      if (e.target.id === 'sanctionModal') {
+        closeSanctionModal();
+      }
+    }
+
+    function setSanctionDays(days) {
+      const input = document.getElementById('sanctionDaysInput');
+      if (input) input.value = days;
+      const dtInput = document.getElementById('sanctionDatetimeInput');
+      if (dtInput) dtInput.value = '';
+      updateSanctionDaysPreview();
+    }
+
+    function setTempReason(reason) {
+      const rInput = document.getElementById('sanctionTempReason');
+      if (rInput) rInput.value = reason;
+    }
+
+    function updateSanctionDaysPreview() {
+      const days = Math.max(1, parseInt(document.getElementById('sanctionDaysInput').value || '1', 10));
+      const targetTime = Date.now() + days * 24 * 60 * 60 * 1000;
+      const previewEl = document.getElementById('sanctionExpiryPreview');
+      if (previewEl) {
+        previewEl.textContent = `해제 예정 시각: ${formatKoreanDateTime(targetTime)} (${days}일간 이용 정지)`;
+      }
+    }
+
+    function updateSanctionDatetimePreview() {
+      const val = document.getElementById('sanctionDatetimeInput').value;
+      if (!val) {
+        updateSanctionDaysPreview();
+        return;
+      }
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        const diffMs = d.getTime() - Date.now();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        const previewEl = document.getElementById('sanctionExpiryPreview');
+        if (previewEl) {
+          previewEl.textContent = `해제 예정 시각: ${formatKoreanDateTime(d)} (약 ${Math.max(1, diffDays)}일간 이용 정지)`;
+        }
+      }
+    }
+
+    async function executeTemporaryBan() {
+      const userId = currentSanctionUserId;
+      if (!userId) return;
+
+      let untilTs = 0;
+      const dtVal = document.getElementById('sanctionDatetimeInput').value;
+      if (dtVal) {
+        const d = new Date(dtVal);
+        if (!isNaN(d.getTime()) && d.getTime() > Date.now()) {
+          untilTs = d.getTime();
+        }
+      }
+      if (!untilTs) {
+        const days = Math.max(1, parseInt(document.getElementById('sanctionDaysInput').value || '4', 10));
+        untilTs = Date.now() + days * 24 * 60 * 60 * 1000;
+      }
+
+      const reason = (document.getElementById('sanctionTempReason').value || '').trim() || '운영 정책 위반';
+      const days = Math.ceil((untilTs - Date.now()) / (1000 * 60 * 60 * 24));
+
+      if (!confirm(`⏳ [${userId}] 계정을 ${days}일간 일시 차단하시겠습니까?\n\n- 정지 기한: ${formatKoreanDateTime(untilTs)}\n- 사유: ${reason}\n- 접속 중인 기기에서 즉시 강제 로그아웃됩니다.`)) {
+        return;
+      }
+
+      await applySanctionToServer(userId, {
+        banned: true,
+        banType: 'temp',
+        banUntil: untilTs,
+        banReason: reason,
+        deleted: false
+      });
+
+      alert(`✅ [${userId}] 계정이 ${days}일간 일시 차단되었습니다!\n해제 예정: ${formatKoreanDateTime(untilTs)}`);
+      closeSanctionModal();
+      filterAccountsList();
+    }
+
+    async function executePermanentBan() {
+      const userId = currentSanctionUserId;
+      if (!userId) return;
+
+      const reason = (document.getElementById('sanctionPermReason').value || '').trim() || '심각한 운영 정책 위반 및 영구 제재';
+
+      if (!confirm(`🚨 [${userId}] 계정을 영구 차단하시겠습니까?\n\n- 계정 데이터는 안전하게 보존되지만, 로그인이 영구히 차단됩니다.\n- 사유: ${reason}\n- 언제든 관리자 패널에서 [차단 해제]가 가능합니다.`)) {
+        return;
+      }
+
+      await applySanctionToServer(userId, {
+        banned: true,
+        banType: 'perm',
+        banUntil: null,
+        banReason: reason,
+        deleted: false
+      });
+
+      alert(`✅ [${userId}] 계정이 영구 차단되었습니다!\n사유: ${reason}`);
+      closeSanctionModal();
+      filterAccountsList();
+    }
+
+    async function unbanUserAccount(userId) {
+      if (!confirm(`🔓 [${userId}] 계정의 이용 차단을 해제하시겠습니까?\n해제 즉시 유저는 정상적으로 로그인 및 플레이할 수 있습니다.`)) return;
+
+      await applySanctionToServer(userId, {
+        banned: false,
+        banType: null,
+        banUntil: null,
+        banReason: null,
+        deleted: false
+      });
+
+      alert(`✅ [${userId}] 계정의 차단이 성공적으로 해제되었습니다!`);
+      closeSanctionModal();
+      filterAccountsList();
+    }
+
+    async function applySanctionToServer(userId, sanctionObj) {
+      const hexId = userIdToHex(userId);
+      const now = Date.now();
+
+      const current = rawAccountsRegistry[userId] || {};
+      rawAccountsRegistry[userId] = {
+        ...current,
+        ...sanctionObj,
+        ts: now
+      };
+
+      const regTopics = [
+        'https://ntfy.adminforge.de/okh_gh_cloud_registry',
+        'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
+        'https://ntfy.sh/okh_gh_cloud_v4_registry'
+      ];
+      const regBody = JSON.stringify({ [userId]: rawAccountsRegistry[userId] });
+      await Promise.allSettled(regTopics.map(u =>
+        fetch(u, { method: 'POST', body: regBody })
+      ));
+
+      const userTopics = [
+        `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}`,
+        `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}`,
+        `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
+      ];
+      const userPayload = JSON.stringify({
+        u: userId,
+        ...sanctionObj,
+        ts: now
+      });
+      await Promise.allSettled(userTopics.map(u =>
+        fetch(u, { method: 'POST', body: userPayload })
+      ));
+    }
+
+    function executeDeleteFromModal() {
+      if (currentSanctionUserId) {
+        const uid = currentSanctionUserId;
+        closeSanctionModal();
+        deleteUserAccount(uid);
+      }
+    }
+
     async function deleteUserAccount(userId) {
-      if (!confirm(`🚨 영구 삭제 경고: [${userId}] 계정을 데이터베이스에서 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 접속 중인 기기에서도 즉시 강제 로그아웃됩니다!`)) return;
+      if (!confirm(`🚨 계정 데이터 완전 삭제 확인:\n\n[${userId}] 계정 데이터를 데이터베이스에서 완전히 삭제하시겠습니까?\n\n- 캐릭터 레벨, 골드, 장비, 보스 기록이 모두 삭제됩니다.\n- 접속 중인 기기에서는 즉시 자동 로그아웃됩니다.\n- 삭제된 후 동일한 아이디로 언제든 새로 회원가입이 가능합니다!`)) return;
 
       const hexId = userIdToHex(userId);
       try {
         const now = Date.now();
-        // Mark deleted in registry across mirrors
-        rawAccountsRegistry[userId] = { deleted: true, ts: now };
+        // Mark deleted in registry across mirrors with allowReReg
+        rawAccountsRegistry[userId] = { deleted: true, allowReReg: true, banned: false, ts: now };
         const regTopics = [
           'https://ntfy.adminforge.de/okh_gh_cloud_registry',
           'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
           'https://ntfy.sh/okh_gh_cloud_v4_registry'
         ];
-        const regBody = JSON.stringify({ [userId]: { deleted: true, ts: now } });
+        const regBody = JSON.stringify({ [userId]: { deleted: true, allowReReg: true, banned: false, ts: now } });
         await Promise.allSettled(regTopics.map(u =>
           fetch(u, { method: 'POST', body: regBody })
         ));
 
-        // Push tombstone to user channel across mirrors
+        // Push deletion tombstone to user channel across mirrors
         const userTopics = [
           `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}`,
           `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}`,
           `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
         ];
-        const tombstone = JSON.stringify({ u: userId, deleted: true, ts: now });
+        const tombstone = JSON.stringify({ u: userId, deleted: true, allowReReg: true, banned: false, ts: now });
         await Promise.allSettled(userTopics.map(u =>
           fetch(u, { method: 'POST', body: tombstone })
         ));
 
         delete cachedUserSaves[userId];
-        rawAccountsRegistry[userId] = { deleted: true, ts: now };
 
-        alert(`🗑️ [${userId}] 계정이 영구 삭제되었습니다.\n\n접속 중인 기기에서는 실시간으로 자동 강제 로그아웃 처리되며, 로컬 데이터가 안전하게 초기화됩니다.`);
+        alert(`🗑️ [${userId}] 계정 데이터가 성공적으로 삭제되었습니다.\n\n접속 중인 기기에서는 즉시 자동 로그아웃 처리되며, 삭제된 동일 아이디로 새로 회원가입이 가능합니다.`);
         filterAccountsList();
         calculateKpiStats();
       } catch (e) {
