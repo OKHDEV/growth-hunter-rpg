@@ -1670,6 +1670,202 @@ class UIManager {
     if (modal) modal.classList.add('hidden');
   }
 
+  openChangeAccountModal(tab = 'id') {
+    sound.playClick();
+    if (!state.isCloudLoggedIn()) {
+      this.showToast('⚠️ 먼저 클라우드 계정에 로그인해주세요!', 'warning');
+      this.openCloudModal();
+      return;
+    }
+    const currentUserId = state.cloudSession.userId;
+    const currentDisplay = document.getElementById('changeIdCurrentDisplay');
+    if (currentDisplay) currentDisplay.value = currentUserId;
+
+    // Reset fields
+    const curPwInput = document.getElementById('changeIdCurrentPwInput');
+    const newIdInput = document.getElementById('changeIdNewInput');
+    const pwCurInput = document.getElementById('changePwCurrentInput');
+    const pwNewInput = document.getElementById('changePwNewInput');
+    const pwConfirmInput = document.getElementById('changePwConfirmInput');
+    if (curPwInput) curPwInput.value = '';
+    if (newIdInput) newIdInput.value = '';
+    if (pwCurInput) pwCurInput.value = '';
+    if (pwNewInput) pwNewInput.value = '';
+    if (pwConfirmInput) pwConfirmInput.value = '';
+
+    const idMsg = document.getElementById('changeIdFeedbackMsg');
+    const pwMsg = document.getElementById('changePwFeedbackMsg');
+    if (idMsg) idMsg.textContent = '';
+    if (pwMsg) pwMsg.textContent = '';
+
+    this.switchChangeAccountTab(tab);
+    const modal = document.getElementById('changeAccountModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  closeChangeAccountModal() {
+    sound.playClick();
+    const modal = document.getElementById('changeAccountModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  switchChangeAccountTab(tab) {
+    sound.playClick();
+    const idView = document.getElementById('changeIdFormView');
+    const pwView = document.getElementById('changePwFormView');
+    const tabBtnId = document.getElementById('tabBtnChangeId');
+    const tabBtnPw = document.getElementById('tabBtnChangePw');
+    const modalTitle = document.getElementById('changeAccountModalTitle');
+
+    if (tab === 'id') {
+      if (idView) idView.classList.remove('hidden');
+      if (pwView) pwView.classList.add('hidden');
+      if (tabBtnId) {
+        tabBtnId.style.background = '#6366f1';
+        tabBtnId.style.color = '#ffffff';
+      }
+      if (tabBtnPw) {
+        tabBtnPw.style.background = 'transparent';
+        tabBtnPw.style.color = '#94a3b8';
+      }
+      if (modalTitle) modalTitle.innerHTML = '✏️ 계정 아이디(Username) 변경';
+    } else {
+      if (idView) idView.classList.add('hidden');
+      if (pwView) pwView.classList.remove('hidden');
+      if (tabBtnId) {
+        tabBtnId.style.background = 'transparent';
+        tabBtnId.style.color = '#94a3b8';
+      }
+      if (tabBtnPw) {
+        tabBtnPw.style.background = '#d97706';
+        tabBtnPw.style.color = '#ffffff';
+      }
+      if (modalTitle) modalTitle.innerHTML = '🔒 계정 비밀번호(Password) 변경';
+    }
+  }
+
+  async submitChangeId() {
+    const curPw = document.getElementById('changeIdCurrentPwInput')?.value?.trim() || '';
+    const newId = document.getElementById('changeIdNewInput')?.value?.trim() || '';
+    const msgBox = document.getElementById('changeIdFeedbackMsg');
+    const btn = document.getElementById('btnSubmitChangeId');
+
+    if (!curPw) {
+      sound.playDefeat();
+      const err = '⚠️ 본인 확인을 위해 현재 비밀번호를 입력해주세요.';
+      if (msgBox) { msgBox.textContent = err; msgBox.style.color = '#f87171'; }
+      this.showToast(err, 'error');
+      return;
+    }
+    if (!newId) {
+      sound.playDefeat();
+      const err = '⚠️ 변경할 새로운 아이디를 입력해주세요.';
+      if (msgBox) { msgBox.textContent = err; msgBox.style.color = '#f87171'; }
+      this.showToast(err, 'error');
+      return;
+    }
+
+    const origText = btn ? btn.innerHTML : '✏️ 아이디 변경 완료';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⏳ 서버에 아이디 변경 처리 중...';
+    }
+    if (msgBox) {
+      msgBox.textContent = '⏳ 분산 서버에서 새 아이디 중복 검사 및 데이터 이전 중...';
+      msgBox.style.color = '#38bdf8';
+    }
+
+    try {
+      const res = await state.changeCloudUserId(curPw, newId);
+      if (!res.success) {
+        sound.playDefeat();
+        if (msgBox) {
+          msgBox.textContent = `❌ ${res.message}`;
+          msgBox.style.color = '#f87171';
+        }
+        this.showToast(res.message, 'error');
+        return;
+      }
+
+      sound.playLevelUp();
+      this.showToast(`🎉 계정 아이디가 [${res.newUserId}](으)로 성공적으로 변경되었습니다!`, 'success');
+      this.closeChangeAccountModal();
+      this.renderCloudModalState();
+      this.renderAll();
+    } catch (e) {
+      this.showToast('아이디 변경 중 오류 발생: ' + e.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+  }
+
+  async submitChangePw() {
+    const curPw = document.getElementById('changePwCurrentInput')?.value?.trim() || '';
+    const newPw = document.getElementById('changePwNewInput')?.value?.trim() || '';
+    const confirmPw = document.getElementById('changePwConfirmInput')?.value?.trim() || '';
+    const msgBox = document.getElementById('changePwFeedbackMsg');
+    const btn = document.getElementById('btnSubmitChangePw');
+
+    if (!curPw) {
+      sound.playDefeat();
+      const err = '⚠️ 현재 사용 중인 비밀번호를 입력해주세요.';
+      if (msgBox) { msgBox.textContent = err; msgBox.style.color = '#f87171'; }
+      this.showToast(err, 'error');
+      return;
+    }
+    if (!newPw) {
+      sound.playDefeat();
+      const err = '⚠️ 새로운 비밀번호를 입력해주세요.';
+      if (msgBox) { msgBox.textContent = err; msgBox.style.color = '#f87171'; }
+      this.showToast(err, 'error');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      sound.playDefeat();
+      const err = '⚠️ 새로 입력한 비밀번호와 확인 입력이 일치하지 않습니다.';
+      if (msgBox) { msgBox.textContent = err; msgBox.style.color = '#f87171'; }
+      this.showToast(err, 'error');
+      return;
+    }
+
+    const origText = btn ? btn.innerHTML : '🔒 비밀번호 변경 완료';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⏳ 서버에 비밀번호 변경 처리 중...';
+    }
+    if (msgBox) {
+      msgBox.textContent = '⏳ 분산 서버에 새 비밀번호를 동기화 중...';
+      msgBox.style.color = '#38bdf8';
+    }
+
+    try {
+      const res = await state.changeCloudPassword(curPw, newPw);
+      if (!res.success) {
+        sound.playDefeat();
+        if (msgBox) {
+          msgBox.textContent = `❌ ${res.message}`;
+          msgBox.style.color = '#f87171';
+        }
+        this.showToast(res.message, 'error');
+        return;
+      }
+
+      sound.playLevelUp();
+      this.showToast('🔐 비밀번호가 성공적으로 변경되었습니다! 다음 로그인 시 새 비밀번호를 사용해주세요.', 'success');
+      this.closeChangeAccountModal();
+    } catch (e) {
+      this.showToast('비밀번호 변경 중 오류 발생: ' + e.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+  }
+
   renderCloudModalState() {
     const sess = state.cloudSession;
     const loggedInView = document.getElementById('cloudLoggedInView');
@@ -1677,11 +1873,15 @@ class UIManager {
     const activeUserEl = document.getElementById('cloudActiveUserId');
     const lastSyncEl = document.getElementById('cloudLastSyncTime');
     const settingsStatusBox = document.getElementById('settingsCloudAccountSummary');
+    const accountManageCard = document.getElementById('settingsAccountManageCard');
+    const currentIdDisplay = document.getElementById('settingsCurrentUserIdDisplay');
 
     if (sess && sess.userId) {
       if (loggedInView) loggedInView.classList.remove('hidden');
       if (loginFormView) loginFormView.classList.add('hidden');
       if (activeUserEl) activeUserEl.textContent = sess.userId;
+      if (accountManageCard) accountManageCard.style.display = 'block';
+      if (currentIdDisplay) currentIdDisplay.textContent = sess.userId;
       if (lastSyncEl) {
         const dt = sess.lastSyncTime ? new Date(sess.lastSyncTime) : new Date();
         lastSyncEl.textContent = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -1700,6 +1900,7 @@ class UIManager {
     } else {
       if (loggedInView) loggedInView.classList.add('hidden');
       if (loginFormView) loginFormView.classList.remove('hidden');
+      if (accountManageCard) accountManageCard.style.display = 'none';
       if (settingsStatusBox) {
         settingsStatusBox.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -1779,8 +1980,17 @@ class UIManager {
     if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('isAdminLoggedIn');
     document.body.classList.remove('admin-authenticated');
 
-    if (btnLogin) btnLogin.disabled = true;
-    if (btnReg) btnReg.disabled = true;
+    const origLoginText = btnLogin ? btnLogin.innerHTML : '🔑 로그인';
+    const origRegText = btnReg ? btnReg.innerHTML : '✨ 회원가입';
+
+    if (btnLogin) {
+      btnLogin.disabled = true;
+      if (mode === 'login') btnLogin.innerHTML = '⏳ 로그인 중...';
+    }
+    if (btnReg) {
+      btnReg.disabled = true;
+      if (mode === 'register') btnReg.innerHTML = '⏳ 회원가입 중...';
+    }
 
     if (msgBox) {
       msgBox.textContent = mode === 'register'
@@ -1789,10 +1999,19 @@ class UIManager {
       msgBox.style.color = '#38bdf8';
     }
 
-    const res = await state.loginOrRegisterCloud(userId, password, mode);
-
-    if (btnLogin) btnLogin.disabled = false;
-    if (btnReg) btnReg.disabled = false;
+    let res;
+    try {
+      res = await state.loginOrRegisterCloud(userId, password, mode);
+    } finally {
+      if (btnLogin) {
+        btnLogin.disabled = false;
+        btnLogin.innerHTML = origLoginText;
+      }
+      if (btnReg) {
+        btnReg.disabled = false;
+        btnReg.innerHTML = origRegText;
+      }
+    }
 
     if (!res || !res.success) {
       sound.playDefeat();

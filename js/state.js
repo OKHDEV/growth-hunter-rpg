@@ -2404,6 +2404,165 @@ class GameState {
     }
   }
 
+  async changeCloudUserId(currentPassword, newRawUserId) {
+    if (!this.cloudSession || !this.cloudSession.userId) {
+      return { success: false, message: '로그인된 계정이 없습니다.' };
+    }
+    const oldUserId = this.cloudSession.userId;
+    if (oldUserId.toLowerCase() === 'admin') {
+      return { success: false, message: '관리자(Admin) 계정의 아이디는 변경할 수 없습니다.' };
+    }
+
+    const inputPw = String(currentPassword || '').trim();
+    const newUserId = String(newRawUserId || '').trim();
+
+    if (!inputPw) {
+      return { success: false, message: '본인 확인을 위해 현재 비밀번호를 입력해주세요.' };
+    }
+    if (!newUserId || newUserId.length < 1) {
+      return { success: false, message: '변경할 새 아이디를 입력해주세요.' };
+    }
+    if (newUserId.toLowerCase() === oldUserId.toLowerCase()) {
+      return { success: false, message: '현재 아이디와 동일합니다. 다른 아이디를 입력해주세요.' };
+    }
+    if (newUserId.toLowerCase() === 'admin') {
+      return { success: false, message: 'admin 아이디는 관리자 전용으로 사용할 수 없습니다.' };
+    }
+
+    try {
+      // 1. Verify current password
+      const reg = await this.fetchCloudRegistry();
+      const currentRecord = reg[oldUserId];
+      const actualPw = (currentRecord && currentRecord.p) || this.cloudSession.password;
+      if (actualPw && String(actualPw) !== inputPw) {
+        return { success: false, message: '현재 비밀번호가 일치하지 않습니다.' };
+      }
+
+      // 2. Check if newUserId already exists or was deleted
+      if (reg[newUserId]) {
+        if (reg[newUserId].deleted) {
+          return { success: false, message: `[${newUserId}] 아이디는 이전에 삭제된 아이디로 사용할 수 없습니다.` };
+        }
+        return { success: false, message: `이미 사용 중인 아이디입니다: [${newUserId}]` };
+      }
+
+      const streamCheck = await this.fetchAccountCloudData(newUserId);
+      if (streamCheck.cloudSave || streamCheck.isDeleted) {
+        return { success: false, message: `이미 서버에 존재하는 아이디입니다: [${newUserId}]` };
+      }
+
+      // 3. Migrate local character state to new ID
+      this.data.ownerAccountId = newUserId;
+      if (!this.data.player.name || this.data.player.name === oldUserId || this.data.player.name === '오경호' || this.data.player.name === '헌터') {
+        this.data.player.name = newUserId;
+      }
+
+      const prevBk = this.cloudSession.bytebinKey;
+      const prevPk = this.cloudSession.pastesKey;
+
+      this.cloudSession.userId = newUserId;
+      this.cloudSession.password = inputPw;
+      this.cloudSession.lastSyncTime = new Date().toISOString();
+      this.saveCloudSession(this.cloudSession);
+
+      // 4. Sync immediately to cloud under new user channel
+      await this.syncToCloud(true);
+
+      // 5. Update master registry: register newUserId, mark oldUserId as deleted/migrated
+      const now = Date.now();
+      reg[newUserId] = {
+        p: inputPw,
+        bk: this.cloudSession.bytebinKey || prevBk || '',
+        pk: this.cloudSession.pastesKey || prevPk || '',
+        ts: now
+      };
+      reg[oldUserId] = {
+        deleted: true,
+        migratedTo: newUserId,
+        ts: now
+      };
+      await this.updateCloudRegistry(reg);
+
+      // 6. Push migration tombstone to old user topic
+      const oldHex = this.userIdToHex(oldUserId);
+      const tombstone = JSON.stringify({ u: oldUserId, deleted: true, migratedTo: newUserId, ts: now });
+      const oldTopics = [
+        `https://ntfy.adminforge.de/okh_gh_cloud_u_${oldHex}`,
+        `https://ntfy.tedomum.fr/okh_gh_cloud_u_${oldHex}`,
+        `https://ntfy.sh/okh_gh_cloud_v4_u_${oldHex}`
+      ];
+      Promise.allSettled(oldTopics.map(u => fetch(u, { method: 'POST', body: tombstone, keepalive: true }))).catch(() => {});
+
+      // 7. Save local persistence
+      const serialized = JSON.stringify(this.data);
+      localStorage.setItem(this.STORAGE_KEY, serialized);
+      localStorage.setItem(this.MIRROR_KEY, serialized);
+      this.saveToIndexedDB(serialized);
+      this.updateSaveIndicator();
+
+      if (typeof ui !== 'undefined') {
+        if (ui.renderAll) ui.renderAll();
+        if (ui.renderCloudModalState) ui.renderCloudModalState();
+      }
+
+      return { success: true, oldUserId, newUserId };
+    } catch (e) {
+      console.error("Change user ID error:", e);
+      return { success: false, message: '서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' };
+    }
+  }
+
+  async changeCloudPassword(currentPassword, newRawPassword) {
+    if (!this.cloudSession || !this.cloudSession.userId) {
+      return { success: false, message: '로그인된 계정이 없습니다.' };
+    }
+    const userId = this.cloudSession.userId;
+    const inputPw = String(currentPassword || '').trim();
+    const newPw = String(newRawPassword || '').trim();
+
+    if (!inputPw) {
+      return { success: false, message: '현재 비밀번호를 입력해주세요.' };
+    }
+    if (!newPw || newPw.length < 1) {
+      return { success: false, message: '새로운 비밀번호를 입력해주세요.' };
+    }
+    if (inputPw === newPw) {
+      return { success: false, message: '새 비밀번호가 현재 비밀번호와 동일합니다.' };
+    }
+
+    try {
+      // 1. Verify current password
+      const reg = await this.fetchCloudRegistry();
+      const currentRecord = reg[userId];
+      const actualPw = (currentRecord && currentRecord.p) || this.cloudSession.password;
+      if (actualPw && String(actualPw) !== inputPw) {
+        return { success: false, message: '현재 비밀번호가 일치하지 않습니다.' };
+      }
+
+      // 2. Update password in session
+      this.cloudSession.password = newPw;
+      this.cloudSession.lastSyncTime = new Date().toISOString();
+      this.saveCloudSession(this.cloudSession);
+
+      // 3. Sync to user channels with new password
+      await this.syncToCloud(true);
+
+      // 4. Update master registry
+      const now = Date.now();
+      reg[userId] = {
+        ...(reg[userId] || {}),
+        p: newPw,
+        ts: now
+      };
+      await this.updateCloudRegistry(reg);
+
+      return { success: true, userId };
+    } catch (e) {
+      console.error("Change password error:", e);
+      return { success: false, message: '서버 통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' };
+    }
+  }
+
   async logoutCloud() {
     this.saveCloudSession(null);
     try {

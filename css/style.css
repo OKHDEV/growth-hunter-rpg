@@ -2243,6 +2243,16 @@ body.auth-gate-locked .mobile-nav-bar {
   transform: scale(0.97);
 }
 
+.btn-auth-login:disabled,
+.btn-auth-register:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: grayscale(0.5) !important;
+}
+
 .btn-auth-register {
   padding: 13px 10px;
   border-radius: 11px;

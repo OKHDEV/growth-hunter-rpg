@@ -633,6 +633,24 @@
           </div>
         </div>
 
+        <!-- Account Info Change Card (Shown when logged in) -->
+        <div class="panel-card" id="settingsAccountManageCard" style="display:none; border-color: #818cf8; box-shadow: 0 0 20px rgba(129, 140, 248, 0.15); margin-bottom: 14px;">
+          <div class="panel-card-header">
+            <span class="panel-title" style="color: #a5b4fc;">🔐 계정 정보 관리 (아이디 & 비밀번호 변경)</span>
+          </div>
+          <p style="font-size: 12px; color: #cbd5e1; line-height: 1.6; margin-bottom: 12px;">
+            현재 로그인된 <strong style="color:#38bdf8;">[<span id="settingsCurrentUserIdDisplay">-</span>]</strong> 계정의 아이디 또는 비밀번호를 안전하게 변경할 수 있습니다.
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button type="button" class="btn btn-sm" onclick="ui.openChangeAccountModal('id')" style="background: rgba(99, 102, 241, 0.22); border: 1px solid #818cf8; color: #c7d2fe; font-weight: 800; padding: 10px;">
+              ✏️ 아이디 변경
+            </button>
+            <button type="button" class="btn btn-sm" onclick="ui.openChangeAccountModal('pw')" style="background: rgba(245, 158, 11, 0.22); border: 1px solid #f59e0b; color: #fde68a; font-weight: 800; padding: 10px;">
+              🔒 비밀번호 변경
+            </button>
+          </div>
+        </div>
+
         <div class="panel-card">
           <div class="panel-card-header">
             <span class="panel-title">사운드 & 환경 설정</span>
@@ -1186,6 +1204,14 @@
         </div>
 
         <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <button type="button" class="btn btn-sm" onclick="ui.openChangeAccountModal('id')" style="width:100%; padding:9px; font-weight:800; background:rgba(99,102,241,0.22); border:1px solid #818cf8; color:#c7d2fe;">
+              ✏️ 아이디 변경
+            </button>
+            <button type="button" class="btn btn-sm" onclick="ui.openChangeAccountModal('pw')" style="width:100%; padding:9px; font-weight:800; background:rgba(245,158,11,0.22); border:1px solid #f59e0b; color:#fde68a;">
+              🔒 비밀번호 변경
+            </button>
+          </div>
           <button type="button" class="btn btn-sm btn-outline-cyan" onclick="ui.handleCloudForceUpload()" style="width:100%; padding:10px; font-weight:700;">
             ⬆️ 현재 기기 기록을 서버에 즉시 강제 저장 (업로드)
           </button>
@@ -1208,6 +1234,87 @@
     </div>
   </div>
 
+  <!-- 13. Change ID / Password Modal -->
+  <div id="changeAccountModal" class="qte-modal-overlay hidden">
+    <div class="qte-modal-box" style="border-color: #818cf8; text-align: left; width: calc(100vw - 28px); max-width: 420px; background: rgba(10, 15, 28, 0.98); padding: 18px 16px; box-shadow: 0 0 38px rgba(129, 140, 248, 0.38);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+        <h3 id="changeAccountModalTitle" style="color: #a5b4fc; font-size: 17px; margin: 0; display:flex; align-items:center; gap:6px;">
+          🔐 계정 정보 변경
+        </h3>
+        <button type="button" class="btn-close" onclick="ui.closeChangeAccountModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✕</button>
+      </div>
+
+      <!-- Tab Switcher: [아이디 변경] / [비밀번호 변경] -->
+      <div style="display:flex; gap:8px; margin-bottom:14px; background:rgba(255,255,255,0.05); padding:4px; border-radius:10px;">
+        <button type="button" id="tabBtnChangeId" onclick="ui.switchChangeAccountTab('id')" style="flex:1; padding:8px; border-radius:8px; border:none; font-weight:800; font-size:13px; cursor:pointer; background:#6366f1; color:#fff; transition:all 0.15s;">
+          ✏️ 아이디 변경
+        </button>
+        <button type="button" id="tabBtnChangePw" onclick="ui.switchChangeAccountTab('pw')" style="flex:1; padding:8px; border-radius:8px; border:none; font-weight:800; font-size:13px; cursor:pointer; background:transparent; color:#94a3b8; transition:all 0.15s;">
+          🔒 비밀번호 변경
+        </button>
+      </div>
+
+      <!-- View 1: Change Username (아이디 변경) -->
+      <div id="changeIdFormView">
+        <div style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(129, 140, 248, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #c7d2fe; line-height: 1.5; margin-bottom: 12px;">
+          💡 <strong>아이디 변경 안내</strong><br>
+          • 본인 확인을 위해 <strong>현재 비밀번호</strong>를 입력해야 합니다.<br>
+          • 변경 시 모든 수련 데이터와 보스 기록이 새 아이디로 즉시 이전됩니다.
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" style="font-size: 12px; color: #94a3b8; display:block; margin-bottom:4px;">현재 아이디</label>
+          <input type="text" id="changeIdCurrentDisplay" class="form-input" readonly style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); background:#040711; color:#94a3b8; font-size:14px; font-weight:700;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" style="font-size: 12px; color: #e2e8f0; display:block; margin-bottom:4px;">현재 비밀번호 <span style="color:#ef4444;">*</span></label>
+          <input type="password" id="changeIdCurrentPwInput" class="form-input" placeholder="현재 비밀번호 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#0f172a; color:#fff; font-size:14px;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" style="font-size: 12px; color: #e2e8f0; display:block; margin-bottom:4px;">새로운 아이디 <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="changeIdNewInput" class="form-input" placeholder="변경할 새 아이디 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(129,140,248,0.5); background:#0f172a; color:#fff; font-size:14px;">
+        </div>
+
+        <div id="changeIdFeedbackMsg" style="font-size: 12px; min-height: 18px; margin-bottom: 10px; font-weight: 700;"></div>
+
+        <button type="button" id="btnSubmitChangeId" class="btn btn-primary" onclick="ui.submitChangeId()" style="width:100%; padding:12px; font-weight:800; font-size:14px; background:linear-gradient(135deg, #6366f1, #4f46e5); border:1px solid #818cf8;">
+          ✏️ 아이디 변경 완료
+        </button>
+      </div>
+
+      <!-- View 2: Change Password (비밀번호 변경) -->
+      <div id="changePwFormView" class="hidden">
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #fde68a; line-height: 1.5; margin-bottom: 12px;">
+          🔒 <strong>비밀번호 변경 안내</strong><br>
+          • <strong>현재 비밀번호</strong>를 정확히 입력한 후 새로운 비밀번호를 설정해주세요.
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" style="font-size: 12px; color: #e2e8f0; display:block; margin-bottom:4px;">현재 비밀번호 <span style="color:#ef4444;">*</span></label>
+          <input type="password" id="changePwCurrentInput" class="form-input" placeholder="현재 사용 중인 비밀번호" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:#0f172a; color:#fff; font-size:14px;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label class="form-label" style="font-size: 12px; color: #e2e8f0; display:block; margin-bottom:4px;">새로운 비밀번호 <span style="color:#ef4444;">*</span></label>
+          <input type="password" id="changePwNewInput" class="form-input" placeholder="새로운 비밀번호 입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(245,158,11,0.5); background:#0f172a; color:#fff; font-size:14px;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" style="font-size: 12px; color: #e2e8f0; display:block; margin-bottom:4px;">새 비밀번호 확인 <span style="color:#ef4444;">*</span></label>
+          <input type="password" id="changePwConfirmInput" class="form-input" placeholder="새로운 비밀번호 재입력" style="width:100%; padding:10px 12px; border-radius:8px; border:1px solid rgba(245,158,11,0.5); background:#0f172a; color:#fff; font-size:14px;">
+        </div>
+
+        <div id="changePwFeedbackMsg" style="font-size: 12px; min-height: 18px; margin-bottom: 10px; font-weight: 700;"></div>
+
+        <button type="button" id="btnSubmitChangePw" class="btn" onclick="ui.submitChangePw()" style="width:100%; padding:12px; font-weight:800; font-size:14px; background:linear-gradient(135deg, #d97706, #b45309); border:1px solid #f59e0b; color:#fff;">
+          🔒 비밀번호 변경 완료
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Floating Admin Panel Return Button (Shown when admin is logged in) -->
   <a href="admin.html" id="floatingAdminBtn" style="display:none; position: fixed; right: 16px; bottom: 76px; z-index: 999; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 900; font-size: 13px; padding: 9px 16px; border-radius: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 16px rgba(245, 158, 11, 0.6); text-decoration: none; border: 2px solid #fef08a; align-items: center; gap: 6px;">
     🗄️ 관리자 패널로 돌아가기
@@ -1217,13 +1324,13 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/unmute.js?v=20261029_36"></script>
-  <script src="js/data.js?v=20261029_36"></script>
-  <script src="js/audio.js?v=20261029_36"></script>
-  <script src="js/state.js?v=20261029_36"></script>
-  <script src="js/battle.js?v=20261029_36"></script>
-  <script src="js/quests.js?v=20261029_36"></script>
-  <script src="js/ui.js?v=20261029_36"></script>
-  <script src="js/app.js?v=20261029_36"></script>
+  <script src="js/unmute.js?v=20261030_01"></script>
+  <script src="js/data.js?v=20261030_01"></script>
+  <script src="js/audio.js?v=20261030_01"></script>
+  <script src="js/state.js?v=20261030_01"></script>
+  <script src="js/battle.js?v=20261030_01"></script>
+  <script src="js/quests.js?v=20261030_01"></script>
+  <script src="js/ui.js?v=20261030_01"></script>
+  <script src="js/app.js?v=20261030_01"></script>
 </body>
 </html>
