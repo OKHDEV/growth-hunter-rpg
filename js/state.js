@@ -473,8 +473,9 @@ class GameState {
     let bonusCrit = 0.05;
 
     // Apply active title bonuses
-    if (p.activeTitle && TITLES_DATA[p.activeTitle]) {
-      const tStats = TITLES_DATA[p.activeTitle].stats;
+    const activeTitleMeta = p.activeTitle ? ((typeof getTitleMetadata === 'function' ? getTitleMetadata(p.activeTitle) : null) || (typeof TITLES_DATA !== 'undefined' ? TITLES_DATA[p.activeTitle] : null)) : null;
+    if (activeTitleMeta && activeTitleMeta.stats) {
+      const tStats = activeTitleMeta.stats;
       if (tStats.str) totalStr += tStats.str;
       if (tStats.int) totalInt += tStats.int;
       if (tStats.end) totalEnd += tStats.end;
@@ -600,8 +601,8 @@ class GameState {
   getStatUpgradeCost(statKey) {
     const cur = (this.data.player.stats && this.data.player.stats[statKey]) || 10;
     const diff = Math.max(0, cur - 10);
-    // Expensive escalating gold formula for meaningful gold usage
-    return Math.round(350 * Math.pow(1.10, diff) + diff * 80);
+    // Highly affordable & rewarding stat upgrade curve for daily growth
+    return Math.max(50, Math.round(50 * Math.pow(1.04, diff) + diff * 15));
   }
 
   upgradeStatWithGold(statKey) {

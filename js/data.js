@@ -750,7 +750,11 @@ const TITLES_DATA = {
 function getTitleMetadata(tName) {
   if (TITLES_DATA[tName]) return TITLES_DATA[tName];
 
-  // Try finding matching boss from BOSS_NAMES_DATA
+  // Try finding matching boss from BOSS_NAMES_DATA or TITLES_DATA keys
+  const cleaned = tName.replace(' 격파자', '').trim();
+  const foundKey = Object.keys(TITLES_DATA).find(k => k.includes(cleaned) || cleaned.includes(k.replace(' 격파자', '').trim()));
+  if (foundKey && TITLES_DATA[foundKey]) return TITLES_DATA[foundKey];
+
   let stage = 1;
   const matchedBoss = BOSS_NAMES_DATA.find(b => {
     const prefix = b.name.split(',')[0].split(' ')[0];
@@ -760,20 +764,64 @@ function getTitleMetadata(tName) {
     stage = matchedBoss.stage;
   }
 
-  const rarity = stage >= 45 ? "mythic" : (stage >= 30 ? "legendary" : (stage >= 15 ? "epic" : (stage >= 5 ? "rare" : "normal")));
-  const expMult = parseFloat((1.5 + (stage * 0.25)).toFixed(1));
-  const goldMult = parseFloat((1.2 + (stage * 0.20)).toFixed(1));
+  const rarity = stage >= 40 ? "mythic" : (stage >= 20 ? "legendary" : (stage >= 5 ? "epic" : "rare"));
+  const expMult = parseFloat((1.5 + (stage - 1) * 0.25).toFixed(1));
+  const goldMult = parseFloat((1.3 + (stage - 1) * 0.20).toFixed(1));
   const reqLvl = 15 + (stage - 1) * 10;
+  const atk = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.55) * 4);
+  const def = Math.round(15 + (stage - 1) * 12 + Math.pow(stage, 1.45) * 2.2);
+  const allStats = Math.round(5 + (stage - 1) * 3 + Math.pow(stage, 1.35));
+  const maxHp = Math.round(150 + (stage - 1) * 120 + Math.pow(stage, 1.7) * 12);
 
   return {
     name: tName,
     rarity,
     reqLevel: reqLvl,
     desc: `Stage ${stage} ${matchedBoss ? matchedBoss.name : tName}을(를) 격파하고 얻은 헌터의 영예.`,
-    bonusText: `공격력 +${stage * 15}, 전 스탯 +${stage * 2} | EXP x${expMult} / 골드 x${goldMult}`,
+    bonusText: `공격력 +${atk.toLocaleString()}, 방어력 +${def.toLocaleString()}, 전 스탯 +${allStats}, 최대 체력 +${maxHp.toLocaleString()} | EXP x${expMult} / 골드 x${goldMult}`,
     expMultiplier: expMult,
     goldMultiplier: goldMult,
-    stats: { atk: stage * 15, str: stage * 2, int: stage * 2, end: stage * 2, gro: stage * 2 },
+    stats: { atk, def, str: allStats, int: allStats, end: allStats, gro: allStats, maxHp },
     unlockHint: `Stage ${stage} 보스 격파 업적 달성`
   };
 }
+
+// Register all 50 Boss Titles directly into TITLES_DATA with escalating stats
+function registerAll50BossTitles() {
+  if (typeof BOSS_NAMES_DATA === 'undefined') return;
+  BOSS_NAMES_DATA.forEach(b => {
+    const stage = b.stage;
+    const rarity = stage >= 40 ? "mythic" : (stage >= 20 ? "legendary" : (stage >= 5 ? "epic" : "rare"));
+    const reqLvl = 15 + (stage - 1) * 10;
+
+    const atk = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.55) * 4);
+    const def = Math.round(15 + (stage - 1) * 12 + Math.pow(stage, 1.45) * 2.2);
+    const allStats = Math.round(5 + (stage - 1) * 3 + Math.pow(stage, 1.35));
+    const maxHp = Math.round(150 + (stage - 1) * 120 + Math.pow(stage, 1.7) * 12);
+
+    const expMult = parseFloat((1.5 + (stage - 1) * 0.25).toFixed(1));
+    const goldMult = parseFloat((1.3 + (stage - 1) * 0.20).toFixed(1));
+
+    const titleObj = {
+      name: `${b.name.split(',')[0]} 격파자`,
+      stage,
+      rarity,
+      reqLevel: reqLvl,
+      desc: `Stage ${stage} ${b.name}을(를) 격파하고 얻은 헌터의 영예.`,
+      bonusText: `공격력 +${atk.toLocaleString()}, 방어력 +${def.toLocaleString()}, 전 스탯 +${allStats}, 최대 체력 +${maxHp.toLocaleString()} | EXP x${expMult} / 골드 x${goldMult}`,
+      expMultiplier: expMult,
+      goldMultiplier: goldMult,
+      stats: { atk, def, str: allStats, int: allStats, end: allStats, gro: allStats, maxHp },
+      unlockHint: `Stage ${stage} ${b.name.split(',')[0]} 격파`
+    };
+
+    const shortName = `${b.name.split(' ')[0]} 격파자`; // e.g. "나태의 격파자"
+    const fullName = `${b.name.split(',')[0]} 격파자`;  // e.g. "나태의 망령 격파자"
+    const bossOnlyName = `${b.name.split(',')[1] ? b.name.split(',')[1].trim() : b.name} 격파자`; // e.g. "슬로스 격파자"
+
+    TITLES_DATA[shortName] = { ...titleObj, name: shortName };
+    TITLES_DATA[fullName] = { ...titleObj, name: fullName };
+    TITLES_DATA[bossOnlyName] = { ...titleObj, name: bossOnlyName };
+  });
+}
+registerAll50BossTitles();
