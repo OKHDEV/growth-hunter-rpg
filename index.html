@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=20261029_34">
-  <link rel="stylesheet" href="css/battle.css?v=20261029_34">
-  <link rel="stylesheet" href="css/animations.css?v=20261029_34">
-  <link rel="stylesheet" href="css/mobile.css?v=20261029_34">
+  <link rel="stylesheet" href="css/style.css?v=20261029_35">
+  <link rel="stylesheet" href="css/battle.css?v=20261029_35">
+  <link rel="stylesheet" href="css/animations.css?v=20261029_35">
+  <link rel="stylesheet" href="css/mobile.css?v=20261029_35">
 </head>
 <body class="auth-gate-locked">
 
@@ -478,6 +478,7 @@
                 <span id="bossHpText">3,200 / 3,200 (100.0%)</span>
               </div>
               <div class="hp-track-boss">
+                <div class="hp-trail-boss" id="bossHpTrail" style="width: 100%;"></div>
                 <div class="hp-fill-boss" id="bossHpFill" style="width: 100%;"></div>
               </div>
             </div>
@@ -505,7 +506,8 @@
                     <span style="color:var(--green-growth); font-weight:800;">내 체력 (HP)</span>
                     <span id="playerHpText">700 / 700</span>
                   </div>
-                  <div class="gauge-track" style="height: 12px;">
+                  <div class="gauge-track" style="height: 12px; position: relative;">
+                    <div class="gauge-trail-hp" id="playerHpTrail" style="width: 100%;"></div>
                     <div class="gauge-fill-hp" id="playerHpFill" style="width: 100%;"></div>
                   </div>
                 </div>
@@ -1175,12 +1177,12 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261029_34"></script>
-  <script src="js/audio.js?v=20261029_34"></script>
-  <script src="js/state.js?v=20261029_34"></script>
-  <script src="js/battle.js?v=20261029_34"></script>
-  <script src="js/quests.js?v=20261029_34"></script>
-  <script src="js/ui.js?v=20261029_34"></script>
-  <script src="js/app.js?v=20261029_34"></script>
+  <script src="js/data.js?v=20261029_35"></script>
+  <script src="js/audio.js?v=20261029_35"></script>
+  <script src="js/state.js?v=20261029_35"></script>
+  <script src="js/battle.js?v=20261029_35"></script>
+  <script src="js/quests.js?v=20261029_35"></script>
+  <script src="js/ui.js?v=20261029_35"></script>
+  <script src="js/app.js?v=20261029_35"></script>
 </body>
 </html>

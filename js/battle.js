@@ -14,6 +14,10 @@ class BattleEngine {
     this.bossMaxHp = 3200;
 
     this.battleLog = [];
+    this._lastBossHpPct = 100;
+    this._lastPlayerHpPct = 100;
+    this._bossTrailTimer = null;
+    this._playerTrailTimer = null;
     this.bindControls();
   }
 
@@ -28,6 +32,10 @@ class BattleEngine {
     this.isTurnProcessing = false;
     this.enrageTriggered = false;
     this.battleLog = [];
+    this._lastBossHpPct = 100;
+    this._lastPlayerHpPct = 100;
+    if (this._bossTrailTimer) { clearTimeout(this._bossTrailTimer); this._bossTrailTimer = null; }
+    if (this._playerTrailTimer) { clearTimeout(this._playerTrailTimer); this._playerTrailTimer = null; }
     document.body.classList.add('in-battle');
 
     const pStats = state.getEffectiveStats();
@@ -379,24 +387,76 @@ class BattleEngine {
       }
     }
 
-    this.updateBattleUI();
+    this.updateBattleUI(true);
     this.updateLogUI();
   }
 
-  updateBattleUI() {
+  updateBattleUI(skipTrail = false) {
     // Boss HP
     const bossHpPct = Math.max(0, Math.min(100, (this.bossHp / this.bossMaxHp) * 100));
     const bossHpBar = document.getElementById('bossHpFill');
+    const bossHpTrail = document.getElementById('bossHpTrail');
+    const bossHpTrack = document.querySelector('.hp-track-boss');
     const bossHpText = document.getElementById('bossHpText');
+
     if (bossHpBar) bossHpBar.style.width = `${bossHpPct}%`;
     if (bossHpText) bossHpText.textContent = `${this.bossHp.toLocaleString()} / ${this.bossMaxHp.toLocaleString()} (${bossHpPct.toFixed(1)}%)`;
+
+    if (bossHpTrail) {
+      if (skipTrail) {
+        bossHpTrail.style.transition = 'none';
+        bossHpTrail.style.width = `${bossHpPct}%`;
+        setTimeout(() => { if (bossHpTrail) bossHpTrail.style.transition = ''; }, 50);
+      } else if (this._lastBossHpPct !== undefined && bossHpPct < this._lastBossHpPct) {
+        // Flash boss HP bar track on hit
+        if (bossHpTrack) {
+          bossHpTrack.classList.remove('hit-flash');
+          void bossHpTrack.offsetWidth;
+          bossHpTrack.classList.add('hit-flash');
+        }
+        // Action RPG damage trail: primary red drops fast, trailing ghost bar pauses then catches up
+        if (this._bossTrailTimer) clearTimeout(this._bossTrailTimer);
+        this._bossTrailTimer = setTimeout(() => {
+          if (bossHpTrail) bossHpTrail.style.width = `${bossHpPct}%`;
+        }, 280);
+      } else {
+        bossHpTrail.style.width = `${bossHpPct}%`;
+      }
+    }
+    this._lastBossHpPct = bossHpPct;
 
     // Player HP
     const pHpPct = Math.max(0, Math.min(100, (this.playerHp / this.playerMaxHp) * 100));
     const pHpBar = document.getElementById('playerHpFill');
+    const pHpTrail = document.getElementById('playerHpTrail');
+    const pHpTrack = pHpBar ? pHpBar.closest('.gauge-track') : null;
     const pHpText = document.getElementById('playerHpText');
+
     if (pHpBar) pHpBar.style.width = `${pHpPct}%`;
     if (pHpText) pHpText.textContent = `${Math.round(this.playerHp).toLocaleString()} / ${this.playerMaxHp.toLocaleString()} (${pHpPct.toFixed(1)}%)`;
+
+    if (pHpTrail) {
+      if (skipTrail) {
+        pHpTrail.style.transition = 'none';
+        pHpTrail.style.width = `${pHpPct}%`;
+        setTimeout(() => { if (pHpTrail) pHpTrail.style.transition = ''; }, 50);
+      } else if (this._lastPlayerHpPct !== undefined && pHpPct < this._lastPlayerHpPct) {
+        // Flash player gauge track on hit
+        if (pHpTrack) {
+          pHpTrack.classList.remove('hit-flash');
+          void pHpTrack.offsetWidth;
+          pHpTrack.classList.add('hit-flash');
+        }
+        // Delay trailing gauge bar
+        if (this._playerTrailTimer) clearTimeout(this._playerTrailTimer);
+        this._playerTrailTimer = setTimeout(() => {
+          if (pHpTrail) pHpTrail.style.width = `${pHpPct}%`;
+        }, 280);
+      } else {
+        pHpTrail.style.width = `${pHpPct}%`;
+      }
+    }
+    this._lastPlayerHpPct = pHpPct;
 
     // Round Indicator Badge
     const roundBadge = document.getElementById('turnRoundBadge');
