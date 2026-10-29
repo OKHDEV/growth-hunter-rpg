@@ -196,7 +196,14 @@ class UIManager {
     const freePoints = document.getElementById('statFreePoints');
 
     if (statName) statName.textContent = p.name;
-    if (statTitle) statTitle.textContent = p.activeTitle;
+    if (statTitle) {
+      const activeMults = state.getActiveTitleMultipliers ? state.getActiveTitleMultipliers() : { expMultiplier: 1.0, goldMultiplier: 1.0 };
+      if (activeMults.expMultiplier > 1 || activeMults.goldMultiplier > 1) {
+        statTitle.innerHTML = `${p.activeTitle} <span style="font-size: 11px; color: #facc15; font-weight: 800; margin-left: 6px; background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.45); padding: 2px 7px; border-radius: 4px;">EXP x${activeMults.expMultiplier} / 골드 x${activeMults.goldMultiplier}</span>`;
+      } else {
+        statTitle.textContent = p.activeTitle;
+      }
+    }
     if (statLevel) statLevel.textContent = `LEVEL ${p.level}`;
     if (statRank) {
       statRank.textContent = rank.name;
@@ -1069,6 +1076,14 @@ class UIManager {
           actionHtml = `<span class="title-lock-condition">🔒 해금 조건: ${tInfo.unlockHint || '특정 업적 달성'}</span>`;
         }
 
+        const multBadgeHtml = (tInfo.expMultiplier || tInfo.goldMultiplier) ? `
+          <div class="title-multiplier-badge" style="display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; padding: 4px 10px; background: linear-gradient(90deg, rgba(250, 204, 21, 0.16), rgba(0, 229, 255, 0.12)); border: 1px solid rgba(250, 204, 21, 0.45); border-radius: 6px; font-size: 11px; font-weight: 800;">
+            <span style="color: #38bdf8;">✨ EXP x${tInfo.expMultiplier || 1.0}</span>
+            <span style="color: rgba(255,255,255,0.3);">|</span>
+            <span style="color: #facc15;">💰 골드 x${tInfo.goldMultiplier || 1.0}</span>
+          </div>
+        ` : '';
+
         card.innerHTML = `
           <div class="title-card-top">
             <span class="title-rarity-badge rarity-${rarity}">${rarityLabels[rarity] || 'NORMAL'}</span>
@@ -1080,6 +1095,7 @@ class UIManager {
           </div>
           <div class="title-desc-text">${tInfo.desc}</div>
           <div class="title-bonus-badge">${tInfo.bonusText}</div>
+          ${multBadgeHtml}
           <div class="title-card-footer">
             ${actionHtml}
           </div>
@@ -1185,8 +1201,20 @@ class UIManager {
 
     if (gradeEl) gradeEl.textContent = grade;
     if (bossNameEl) bossNameEl.textContent = `Stage ${boss.stage}: ${boss.name}`;
-    if (expEl) expEl.textContent = `+${boss.rewards.exp.toLocaleString()} EXP`;
-    if (goldEl) goldEl.textContent = `+${boss.rewards.gold.toLocaleString()} G`;
+    const mults = result && result.titleMultipliers;
+    const finalExp = (result && result.expResult && result.expResult.expAdded) ? result.expResult.expAdded : boss.rewards.exp;
+    const finalGold = (result && result.goldResult && result.goldResult.goldAdded) ? result.goldResult.goldAdded : boss.rewards.gold;
+
+    if (expEl) {
+      expEl.textContent = (mults && mults.expMultiplier > 1) 
+        ? `+${finalExp.toLocaleString()} EXP (칭호 x${mults.expMultiplier})` 
+        : `+${finalExp.toLocaleString()} EXP`;
+    }
+    if (goldEl) {
+      goldEl.textContent = (mults && mults.goldMultiplier > 1) 
+        ? `+${finalGold.toLocaleString()} G (칭호 x${mults.goldMultiplier})` 
+        : `+${finalGold.toLocaleString()} G`;
+    }
     if (growthEl) growthEl.textContent = `+${boss.rewards.growthPoints} 키 성장치 (+${(boss.rewards.growthPoints / 1000 * 0.1).toFixed(3)}cm)`;
 
     if (dropItemEl) {

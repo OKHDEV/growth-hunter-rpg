@@ -519,8 +519,25 @@ class GameState {
 
   // --- Actions ---
 
+  getActiveTitleMultipliers() {
+    const titleName = this.data.player.activeTitle;
+    if (!titleName) return { expMultiplier: 1.0, goldMultiplier: 1.0, titleName: '' };
+    const meta = (typeof getTitleMetadata === 'function' ? getTitleMetadata(titleName) : null) 
+      || (typeof TITLES_DATA !== 'undefined' ? TITLES_DATA[titleName] : null);
+    if (!meta) return { expMultiplier: 1.0, goldMultiplier: 1.0, titleName };
+    return {
+      expMultiplier: meta.expMultiplier || 1.0,
+      goldMultiplier: meta.goldMultiplier || 1.0,
+      titleName: meta.name || titleName
+    };
+  }
+
   addExp(amount) {
     let expToAdd = amount;
+    const titleMults = this.getActiveTitleMultipliers();
+    const titleExpMult = titleMults.expMultiplier || 1.0;
+    expToAdd = Math.round(expToAdd * titleExpMult);
+
     const effectiveStats = this.getEffectiveStats();
     const groBonusMultiplier = 1 + (effectiveStats.gro * 0.001);
     expToAdd = Math.round(expToAdd * groBonusMultiplier);
@@ -548,7 +565,9 @@ class GameState {
       newLevel: this.data.player.level,
       currentExp: this.data.player.exp,
       requiredExp: required,
-      expAdded: expToAdd
+      expAdded: expToAdd,
+      baseExp: amount,
+      titleExpMult
     };
   }
 
@@ -565,8 +584,17 @@ class GameState {
   }
 
   addGold(amount) {
-    this.data.player.gold += amount;
+    const titleMults = this.getActiveTitleMultipliers();
+    const titleGoldMult = titleMults.goldMultiplier || 1.0;
+    const goldToAdd = Math.round(amount * titleGoldMult);
+
+    this.data.player.gold += goldToAdd;
     this.save();
+    return {
+      goldAdded: goldToAdd,
+      baseGold: amount,
+      titleGoldMult
+    };
   }
 
   getStatUpgradeCost(statKey) {
@@ -648,7 +676,7 @@ class GameState {
     this.data.quests.dailyStreak = this.getDailyStreak();
 
     const expResult = this.addExp(quest.exp);
-    this.addGold(quest.gold);
+    const goldResult = this.addGold(quest.gold);
     if (quest.growthPoints) {
       this.addGrowthPoints(quest.growthPoints);
     }
@@ -657,8 +685,10 @@ class GameState {
     return {
       quest,
       expResult,
-      gold: quest.gold,
-      growthPoints: quest.growthPoints || 0
+      goldResult,
+      gold: goldResult ? goldResult.goldAdded : quest.gold,
+      growthPoints: quest.growthPoints || 0,
+      titleMultipliers: this.getActiveTitleMultipliers()
     };
   }
 
@@ -677,7 +707,7 @@ class GameState {
 
     // Grants rewards
     const expResult = this.addExp(boss.rewards.exp);
-    this.addGold(boss.rewards.gold);
+    const goldResult = this.addGold(boss.rewards.gold);
     this.addGrowthPoints(boss.rewards.growthPoints);
     this.addToInventory(boss.rewards.item);
     this.unlockTitle(boss.rewards.title);
@@ -686,7 +716,9 @@ class GameState {
     return {
       boss,
       expResult,
-      rewards: boss.rewards
+      goldResult,
+      rewards: boss.rewards,
+      titleMultipliers: this.getActiveTitleMultipliers()
     };
   }
 

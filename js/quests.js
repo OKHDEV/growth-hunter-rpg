@@ -759,7 +759,22 @@ class QuestManager {
     if (!result) return;
 
     ui.createParticleBurst(window.innerWidth / 2, window.innerHeight / 2);
-    ui.showToast(`✨ 퀘스트 완수! +${result.quest.exp} EXP, +${result.gold} 골드, +${result.growthPoints} 성장치 획득!`);
+
+    const titleMults = result.titleMultipliers || state.getActiveTitleMultipliers();
+    const finalExp = result.expResult ? result.expResult.expAdded : result.quest.exp;
+    const finalGold = result.gold;
+
+    let toastMsg = `✨ 퀘스트 완수! +${finalExp.toLocaleString()} EXP`;
+    if (titleMults && titleMults.expMultiplier > 1) {
+      toastMsg += ` (칭호 x${titleMults.expMultiplier})`;
+    }
+    toastMsg += `, +${finalGold.toLocaleString()} 골드`;
+    if (titleMults && titleMults.goldMultiplier > 1) {
+      toastMsg += ` (칭호 x${titleMults.goldMultiplier})`;
+    }
+    toastMsg += `, +${result.growthPoints} 성장치 획득!`;
+
+    ui.showToast(toastMsg);
 
     if (result.expResult && result.expResult.leveledUp) {
       sound.playLevelUp();
