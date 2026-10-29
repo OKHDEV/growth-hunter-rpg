@@ -1,10 +1,9 @@
 // Game State & Persistence Manager: High School 2nd Grade (173cm -> 178cm)
-// Daily reset is at 04:00 AM (game day runs from 04:00 AM to 03:59:59 AM the next morning)
+// Daily reset is at midnight (game day runs from 00:00:00 to 23:59:59)
 function getLocalDateString(d = new Date()) {
-  const adjusted = new Date(d.getTime() - 4 * 60 * 60 * 1000);
-  const year = adjusted.getFullYear();
-  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
-  const day = String(adjusted.getDate()).padStart(2, '0');
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -651,8 +650,8 @@ class GameState {
     const todayCompletedCount = Object.keys(this.data.quests.completedToday || {}).length;
 
     let streak = 0;
-    // Current game day cursor (shifted by -4 hours so reset is at 04:00 AM)
-    const curGameDay = new Date(Date.now() - 4 * 60 * 60 * 1000);
+    // Current game day cursor (calendar day with midnight 00:00:00 reset)
+    const curGameDay = new Date();
 
     if (todayCompletedCount > 0) {
       // Completed at least 1 quest today: start streak from 1 and count consecutive past days

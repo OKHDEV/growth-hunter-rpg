@@ -27,13 +27,9 @@ class QuestManager {
       if (!el) return;
 
       const now = new Date();
-      // Reset is at 04:00:00 every day.
-      // If before 04:00 today, reset is today 04:00:00.
-      // If at or after 04:00 today, reset is tomorrow 04:00:00.
-      let nextReset = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 4, 0, 0, 0);
-      if (now.getTime() >= nextReset.getTime()) {
-        nextReset.setDate(nextReset.getDate() + 1);
-      }
+      // Reset is at midnight (00:00:00) every day.
+      // Next reset is tomorrow 00:00:00.
+      let nextReset = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
       const diffMs = nextReset - now;
 
       if (diffMs <= 0) {
@@ -41,7 +37,7 @@ class QuestManager {
         this.renderQuestList();
         if (typeof ui !== 'undefined') ui.updateHeaderAndStats();
         if (typeof ui !== 'undefined' && ui.showToast) {
-          ui.showToast("🌅 새벽 04:00가 되어 일일 퀘스트가 새롭게 갱신되었습니다!", "success");
+          ui.showToast("🌙 밤 12:00(자정)가 되어 일일 퀘스트가 새롭게 갱신되었습니다!", "success");
         }
         return;
       }
@@ -54,7 +50,7 @@ class QuestManager {
       const mStr = String(mins).padStart(2, '0');
       const sStr = String(secs).padStart(2, '0');
 
-      el.textContent = `${hStr}시간 ${mStr}분 ${sStr}초 남음 (새벽 04:00 초기화)`;
+      el.textContent = `${hStr}시간 ${mStr}분 ${sStr}초 남음 (밤 12:00 자정 초기화)`;
     };
 
     update();
