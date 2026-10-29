@@ -53,6 +53,7 @@ class GameState {
     this.cloudSession = this.loadCloudSession();
     this._cloudSyncTimer = null;
     this._isSyncingCloud = false;
+    this._accountDeleted = false;
     this.data = this.getDefaultState();
     this.load();
     this.setupAutoSaveHooks();
@@ -64,7 +65,7 @@ class GameState {
 
     let lastAutoPullTime = 0;
     const triggerAutoCloudPull = (reason = 'focus') => {
-      if (this.isReadOnlyMode) return;
+      if (this.isReadOnlyMode || this._accountDeleted) return;
       const now = Date.now();
       // Throttle pulls to avoid flooding requests within 2.5 seconds
       if (now - lastAutoPullTime < 2500) return;
@@ -76,19 +77,19 @@ class GameState {
 
     // 1. Leaving page, switching tabs, or locking phone: save immediately to local storage and sync to cloud
     window.addEventListener('beforeunload', () => {
-      if (!this.isReadOnlyMode) this.save(true);
+      if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
     });
     window.addEventListener('pagehide', () => {
-      if (!this.isReadOnlyMode) this.save(true);
+      if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
     });
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (this.isReadOnlyMode) return;
+        if (this.isReadOnlyMode || this._accountDeleted) return;
         if (document.hidden) {
           this.save(true);
         } else {
-          // Returning to tab / unlocked phone: pull latest cloud record automatically
+          // Returning to tab / unlocked phone: pull latest cloud record automatically (detects admin deletion instantly)
           triggerAutoCloudPull('visibilitychange');
         }
       });
@@ -96,17 +97,28 @@ class GameState {
 
     // 2. iOS Safari / Android Chrome BFCache restore & Window focus
     window.addEventListener('pageshow', () => {
-      if (!this.isReadOnlyMode) triggerAutoCloudPull('pageshow');
+      if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('pageshow');
     });
 
     window.addEventListener('focus', () => {
-      if (!this.isReadOnlyMode) triggerAutoCloudPull('focus');
+      if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('focus');
     });
 
     // 3. Online event (reconnected to internet after device sleep or power on)
     window.addEventListener('online', () => {
-      if (!this.isReadOnlyMode) triggerAutoCloudPull('online');
+      if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('online');
     });
+
+    // 4. In-game periodic heartbeat (every 15s) while screen active: detects remote admin deletion and kicks out in real-time
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => {
+        if (this.isReadOnlyMode || this._accountDeleted) return;
+        if (typeof document !== 'undefined' && document.hidden) return;
+        if (this.cloudSession && this.cloudSession.userId) {
+          this.pullFromCloud(true, false, false);
+        }
+      }, 15000);
+    }
   }
 
   getDefaultState() {
@@ -1874,7 +1886,7 @@ class GameState {
   }
 
   async syncToCloud(forceImmediate = false) {
-    if (this.isReadOnlyMode) return { success: false, readOnly: true };
+    if (this.isReadOnlyMode || this._accountDeleted) return { success: false, readOnly: true, deleted: true };
     if (!this.cloudSession || !this.cloudSession.userId) return { success: false };
     if (this._isSyncingCloud && !forceImmediate) return { success: false };
     this._isSyncingCloud = true;
@@ -1987,6 +1999,7 @@ class GameState {
     let latestPk = null;
     let storedPassword = null;
     let highestTs = 0;
+    let isDeleted = false;
 
     // 1. Fetch from Ntfy user streams across mirrors with &since=0
     const hexId = this.userIdToHex(userId);
@@ -2012,15 +2025,26 @@ class GameState {
               if (msg && msg.message) {
                 const parsed = JSON.parse(msg.message);
                 if (parsed) {
-                  if (parsed.p && !storedPassword) storedPassword = parsed.p;
                   const ts = parsed.ts || (msg.time * 1000) || 0;
                   if (ts >= highestTs) {
                     highestTs = ts;
-                    if (parsed.bk) latestBk = parsed.bk;
-                    if (parsed.pk) latestPk = parsed.pk;
-                    if (parsed.d && parsed.d.player) {
-                      fromNtfy = parsed.d;
+                    if (parsed.deleted === true) {
+                      isDeleted = true;
+                      storedPassword = null;
+                      latestBk = null;
+                      latestPk = null;
+                      fromNtfy = null;
+                    } else {
+                      isDeleted = false;
+                      if (parsed.p) storedPassword = parsed.p;
+                      if (parsed.bk) latestBk = parsed.bk;
+                      if (parsed.pk) latestPk = parsed.pk;
+                      if (parsed.d && parsed.d.player) {
+                        fromNtfy = parsed.d;
+                      }
                     }
+                  } else if (!isDeleted && parsed.p && !storedPassword) {
+                    storedPassword = parsed.p;
                   }
                 }
               }
@@ -2029,6 +2053,17 @@ class GameState {
         }
       }
     } catch (e) {}
+
+    // If marked deleted in stream, do not attempt fallback to bytebin/pastes
+    if (isDeleted) {
+      return {
+        cloudSave: null,
+        storedPassword: null,
+        latestBk: null,
+        latestPk: null,
+        isDeleted: true
+      };
+    }
 
     // Fall back to registry/session keys if Ntfy message didn't contain keys
     if (!latestBk) latestBk = fallbackBytebinKey;
@@ -2071,12 +2106,13 @@ class GameState {
       cloudSave: combined,
       storedPassword,
       latestBk,
-      latestPk
+      latestPk,
+      isDeleted: false
     };
   }
 
   async pullFromCloud(silent = false, forceOverwriteLocal = false, notifyIfChanged = true) {
-    if (this.isReadOnlyMode) return { success: false, readOnly: true };
+    if (this.isReadOnlyMode || this._accountDeleted) return { success: false, readOnly: true };
     if (!this.cloudSession || !this.cloudSession.userId) {
       return { success: false, message: '로그인된 클라우드 계정이 없습니다.' };
     }
@@ -2085,13 +2121,22 @@ class GameState {
       const userId = this.cloudSession.userId;
       let objId = this.cloudSession.objId;
       const reg = await this.fetchCloudRegistry();
+      const isRegDeleted = Boolean(reg[userId] && reg[userId].deleted);
+
       if (reg[userId] && reg[userId].o) {
         objId = reg[userId].o;
         this.cloudSession.objId = objId;
       }
 
       const fallbackBk = (reg[userId] && reg[userId].bk) || this.cloudSession.bytebinKey;
-      const { cloudSave, latestBk, latestPk } = await this.fetchAccountCloudData(userId, objId, fallbackBk);
+      const { cloudSave, latestBk, latestPk, isDeleted } = await this.fetchAccountCloudData(userId, objId, fallbackBk);
+
+      // Remote deletion detection: kick out and wipe immediately!
+      if (isRegDeleted || isDeleted) {
+        console.warn(`[Cloud] Account '${userId}' has been marked deleted. Auto-kicking out active device.`);
+        await this.handleKickedOutDeletedAccount(userId);
+        return { success: false, deleted: true, message: '삭제된 계정입니다.' };
+      }
 
       if (!cloudSave) {
         if (!silent) {
@@ -2149,6 +2194,43 @@ class GameState {
     }
   }
 
+  async handleKickedOutDeletedAccount(userId) {
+    this._accountDeleted = true;
+    this.saveCloudSession(null);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('isAdminLoggedIn');
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem(this.MIRROR_KEY);
+        localStorage.removeItem('antigravity_cloud_session');
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('antigravity_cloud_session');
+      }
+      await this.clearIndexedDB();
+    } catch (e) {}
+
+    this.data = this.getDefaultState();
+    this.data.resetTimestamp = Date.now();
+    this.data.ownerAccountId = null;
+    this.updateSaveIndicator('계정 삭제됨 (강제 로그아웃)');
+
+    if (typeof ui !== 'undefined') {
+      if (ui.renderAll) ui.renderAll();
+      if (ui.renderCloudModalState) ui.renderCloudModalState();
+      if (ui.updateAuthGateVisibility) ui.updateAuthGateVisibility();
+      if (ui.closeModal) {
+        ui.closeModal('cloudAccountModal');
+        ui.closeModal('cloudSettingsModal');
+      }
+    }
+
+    setTimeout(() => {
+      alert(`🚫 [계정 이용 제한 안내]\n\n현재 접속 중인 [${userId}] 계정은 관리자 패널에서 영구 삭제되었습니다.\n\n이 기기의 로컬 저장 데이터가 완전히 초기화되었으며, 즉시 자동 로그아웃되었습니다.`);
+    }, 100);
+  }
+
   isCloudLoggedIn() {
     return Boolean(this.cloudSession && this.cloudSession.userId);
   }
@@ -2171,17 +2253,24 @@ class GameState {
 
     try {
       const reg = await this.fetchCloudRegistry();
-      let existingRecord = reg[userId] || null;
-      if (existingRecord && existingRecord.deleted) {
-        existingRecord = null;
-      }
+      const existingRecord = reg[userId] || null;
+      const isRegDeleted = Boolean(existingRecord && existingRecord.deleted);
 
-      // Also check Ntfy user channel in case account was created earlier
-      const { cloudSave, storedPassword, latestBk, latestPk } = await this.fetchAccountCloudData(
+      // Also check Ntfy user channel in case account was created earlier or tombstoned
+      const { cloudSave, storedPassword, latestBk, latestPk, isDeleted } = await this.fetchAccountCloudData(
         userId,
         existingRecord ? existingRecord.o : null,
         existingRecord ? (existingRecord.bk || existingRecord.k) : null
       );
+
+      // 🚫 STRICT SECURITY ENFORCEMENT:
+      // If marked deleted by administrator, completely block login AND registration!
+      if (isRegDeleted || isDeleted) {
+        return {
+          success: false,
+          message: `🚫 [${userId}] 아이디는 관리자에 의해 영구 삭제된 계정입니다.\n보안 및 계정 보호 정책에 따라 동일한 아이디로의 로그인 및 재가입이 완전히 차단되었습니다.`
+        };
+      }
 
       const actualPassword = (existingRecord && existingRecord.p) || storedPassword;
       const accountExists = Boolean(existingRecord || cloudSave || actualPassword);

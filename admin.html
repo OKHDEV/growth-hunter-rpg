@@ -339,6 +339,297 @@
       box-shadow: 0 8px 30px rgba(16, 185, 129, 0.85);
       color: #ffffff;
     }
+
+    /* 📅 Activity History Calendar Modal */
+    .activity-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .activity-modal-container {
+      background: #090e1a;
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 960px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 229, 255, 0.2);
+      overflow: hidden;
+      animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .activity-modal-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.7);
+    }
+    .activity-modal-header h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+    }
+    .activity-modal-close {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #94a3b8;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .activity-modal-close:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+      color: #ffffff;
+      transform: rotate(90deg);
+    }
+    .activity-modal-body {
+      padding: 18px 22px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .activity-summary-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 0.86rem;
+      color: #94a3b8;
+    }
+    .activity-summary-bar strong {
+      color: #e2e8f0;
+    }
+    .activity-main-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 18px;
+    }
+    @media (max-width: 820px) {
+      .activity-main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    /* Calendar Card */
+    .calendar-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .calendar-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .calendar-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #f1f5f9;
+    }
+    .calendar-nav-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.15s;
+    }
+    .calendar-nav-btn:hover {
+      background: rgba(0, 229, 255, 0.2);
+      border-color: #00e5ff;
+      color: #ffffff;
+    }
+    .calendar-grid-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #64748b;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .calendar-grid-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .cal-day-cell {
+      min-height: 56px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .cal-day-cell.empty {
+      background: transparent;
+      border-color: transparent;
+      cursor: default;
+    }
+    .cal-day-cell.is-today {
+      border-color: rgba(250, 204, 21, 0.5);
+    }
+    .cal-day-cell.has-events {
+      background: rgba(56, 189, 248, 0.08);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .cal-day-cell.has-events:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: #38bdf8;
+      transform: translateY(-1px);
+    }
+    .cal-day-cell.selected {
+      background: rgba(99, 102, 241, 0.3) !important;
+      border: 2px solid #818cf8 !important;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+    }
+    .cal-date-num {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #94a3b8;
+    }
+    .cal-day-cell.has-events .cal-date-num {
+      color: #f1f5f9;
+    }
+    .cal-count-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      color: #ffffff;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    }
+    /* Timeline Card */
+    .timeline-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 480px;
+      overflow: hidden;
+    }
+    .timeline-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .timeline-header h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #e2e8f0;
+      font-weight: 800;
+    }
+    .timeline-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+      flex: 1;
+    }
+    .timeline-item {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+    .timeline-item:hover {
+      background: rgba(0, 0, 0, 0.55);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .timeline-item.tombstone {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+    .timeline-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .timeline-time-badge {
+      font-family: Consolas, monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .timeline-stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.78rem;
+    }
+    .stat-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 2px 7px;
+      color: #cbd5e1;
+    }
+    .stat-chip.gold { color: #facc15; border-color: rgba(250, 204, 21, 0.3); }
+    .stat-chip.level { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+    .stat-chip.stage { color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
   </style>
 </head>
 <body>
@@ -422,6 +713,73 @@
   <a href="index.html" class="floating-back-btn" title="메인 게임 플레이 화면으로 이동">
     🎮 메인 게임으로 돌아가기
   </a>
+
+  <!-- 📅 User Activity Calendar & Timeline Modal -->
+  <div id="activityDetailModal" class="activity-modal-overlay" style="display:none;" onclick="handleActivityModalOverlayClick(event)">
+    <div class="activity-modal-container" onclick="event.stopPropagation()">
+      <div class="activity-modal-header">
+        <h2>
+          <span>📅</span>
+          <span>[<span id="actModalUserId" style="color:#00e5ff;"></span>] 접속 및 상세 활동 달력</span>
+        </h2>
+        <button type="button" class="activity-modal-close" onclick="closeActivityDetailModal()" title="닫기">✕</button>
+      </div>
+
+      <div class="activity-modal-body">
+        <div class="activity-summary-bar">
+          <div>총 누적 활동 이벤트: <strong id="actSummaryTotalEvents" style="color:#38bdf8;">0회</strong></div>
+          <div>활동 일수: <strong id="actSummaryActiveDays" style="color:#34d399;">0일</strong></div>
+          <div>첫 활동: <strong id="actSummaryFirstDate">-</strong></div>
+          <div>최근 활동: <strong id="actSummaryLastDate" style="color:#facc15;">-</strong></div>
+        </div>
+
+        <div id="actModalLoading" class="loading-spinner" style="display:none;">
+          📡 클라우드 분산 스트림에서 유저 활동 이벤트를 집계하는 중...
+        </div>
+
+        <div class="activity-main-layout" id="actModalLayout">
+          <!-- Calendar Column -->
+          <div class="calendar-card">
+            <div class="calendar-nav-bar">
+              <button type="button" class="calendar-nav-btn" onclick="changeCalendarMonth(-1)">◀ 이전 달</button>
+              <div class="calendar-title" id="actCalendarMonthTitle">2026년 10월</div>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="calendar-nav-btn" onclick="goToCalendarToday()">오늘</button>
+                <button type="button" class="calendar-nav-btn" onclick="changeCalendarMonth(1)">다음 달 ▶</button>
+              </div>
+            </div>
+
+            <div class="calendar-grid-header">
+              <span style="color:#f87171;">일</span>
+              <span>월</span>
+              <span>화</span>
+              <span>수</span>
+              <span>목</span>
+              <span>금</span>
+              <span style="color:#60a5fa;">토</span>
+            </div>
+
+            <div class="calendar-grid-days" id="actCalendarGrid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Timeline Column -->
+          <div class="timeline-card">
+            <div class="timeline-header">
+              <h3 id="actTimelineTitle">🗓️ 상세 활동 타임라인</h3>
+              <span id="actTimelineCount" style="font-size:0.8rem; color:#94a3b8;">0건</span>
+            </div>
+            <div class="timeline-list" id="actTimelineList">
+              <div style="text-align:center; padding:30px; color:#64748b;">
+                달력에서 활동이 기록된 날짜를 클릭하면 상세 접속 기록이 표시됩니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const NTFY_MIRRORS = [
@@ -547,7 +905,8 @@
 
     async function calculateKpiStats() {
       const userIds = Object.keys(rawAccountsRegistry);
-      document.getElementById('kpiTotalUsers').textContent = `${userIds.length}명`;
+      const activeUserIds = userIds.filter(uid => !rawAccountsRegistry[uid]?.deleted);
+      document.getElementById('kpiTotalUsers').textContent = `${activeUserIds.length}명`;
 
       let totalGold = 0;
       let maxLv = 1;
@@ -555,7 +914,7 @@
       let lvCount = 0;
       let maxStage = 1;
 
-      for (const uid of userIds) {
+      for (const uid of activeUserIds) {
         const accInfo = rawAccountsRegistry[uid] || {};
         if (accInfo.deleted) continue;
 
@@ -581,11 +940,11 @@
 
         if (save) {
           const hexId = userIdToHex(uid);
-          const activeEl = document.getElementById(`lastActive_${hexId}`);
-          if (activeEl && save.lastSaved) {
+          const activeValEl = document.getElementById(`lastActiveVal_${hexId}`);
+          if (activeValEl && save.lastSaved) {
             const d = new Date(save.lastSaved);
             const formatted = !isNaN(d.getTime()) ? d.toLocaleString() : save.lastSaved;
-            activeEl.innerHTML = `<span style="color:#cbd5e1;">🎮 마지막 활동:</span> <strong style="color:#38bdf8;">${formatted}</strong>`;
+            activeValEl.textContent = formatted;
           }
         }
 
@@ -676,8 +1035,11 @@
                 <span class="user-badge">👤 ${uid}</span>
                 <span class="pw-badge">비밀번호: <strong>${accInfo.p || '미설정'}</strong></span>
                 <span style="font-size:0.82rem; color:#94a3b8;">🔄 최근 서버 동기화: <strong style="color:#e2e8f0;">${syncDateStr}</strong></span>
-                <span id="lastActive_${hexId}" style="font-size:0.82rem; color:#94a3b8; background:rgba(56, 189, 248, 0.1); padding:2px 8px; border-radius:4px; border:1px solid rgba(56, 189, 248, 0.2);">
-                  <span style="color:#cbd5e1;">🎮 마지막 활동:</span> <strong style="color:#38bdf8;">${lastActiveStr}</strong>
+                <span id="lastActive_${hexId}" style="font-size:0.82rem; color:#94a3b8; background:rgba(56, 189, 248, 0.1); padding:2px 8px; border-radius:4px; border:1px solid rgba(56, 189, 248, 0.2); display:inline-flex; align-items:center; gap:6px;">
+                  <span><span style="color:#cbd5e1;">🎮 마지막 활동:</span> <strong id="lastActiveVal_${hexId}" style="color:#38bdf8;">${lastActiveStr}</strong></span>
+                  <button type="button" class="btn-action" onclick="openActivityDetailModal('${uid}')" style="font-size:0.75rem; padding:1px 7px; background:rgba(99, 102, 241, 0.25); border:1px solid rgba(129, 140, 248, 0.5); color:#c7d2fe; border-radius:4px; cursor:pointer;" title="접속 일자별 상세 활동 기록 달력 열기">
+                    📅 상세 활동
+                  </button>
                 </span>
               </div>
             </div>
@@ -1330,18 +1692,19 @@
     }
 
     async function deleteUserAccount(userId) {
-      if (!confirm(`🚨 영구 삭제 경고: [${userId}] 계정을 데이터베이스에서 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다!`)) return;
+      if (!confirm(`🚨 영구 삭제 경고: [${userId}] 계정을 데이터베이스에서 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 접속 중인 기기에서도 즉시 강제 로그아웃됩니다!`)) return;
 
       const hexId = userIdToHex(userId);
       try {
+        const now = Date.now();
         // Mark deleted in registry across mirrors
-        rawAccountsRegistry[userId] = { deleted: true, ts: Date.now() };
+        rawAccountsRegistry[userId] = { deleted: true, ts: now };
         const regTopics = [
           'https://ntfy.adminforge.de/okh_gh_cloud_registry',
           'https://ntfy.tedomum.fr/okh_gh_cloud_registry',
           'https://ntfy.sh/okh_gh_cloud_v4_registry'
         ];
-        const regBody = JSON.stringify({ [userId]: { deleted: true, ts: Date.now() } });
+        const regBody = JSON.stringify({ [userId]: { deleted: true, ts: now } });
         await Promise.allSettled(regTopics.map(u =>
           fetch(u, { method: 'POST', body: regBody })
         ));
@@ -1352,20 +1715,308 @@
           `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}`,
           `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
         ];
-        const tombstone = JSON.stringify({ u: userId, deleted: true, ts: Date.now() });
+        const tombstone = JSON.stringify({ u: userId, deleted: true, ts: now });
         await Promise.allSettled(userTopics.map(u =>
           fetch(u, { method: 'POST', body: tombstone })
         ));
 
         delete cachedUserSaves[userId];
-        delete rawAccountsRegistry[userId];
+        rawAccountsRegistry[userId] = { deleted: true, ts: now };
 
-        alert(`🗑️ [${userId}] 계정이 성공적으로 삭제되었습니다.`);
+        alert(`🗑️ [${userId}] 계정이 영구 삭제되었습니다.\n\n접속 중인 기기에서는 실시간으로 자동 강제 로그아웃 처리되며, 로컬 데이터가 안전하게 초기화됩니다.`);
         filterAccountsList();
         calculateKpiStats();
       } catch (e) {
         alert('계정 삭제 실패: ' + e.message);
       }
+    }
+
+    /* 📅 Activity Calendar & Timeline Logic */
+    let actCurrentUserId = null;
+    let actAllEvents = [];
+    let actEventsByDate = {}; // 'YYYY-MM-DD' -> [ev, ...]
+    let actCalendarYear = new Date().getFullYear();
+    let actCalendarMonth = new Date().getMonth(); // 0-11
+    let actSelectedDate = null; // 'YYYY-MM-DD'
+
+    async function openActivityDetailModal(userId) {
+      actCurrentUserId = userId;
+      document.getElementById('actModalUserId').textContent = userId;
+      document.getElementById('activityDetailModal').style.display = 'flex';
+      document.getElementById('actModalLoading').style.display = 'block';
+      document.getElementById('actModalLayout').style.display = 'none';
+
+      await fetchAndProcessUserActivity(userId);
+
+      document.getElementById('actModalLoading').style.display = 'none';
+      document.getElementById('actModalLayout').style.display = 'grid';
+
+      // Pick selected date: most recent active date, or today
+      const dateKeys = Object.keys(actEventsByDate).sort();
+      if (dateKeys.length > 0) {
+        actSelectedDate = dateKeys[dateKeys.length - 1]; // latest active date
+        const [y, m] = actSelectedDate.split('-').map(Number);
+        actCalendarYear = y;
+        actCalendarMonth = m - 1;
+      } else {
+        const now = new Date();
+        actCalendarYear = now.getFullYear();
+        actCalendarMonth = now.getMonth();
+        actSelectedDate = `${actCalendarYear}-${String(actCalendarMonth + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      }
+
+      renderActivityCalendar();
+      renderActivityTimeline(actSelectedDate);
+    }
+
+    function closeActivityDetailModal() {
+      document.getElementById('activityDetailModal').style.display = 'none';
+      actCurrentUserId = null;
+    }
+
+    function handleActivityModalOverlayClick(e) {
+      if (e.target.id === 'activityDetailModal') {
+        closeActivityDetailModal();
+      }
+    }
+
+    async function fetchAndProcessUserActivity(userId) {
+      const hexId = userIdToHex(userId);
+      const endpoints = [
+        `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+        `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
+        `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=0`
+      ];
+
+      const rawEvents = [];
+      try {
+        const results = await Promise.allSettled(endpoints.map(u =>
+          fetch(u, { signal: AbortSignal.timeout(4500) }).then(r => r.text())
+        ));
+
+        for (const res of results) {
+          if (res.status === 'fulfilled' && res.value) {
+            const lines = res.value.trim().split('\n');
+            for (const line of lines) {
+              try {
+                const msg = JSON.parse(line);
+                if (msg && msg.message) {
+                  const p = JSON.parse(msg.message);
+                  const ts = p.ts || (msg.time * 1000) || 0;
+                  if (ts > 0) {
+                    rawEvents.push({ ts, data: p, rawMsg: msg });
+                  }
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch activity stream:', err);
+      }
+
+      // Also include registry or cached save if exists
+      const reg = rawAccountsRegistry[userId];
+      if (reg && reg.ts) {
+        rawEvents.push({ ts: reg.ts, data: { p: reg.p, bk: reg.bk, pk: reg.pk, ts: reg.ts, fromRegistry: true } });
+      }
+      const cached = cachedUserSaves[userId];
+      if (cached && cached.lastSaved) {
+        const d = new Date(cached.lastSaved).getTime();
+        if (!isNaN(d)) {
+          rawEvents.push({ ts: d, data: { d: cached, ts: d, fromCached: true } });
+        }
+      }
+
+      // Sort chronologically ascending
+      rawEvents.sort((a, b) => a.ts - b.ts);
+
+      // Deduplicate events within 3000ms window
+      const deduped = [];
+      for (const ev of rawEvents) {
+        if (deduped.length === 0 || Math.abs(ev.ts - deduped[deduped.length - 1].ts) > 3000) {
+          deduped.push(ev);
+        } else {
+          // If the newer one has full save snapshot (.d), prefer it
+          if (ev.data && ev.data.d && (!deduped[deduped.length - 1].data || !deduped[deduped.length - 1].data.d)) {
+            deduped[deduped.length - 1] = ev;
+          }
+        }
+      }
+
+      actAllEvents = deduped;
+      actEventsByDate = {};
+
+      for (const ev of deduped) {
+        const d = new Date(ev.ts);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateKey = `${y}-${m}-${day}`;
+        if (!actEventsByDate[dateKey]) actEventsByDate[dateKey] = [];
+        actEventsByDate[dateKey].push(ev);
+      }
+
+      // Update Summary Bar
+      const totalEvents = deduped.length;
+      const activeDays = Object.keys(actEventsByDate).length;
+      document.getElementById('actSummaryTotalEvents').textContent = `${totalEvents}회`;
+      document.getElementById('actSummaryActiveDays').textContent = `${activeDays}일`;
+      if (deduped.length > 0) {
+        document.getElementById('actSummaryFirstDate').textContent = new Date(deduped[0].ts).toLocaleDateString();
+        document.getElementById('actSummaryLastDate').textContent = new Date(deduped[deduped.length - 1].ts).toLocaleString();
+      } else {
+        document.getElementById('actSummaryFirstDate').textContent = '기록 없음';
+        document.getElementById('actSummaryLastDate').textContent = '기록 없음';
+      }
+    }
+
+    function renderActivityCalendar() {
+      const year = actCalendarYear;
+      const month = actCalendarMonth;
+      document.getElementById('actCalendarMonthTitle').textContent = `${year}년 ${month + 1}월`;
+
+      const firstDayIndex = new Date(year, month, 1).getDay(); // 0: Sun
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const todayStr = (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      })();
+
+      const grid = document.getElementById('actCalendarGrid');
+      grid.innerHTML = '';
+
+      // Empty cells before 1st day
+      for (let i = 0; i < firstDayIndex; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'cal-day-cell empty';
+        grid.appendChild(emptyCell);
+      }
+
+      // Days 1..daysInMonth
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const events = actEventsByDate[dateKey] || [];
+        const hasEvents = events.length > 0;
+        const isToday = dateKey === todayStr;
+        const isSelected = dateKey === actSelectedDate;
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day-cell' +
+          (hasEvents ? ' has-events' : '') +
+          (isToday ? ' is-today' : '') +
+          (isSelected ? ' selected' : '');
+        cell.id = `calCell_${dateKey}`;
+
+        const dayOfWeek = (firstDayIndex + d - 1) % 7;
+        const numColor = dayOfWeek === 0 ? '#f87171' : (dayOfWeek === 6 ? '#60a5fa' : '#cbd5e1');
+
+        cell.innerHTML = `
+          <span class="cal-date-num" style="color:${numColor};">${d}</span>
+          ${hasEvents ? `<span class="cal-count-badge">${events.length}회</span>` : ''}
+          ${isToday ? `<span style="font-size:0.6rem; color:#facc15; font-weight:800;">오늘</span>` : ''}
+        `;
+
+        cell.onclick = () => selectActivityDate(dateKey);
+        grid.appendChild(cell);
+      }
+    }
+
+    function changeCalendarMonth(delta) {
+      actCalendarMonth += delta;
+      if (actCalendarMonth < 0) {
+        actCalendarMonth = 11;
+        actCalendarYear--;
+      } else if (actCalendarMonth > 11) {
+        actCalendarMonth = 0;
+        actCalendarYear++;
+      }
+      renderActivityCalendar();
+    }
+
+    function goToCalendarToday() {
+      const now = new Date();
+      actCalendarYear = now.getFullYear();
+      actCalendarMonth = now.getMonth();
+      const todayKey = `${actCalendarYear}-${String(actCalendarMonth + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      actSelectedDate = todayKey;
+      renderActivityCalendar();
+      renderActivityTimeline(todayKey);
+    }
+
+    function selectActivityDate(dateKey) {
+      actSelectedDate = dateKey;
+      // Update visual selection in calendar
+      document.querySelectorAll('.cal-day-cell.selected').forEach(el => el.classList.remove('selected'));
+      const targetCell = document.getElementById(`calCell_${dateKey}`);
+      if (targetCell) targetCell.classList.add('selected');
+
+      renderActivityTimeline(dateKey);
+    }
+
+    function renderActivityTimeline(dateKey) {
+      const events = (actEventsByDate[dateKey] || []).slice().reverse(); // Show newest first
+      document.getElementById('actTimelineTitle').textContent = `🗓️ ${dateKey} 활동 기록`;
+      document.getElementById('actTimelineCount').textContent = `총 ${events.length}건`;
+
+      const listEl = document.getElementById('actTimelineList');
+      if (events.length === 0) {
+        listEl.innerHTML = `
+          <div style="text-align:center; padding:36px 16px; color:#64748b;">
+            <div style="font-size:1.8rem; margin-bottom:8px;">🏖️</div>
+            <div>해당 일자(${dateKey})에는 게임 접속 또는 저장 기록이 없습니다.</div>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = '';
+      events.forEach((ev, idx) => {
+        const d = new Date(ev.ts);
+        const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const isTombstone = ev.data && ev.data.deleted === true;
+        const player = (ev.data && ev.data.d && ev.data.d.player) || null;
+        const raid = (ev.data && ev.data.d && ev.data.d.raid) || null;
+        const quests = (ev.data && ev.data.d && ev.data.d.quests) || null;
+
+        const item = document.createElement('div');
+        item.className = 'timeline-item' + (isTombstone ? ' tombstone' : '');
+
+        if (isTombstone) {
+          item.innerHTML = `
+            <div class="timeline-item-top">
+              <span class="timeline-time-badge" style="color:#ef4444;">⏰ ${timeStr}</span>
+              <span style="font-size:0.75rem; color:#f87171; font-weight:800;">🚨 관리자 계정 삭제 집행</span>
+            </div>
+            <div style="font-size:0.8rem; color:#fca5a5;">
+              관리자 콘솔에서 해당 계정의 영구 삭제 및 접속 차단 tombstone이 전송되었습니다.
+            </div>
+          `;
+        } else {
+          const lv = player ? player.level || 1 : '?';
+          const gold = player ? formatGold(player.gold || 0) : '?';
+          const stage = raid ? (raid.unlockedStage || 1) : '?';
+          const questCount = quests && quests.completedToday ? Object.keys(quests.completedToday).length : 0;
+          const stats = (player && player.stats) ? `STR ${player.stats.str || 14} · INT ${player.stats.int || 12} · END ${player.stats.end || 14} · GRO ${player.stats.gro || 15}` : '';
+
+          item.innerHTML = `
+            <div class="timeline-item-top">
+              <span class="timeline-time-badge">⏰ ${timeStr}</span>
+              <span style="font-size:0.75rem; color:#94a3b8;">#${events.length - idx}</span>
+            </div>
+            <div class="timeline-stats-row">
+              <span class="stat-chip level">Lv.${lv}</span>
+              <span class="stat-chip gold">${gold} G</span>
+              <span class="stat-chip stage">보스 STAGE ${stage}</span>
+              ${questCount > 0 ? `<span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3);">퀘스트 ${questCount}개 완료</span>` : ''}
+            </div>
+            ${stats ? `<div style="font-size:0.75rem; color:#64748b; font-family:Consolas, monospace;">스탯: ${stats}</div>` : ''}
+          `;
+        }
+
+        listEl.appendChild(item);
+      });
     }
 
     function exportAllDatabaseJson() {
