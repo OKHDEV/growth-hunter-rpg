@@ -3,11 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>성장형 헌터 RPG - 클라우드 데이터베이스 관리자</title>
+  <title>성장형 헌터 RPG - 슈퍼 관리자(Admin) 콘솔</title>
   <link rel="stylesheet" href="css/style.css?v=20261029_36">
   <style>
+    :root {
+      --admin-gold: #facc15;
+      --admin-cyan: #00e5ff;
+      --admin-emerald: #10b981;
+      --admin-rose: #f43f5e;
+      --admin-purple: #a855f7;
+    }
     body {
-      background: #0a0e17;
+      background: #070a13;
       color: #e2e8f0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
       padding: 16px;
@@ -16,82 +23,151 @@
       box-sizing: border-box;
     }
     .admin-container {
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding-bottom: 80px;
+      padding-bottom: 90px;
     }
+
+    /* Header */
     .admin-header {
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
-      border: 1px solid rgba(0, 229, 255, 0.3);
-      border-radius: 14px;
-      padding: 20px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95));
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 16px;
+      padding: 20px 24px;
       margin-bottom: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.1);
     }
     .admin-header-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 14px;
       margin-bottom: 12px;
     }
     .admin-header h1 {
       margin: 0;
       color: #00e5ff;
-      font-size: 1.5rem;
+      font-size: 1.55rem;
+      font-weight: 900;
       display: flex;
       align-items: center;
       gap: 10px;
-    }
-    .admin-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 15px;
-    }
-    .admin-link-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
-      border-radius: 8px;
-      background: rgba(0, 229, 255, 0.12);
-      border: 1px solid rgba(0, 229, 255, 0.35);
-      color: #38bdf8;
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    .admin-link-btn:hover {
-      background: rgba(0, 229, 255, 0.25);
-      border-color: #00e5ff;
-      color: #ffffff;
-      transform: translateY(-1px);
+      letter-spacing: -0.5px;
     }
     .btn-return-game {
       background: linear-gradient(135deg, #10b981, #059669) !important;
       color: #ffffff !important;
       border: 1px solid #34d399 !important;
       font-weight: 800 !important;
-      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45);
+      padding: 10px 18px !important;
+      border-radius: 10px !important;
+      text-decoration: none !important;
+      font-size: 0.95rem !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      transition: all 0.2s !important;
     }
     .btn-return-game:hover {
       background: linear-gradient(135deg, #059669, #047857) !important;
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 22px rgba(16, 185, 129, 0.65);
     }
-    .account-card {
+
+    /* KPI Metrics Bar */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
       background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--admin-cyan);
+    }
+    .kpi-card.gold::before { background: var(--admin-gold); }
+    .kpi-card.emerald::before { background: var(--admin-emerald); }
+    .kpi-card.rose::before { background: var(--admin-rose); }
+    .kpi-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    /* Global Tools Bar */
+    .toolbar-box {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .search-input {
+      padding: 10px 14px;
+      background: #070d1a;
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.9rem;
+      width: 260px;
+      box-sizing: border-box;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: #00e5ff;
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+    }
+    .select-dropdown {
+      padding: 10px 12px;
+      background: #070d1a;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    /* User Account Cards */
+    .account-card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
       transition: all 0.2s;
     }
     .account-card:hover {
-      border-color: rgba(0, 229, 255, 0.4);
-      box-shadow: 0 6px 20px rgba(0, 229, 255, 0.1);
+      border-color: rgba(0, 229, 255, 0.45);
+      box-shadow: 0 8px 25px rgba(0, 229, 255, 0.12);
     }
     .account-header {
       display: flex;
@@ -100,12 +176,12 @@
       flex-wrap: wrap;
       gap: 10px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 12px;
-      margin-bottom: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
     }
     .user-badge {
-      font-size: 1.15rem;
-      font-weight: 800;
+      font-size: 1.25rem;
+      font-weight: 900;
       color: #34d399;
       display: flex;
       align-items: center;
@@ -113,40 +189,81 @@
     }
     .pw-badge {
       font-size: 0.85rem;
-      color: #94a3b8;
-      background: rgba(0, 0, 0, 0.4);
-      padding: 3px 8px;
+      color: #cbd5e1;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 10px;
       border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 10px;
-      margin: 12px 0;
+
+    /* Sub Tabs in User Card */
+    .user-subtabs {
+      display: flex;
+      gap: 8px;
+      margin: 14px 0 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+      overflow-x: auto;
     }
-    .stat-box {
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 10px;
+    .subtab-btn {
+      padding: 6px 14px;
       border-radius: 8px;
-      text-align: center;
-    }
-    .stat-label {
-      font-size: 0.75rem;
-      color: #64748b;
-      margin-bottom: 4px;
-    }
-    .stat-val {
-      font-size: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.4);
+      color: #94a3b8;
+      font-size: 0.82rem;
       font-weight: 700;
-      color: #f1f5f9;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
     }
+    .subtab-btn.active {
+      background: rgba(0, 229, 255, 0.2);
+      border-color: #00e5ff;
+      color: #ffffff;
+    }
+
+    /* Action Grid */
+    .action-panel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .cheat-btn {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .cheat-btn:hover {
+      transform: translateY(-1px);
+    }
+    .cheat-gold { background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #fbbf24; }
+    .cheat-gold:hover { background: #f59e0b; color: #000; }
+    .cheat-level { background: rgba(56, 189, 248, 0.18); border-color: #38bdf8; color: #38bdf8; }
+    .cheat-level:hover { background: #38bdf8; color: #000; }
+    .cheat-boss { background: rgba(239, 68, 68, 0.18); border-color: #ef4444; color: #f87171; }
+    .cheat-boss:hover { background: #ef4444; color: #fff; }
+    .cheat-quest { background: rgba(52, 211, 153, 0.18); border-color: #34d399; color: #34d399; }
+    .cheat-quest:hover { background: #34d399; color: #000; }
+    .cheat-omega { background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(245, 158, 11, 0.25)); border-color: #c084fc; color: #facc15; }
+    .cheat-omega:hover { background: #c084fc; color: #000; }
+
+    /* JSON Editor */
     .json-editor {
       width: 100%;
-      height: 280px;
-      background: #050811;
-      border: 1px solid rgba(0, 229, 255, 0.2);
+      height: 300px;
+      background: #040711;
+      border: 1px solid rgba(0, 229, 255, 0.25);
       border-radius: 8px;
       color: #38bdf8;
       font-family: Consolas, monospace;
@@ -155,19 +272,23 @@
       box-sizing: border-box;
       resize: vertical;
     }
+
+    /* Buttons */
     .btn-group {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 10px;
     }
     .btn-action {
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
       border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       transition: all 0.2s;
     }
     .btn-cyan { background: rgba(0, 229, 255, 0.18); border-color: #00e5ff; color: #00e5ff; }
@@ -176,12 +297,8 @@
     .btn-emerald:hover { background: #10b981; color: #000; }
     .btn-amber { background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #fbbf24; }
     .btn-amber:hover { background: #f59e0b; color: #000; }
-    .loading-spinner {
-      text-align: center;
-      padding: 40px;
-      color: #38bdf8;
-      font-size: 1.1rem;
-    }
+    .btn-rose { background: rgba(244, 63, 94, 0.18); border-color: #f43f5e; color: #fda4af; }
+    .btn-rose:hover { background: #f43f5e; color: #fff; }
 
     /* Admin Auth Gate Screen */
     .admin-lock-screen {
@@ -190,8 +307,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(5, 8, 18, 0.96);
-      backdrop-filter: blur(12px);
+      background: rgba(4, 7, 16, 0.97);
+      backdrop-filter: blur(14px);
       z-index: 10000;
       display: flex;
       align-items: center;
@@ -201,13 +318,13 @@
     }
     .admin-lock-box {
       width: 100%;
-      max-width: 400px;
+      max-width: 410px;
       background: rgba(15, 23, 42, 0.98);
-      border: 1px solid rgba(0, 229, 255, 0.4);
-      border-radius: 16px;
-      padding: 24px 20px;
+      border: 1px solid rgba(0, 229, 255, 0.45);
+      border-radius: 18px;
+      padding: 26px 22px;
       text-align: center;
-      box-shadow: 0 0 45px rgba(0, 229, 255, 0.25);
+      box-shadow: 0 0 50px rgba(0, 229, 255, 0.3);
     }
 
     /* Sticky Floating Return Button */
@@ -223,7 +340,7 @@
       font-weight: 900;
       font-size: 14px;
       text-decoration: none;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(16, 185, 129, 0.6);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(16, 185, 129, 0.65);
       border: 2px solid #a7f3d0;
       display: inline-flex;
       align-items: center;
@@ -232,7 +349,7 @@
     }
     .floating-back-btn:hover {
       transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.8);
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.85);
       color: #ffffff;
     }
   </style>
@@ -242,8 +359,8 @@
   <!-- 🔒 Admin Auth Lock Gate (Shown if not authenticated) -->
   <div id="adminAuthLockScreen" class="admin-lock-screen" style="display: none;">
     <div class="admin-lock-box">
-      <div style="font-size: 42px; margin-bottom: 8px;">👑</div>
-      <h2 style="color: #00e5ff; margin: 0 0 6px 0; font-size: 1.3rem;">관리자(Admin) 전용 콘솔</h2>
+      <div style="font-size: 46px; margin-bottom: 8px;">👑</div>
+      <h2 style="color: #00e5ff; margin: 0 0 6px 0; font-size: 1.4rem;">슈퍼 관리자(Admin) 콘솔</h2>
       <p style="color: #94a3b8; font-size: 13px; margin: 0 0 18px 0; line-height: 1.5;">
         관리자 계정으로 인증하세요.<br>
         (아이디: <strong style="color:#38bdf8;">admin</strong> / 비밀번호: <strong style="color:#facc15;">admin1234</strong>)
@@ -251,12 +368,12 @@
 
       <div style="margin-bottom: 12px; text-align: left;">
         <label style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">관리자 아이디</label>
-        <input type="text" id="adminLockId" value="admin" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;">
+        <input type="text" id="adminLockId" value="admin" style="width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;">
       </div>
 
       <div style="margin-bottom: 14px; text-align: left;">
         <label style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">관리자 비밀번호</label>
-        <input type="password" id="adminLockPw" placeholder="admin1234 입력" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;" onkeydown="if(event.key==='Enter') verifyAdminLogin();">
+        <input type="password" id="adminLockPw" placeholder="admin1234 입력" style="width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;" onkeydown="if(event.key==='Enter') verifyAdminLogin();">
       </div>
 
       <div id="adminLockFeedback" style="font-size: 12px; min-height: 18px; margin-bottom: 12px; font-weight: 700; color: #f87171;"></div>
@@ -274,35 +391,74 @@
 
   <!-- 🗄️ Main Admin Panel Content -->
   <div class="admin-container" id="adminMainContent">
+    
+    <!-- Header -->
     <div class="admin-header">
       <div class="admin-header-top">
-        <h1>👑 클라우드 데이터베이스 관리자 콘솔</h1>
-        <a href="index.html" class="admin-link-btn btn-return-game">
+        <h1>👑 슈퍼 관리자(Admin) 통합 관제 콘솔</h1>
+        <a href="index.html" class="btn-return-game">
           🎮 메인 게임으로 돌아가기 ↗
         </a>
       </div>
 
-      <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">
-        성장형 헌터 RPG 유저 계정 실시간 조회, 세이브 데이터 편집 및 클라우드 즉시 동기화
+      <p style="margin: 0 0 16px 0; color: #94a3b8; font-size: 0.9rem; line-height: 1.5;">
+        가입 유저 실시간 통계, 골드·레벨·스탯 원클릭 조작, 보스/퀘스트/칭호 해금 및 클라우드 즉시 동기화
       </p>
 
-      <div class="admin-links">
-        <a href="index.html" class="admin-link-btn btn-return-game" style="font-size: 0.9rem;">
+      <div class="btn-group" style="gap: 10px;">
+        <a href="index.html" class="btn-action btn-emerald" style="text-decoration:none;">
           🎮 메인 게임으로 돌아가기
         </a>
-        <a href="https://ntfy.sh/okh_gh_cloud_v4_registry" target="_blank" class="admin-link-btn">
-          📡 Ntfy 레지스트리 원본 웹 콘솔 ↗
-        </a>
-        <button class="admin-link-btn" onclick="loadAllAccounts()" style="background: rgba(245, 158, 11, 0.18); border-color: #f59e0b; color: #fbbf24; cursor: pointer;">
-          🔄 계정 목록 새로고침
+        <button class="btn-action btn-amber" onclick="loadAllAccounts()">
+          🔄 실시간 새로고침
         </button>
-        <button class="admin-link-btn" onclick="logoutAdmin()" style="background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #f87171; cursor: pointer; margin-left: auto;">
+        <button class="btn-action btn-cyan" onclick="exportAllDatabaseJson()">
+          📥 전체 서버 DB 백업 (JSON 다운로드)
+        </button>
+        <button class="btn-action btn-rose" onclick="logoutAdmin()" style="margin-left: auto;">
           🚪 관리자 로그아웃
         </button>
       </div>
     </div>
 
-    <!-- Accounts List Container -->
+    <!-- 📊 KPI Metrics Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">총 가입 유저 수</div>
+        <div class="kpi-value" id="kpiTotalUsers" style="color:#38bdf8;">-</div>
+      </div>
+      <div class="kpi-card gold">
+        <div class="kpi-label">서버 유통 총 골드</div>
+        <div class="kpi-value" id="kpiTotalGold" style="color:#facc15;">-</div>
+      </div>
+      <div class="kpi-card emerald">
+        <div class="kpi-label">최고 레벨 / 평균 레벨</div>
+        <div class="kpi-value" id="kpiLevelInfo" style="color:#34d399;">-</div>
+      </div>
+      <div class="kpi-card rose">
+        <div class="kpi-label">최고 보스 돌파 단계</div>
+        <div class="kpi-value" id="kpiMaxStage" style="color:#f87171;">-</div>
+      </div>
+    </div>
+
+    <!-- 🔍 Search & Filter Toolbar -->
+    <div class="toolbar-box">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <input type="text" id="userSearchInput" class="search-input" placeholder="🔍 유저 ID 검색..." oninput="filterAccountsList()">
+        <select id="userSortSelect" class="select-dropdown" onchange="filterAccountsList()">
+          <option value="recent">최근 동기화 순</option>
+          <option value="level">레벨 높은 순</option>
+          <option value="gold">골드 많은 순</option>
+          <option value="stage">보스 단계 높은 순</option>
+          <option value="id">아이디 이름 순</option>
+        </select>
+      </div>
+      <div style="font-size:0.85rem; color:#94a3b8;">
+        조회된 유저: <strong id="displayedUserCount" style="color:#00e5ff;">0</strong>명
+      </div>
+    </div>
+
+    <!-- 📋 Accounts List Container -->
     <div id="accountsList">
       <div class="loading-spinner">📡 서버에서 유저 계정 목록을 불러오는 중...</div>
     </div>
@@ -317,6 +473,9 @@
     const NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_v4_';
     const BYTEBIN_URL = 'https://bytebin.lucko.me';
     const PASTES_URL = 'https://api.pastes.dev';
+
+    let rawAccountsRegistry = {};
+    let cachedUserSaves = {}; // userId -> saveJson
 
     function checkAdminAuth() {
       const isAuth = (localStorage.getItem('isAdminLoggedIn') === 'true') ||
@@ -368,6 +527,14 @@
       return hex.slice(0, 32) || 'default';
     }
 
+    function formatGold(num) {
+      const n = Number(num) || 0;
+      if (n >= 1000000000000) return (n / 1000000000000).toFixed(1) + '조';
+      if (n >= 100000000) return (n / 100000000).toFixed(1) + '억';
+      if (n >= 10000) return (n / 10000).toFixed(1) + '만';
+      return n.toLocaleString();
+    }
+
     async function loadAllAccounts() {
       const listEl = document.getElementById('accountsList');
       listEl.innerHTML = '<div class="loading-spinner">📡 서버에서 유저 계정 목록을 불러오는 중...</div>';
@@ -392,56 +559,141 @@
           }
         }
 
-        const userIds = Object.keys(registry);
-        if (userIds.length === 0) {
-          listEl.innerHTML = '<div style="text-align:center; padding:40px; color:#64748b;">등록된 유저 계정이 없습니다.</div>';
-          return;
-        }
+        rawAccountsRegistry = registry;
+        filterAccountsList();
 
-        listEl.innerHTML = '';
-        for (const uid of userIds) {
-          const accInfo = registry[uid] || {};
-          const card = document.createElement('div');
-          card.className = 'account-card';
-          card.id = `card_${userIdToHex(uid)}`;
-
-          const hexId = userIdToHex(uid);
-          const syncDateStr = accInfo.ts ? new Date(accInfo.ts).toLocaleString() : '기록 없음';
-
-          card.innerHTML = `
-            <div class="account-header">
-              <div>
-                <span class="user-badge">👤 ${uid}</span>
-                <span class="pw-badge">비밀번호: ${accInfo.p || '미설정'}</span>
-                <span style="font-size:0.8rem; color:#64748b; margin-left:8px;">최근 동기화: ${syncDateStr}</span>
-              </div>
-              <div class="btn-group">
-                <button class="btn-action btn-cyan" onclick="fetchAndDisplayUserData('${uid}', '${accInfo.bk || ''}', '${accInfo.pk || ''}')">
-                  🔍 데이터 조회 / 편집
-                </button>
-                <a href="${BYTEBIN_URL}/${accInfo.bk}" target="_blank" class="btn-action btn-emerald" style="text-decoration:none;">
-                  💾 Bytebin JSON ↗
-                </a>
-                <a href="${PASTES_URL}/${accInfo.pk}" target="_blank" class="btn-action btn-emerald" style="text-decoration:none;">
-                  📋 Pastes JSON ↗
-                </a>
-                <a href="${NTFY_BASE}u_${hexId}" target="_blank" class="btn-action btn-amber" style="text-decoration:none;">
-                  📡 Ntfy 채널 ↗
-                </a>
-              </div>
-            </div>
-            <div id="details_${hexId}" style="display:none; margin-top:14px;"></div>
-          `;
-
-          listEl.appendChild(card);
-        }
+        // Background preload saves for KPI calculation
+        calculateKpiStats();
 
       } catch (err) {
         listEl.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444;">계정 목록 로드 실패: ${err.message}</div>`;
       }
     }
 
-    async function fetchAndDisplayUserData(userId, bk, pk) {
+    async function calculateKpiStats() {
+      const userIds = Object.keys(rawAccountsRegistry);
+      document.getElementById('kpiTotalUsers').textContent = `${userIds.length}명`;
+
+      let totalGold = 0;
+      let maxLv = 1;
+      let lvSum = 0;
+      let lvCount = 0;
+      let maxStage = 1;
+
+      for (const uid of userIds) {
+        const accInfo = rawAccountsRegistry[uid] || {};
+        if (accInfo.deleted) continue;
+
+        let save = cachedUserSaves[uid] || null;
+        if (!save && accInfo.bk) {
+          try {
+            const r = await fetch(`${BYTEBIN_URL}/${accInfo.bk}`);
+            if (r.ok) {
+              save = await r.json();
+              cachedUserSaves[uid] = save;
+            }
+          } catch(e) {}
+        }
+
+        if (save && save.player) {
+          const g = Number(save.player.gold) || 0;
+          const lv = Number(save.player.level) || 1;
+          const st = Number((save.raid && save.raid.unlockedStage) || 1);
+          totalGold += g;
+          if (lv > maxLv) maxLv = lv;
+          if (st > maxStage) maxStage = st;
+          lvSum += lv;
+          lvCount++;
+        }
+      }
+
+      document.getElementById('kpiTotalGold').textContent = `${formatGold(totalGold)} G`;
+      const avgLv = lvCount > 0 ? (lvSum / lvCount).toFixed(1) : 1;
+      document.getElementById('kpiLevelInfo').textContent = `Lv.${maxLv} (평균 Lv.${avgLv})`;
+      document.getElementById('kpiMaxStage').textContent = `STAGE ${maxStage}`;
+    }
+
+    function filterAccountsList() {
+      const listEl = document.getElementById('accountsList');
+      const query = (document.getElementById('userSearchInput').value || '').trim().toLowerCase();
+      const sortBy = document.getElementById('userSortSelect').value;
+
+      let userIds = Object.keys(rawAccountsRegistry).filter(uid => {
+        const acc = rawAccountsRegistry[uid];
+        if (acc && acc.deleted) return false;
+        if (!query) return true;
+        return uid.toLowerCase().includes(query);
+      });
+
+      // Sorting
+      userIds.sort((a, b) => {
+        const accA = rawAccountsRegistry[a] || {};
+        const accB = rawAccountsRegistry[b] || {};
+        const saveA = cachedUserSaves[a] || {};
+        const saveB = cachedUserSaves[b] || {};
+
+        if (sortBy === 'level') {
+          return ((saveB.player && saveB.player.level) || 1) - ((saveA.player && saveA.player.level) || 1);
+        }
+        if (sortBy === 'gold') {
+          return ((saveB.player && saveB.player.gold) || 0) - ((saveA.player && saveA.player.gold) || 0);
+        }
+        if (sortBy === 'stage') {
+          return ((saveB.raid && saveB.raid.unlockedStage) || 1) - ((saveA.raid && saveA.raid.unlockedStage) || 1);
+        }
+        if (sortBy === 'id') {
+          return a.localeCompare(b);
+        }
+        return (accB.ts || 0) - (accA.ts || 0); // default: recent
+      });
+
+      document.getElementById('displayedUserCount').textContent = userIds.length;
+
+      if (userIds.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center; padding:50px; color:#64748b; font-size:1.05rem;">검색 조건에 맞는 유저 계정이 없습니다.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      for (const uid of userIds) {
+        const accInfo = rawAccountsRegistry[uid] || {};
+        const card = document.createElement('div');
+        card.className = 'account-card';
+        card.id = `card_${userIdToHex(uid)}`;
+
+        const hexId = userIdToHex(uid);
+        const syncDateStr = accInfo.ts ? new Date(accInfo.ts).toLocaleString() : '기록 없음';
+
+        card.innerHTML = `
+          <div class="account-header">
+            <div>
+              <span class="user-badge">👤 ${uid}</span>
+              <span class="pw-badge">비밀번호: <strong>${accInfo.p || '미설정'}</strong></span>
+              <span style="font-size:0.8rem; color:#64748b; margin-left:8px;">최근 동기화: ${syncDateStr}</span>
+            </div>
+            <div class="btn-group">
+              <button class="btn-action btn-cyan" onclick="toggleUserDetails('${uid}', '${accInfo.bk || ''}', '${accInfo.pk || ''}')">
+                ⚡ 관리 도구 & 세이브 열기
+              </button>
+              <a href="${BYTEBIN_URL}/${accInfo.bk}" target="_blank" class="btn-action btn-emerald" style="text-decoration:none;">
+                💾 Bytebin 원본 ↗
+              </a>
+              <a href="${PASTES_URL}/${accInfo.pk}" target="_blank" class="btn-action btn-emerald" style="text-decoration:none;">
+                📋 Pastes 미러 ↗
+              </a>
+              <button class="btn-action btn-rose" onclick="deleteUserAccount('${uid}')">
+                🗑️ 계정 삭제
+              </button>
+            </div>
+          </div>
+          <div id="details_${hexId}" style="display:none; margin-top:14px;"></div>
+        `;
+
+        listEl.appendChild(card);
+      }
+    }
+
+    async function toggleUserDetails(userId, bk, pk) {
       const hexId = userIdToHex(userId);
       const detailContainer = document.getElementById(`details_${hexId}`);
       if (!detailContainer) return;
@@ -452,12 +704,12 @@
       }
 
       detailContainer.style.display = 'block';
-      detailContainer.innerHTML = '<div style="color:#38bdf8; font-size:0.9rem;">⏳ 유저 상세 세이브 데이터를 로드하는 중...</div>';
+      detailContainer.innerHTML = '<div style="color:#38bdf8; font-size:0.9rem;">⏳ 유저 상세 데이터를 서버에서 로드하는 중...</div>';
 
-      let saveJson = null;
+      let saveJson = cachedUserSaves[userId] || null;
 
       // 1. Try Bytebin
-      if (bk) {
+      if (!saveJson && bk) {
         try {
           const res = await fetch(`${BYTEBIN_URL}/${bk}`);
           if (res.ok) saveJson = await res.json();
@@ -498,86 +750,319 @@
       }
 
       if (!saveJson) {
-        detailContainer.innerHTML = '<div style="color:#ef4444;">유저 세이브 데이터를 가져오지 못했습니다.</div>';
+        detailContainer.innerHTML = '<div style="color:#ef4444; padding:10px;">유저 세이브 데이터를 가져오지 못했습니다. 기기에서 아직 최초 저장이 완료되지 않았을 수 있습니다.</div>';
         return;
       }
 
+      cachedUserSaves[userId] = saveJson;
       detailContainer.dataset.loaded = 'true';
+      renderUserDetailView(userId, hexId, saveJson);
+    }
+
+    function renderUserDetailView(userId, hexId, saveJson) {
+      const detailContainer = document.getElementById(`details_${hexId}`);
+      if (!detailContainer) return;
+
       const p = saveJson.player || {};
       const s = p.stats || {};
       const r = saveJson.raid || {};
       const q = saveJson.quests || {};
 
       const goldFmt = typeof p.gold === 'number' ? p.gold.toLocaleString() : (p.gold || 0);
+      const heightVal = p.baseHeight || 173;
 
       detailContainer.innerHTML = `
-        <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-label">레벨 (LV)</div>
-            <div class="stat-val" style="color:#38bdf8;">Lv.${p.level || 1}</div>
+        <!-- Sub Navigation Tabs -->
+        <div class="user-subtabs">
+          <button class="subtab-btn active" onclick="switchUserTab('${hexId}', 'tab_cheats_${hexId}', this)">⚡ 원클릭 슈퍼 치트</button>
+          <button class="subtab-btn" onclick="switchUserTab('${hexId}', 'tab_stats_${hexId}', this)">📊 스탯 & 진도 현황</button>
+          <button class="subtab-btn" onclick="switchUserTab('${hexId}', 'tab_json_${hexId}', this)">📝 세이브 JSON 편집기</button>
+          <button class="subtab-btn" onclick="switchUserTab('${hexId}', 'tab_danger_${hexId}', this)">⚠️ 위험 관리 (비번/초기화)</button>
+        </div>
+
+        <!-- 1. Super Cheats Panel -->
+        <div id="tab_cheats_${hexId}">
+          <div style="font-size:0.8rem; font-weight:700; color:#cbd5e1; margin-bottom:6px;">💰 골드 조작</div>
+          <div class="action-panel-grid">
+            <button class="cheat-btn cheat-gold" onclick="applyCheat('${userId}', 'addGold', 1000000)">
+              <span>💰 +100만 G</span>
+              <span style="font-size:0.7rem; opacity:0.8;">골드 즉시 지급</span>
+            </button>
+            <button class="cheat-btn cheat-gold" onclick="applyCheat('${userId}', 'addGold', 10000000)">
+              <span>💎 +1,000만 G</span>
+              <span style="font-size:0.7rem; opacity:0.8;">대량 골드 지급</span>
+            </button>
+            <button class="cheat-btn cheat-gold" onclick="applyCheat('${userId}', 'addGold', 100000000)">
+              <span>👑 +1억 G</span>
+              <span style="font-size:0.7rem; opacity:0.8;">초대형 골드 지급</span>
+            </button>
+            <button class="cheat-btn cheat-gold" onclick="applyCheat('${userId}', 'setGold', 0)">
+              <span>🪙 골드 0 리셋</span>
+              <span style="font-size:0.7rem; opacity:0.8;">골드 초기화</span>
+            </button>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">골드 (GOLD)</div>
-            <div class="stat-val" style="color:#facc15;">${goldFmt} G</div>
+
+          <div style="font-size:0.8rem; font-weight:700; color:#cbd5e1; margin:12px 0 6px 0;">📈 레벨 & 스탯 & 신장 조작</div>
+          <div class="action-panel-grid">
+            <button class="cheat-btn cheat-level" onclick="applyCheat('${userId}', 'addLevel', 5)">
+              <span>⚡ 레벨 +5 UP</span>
+              <span style="font-size:0.7rem; opacity:0.8;">즉시 레벨업</span>
+            </button>
+            <button class="cheat-btn cheat-level" onclick="applyCheat('${userId}', 'setLevel', 50)">
+              <span>🔥 Lv.50 달성</span>
+              <span style="font-size:0.7rem; opacity:0.8;">중반부 스킵</span>
+            </button>
+            <button class="cheat-btn cheat-level" onclick="applyCheat('${userId}', 'setLevel', 100)">
+              <span>👑 Lv.100 만렙 달성</span>
+              <span style="font-size:0.7rem; opacity:0.8;">종결 신화 레벨</span>
+            </button>
+            <button class="cheat-btn cheat-level" onclick="applyCheat('${userId}', 'boostStats', 30)">
+              <span>🏋️ 전 스탯 +30 UP</span>
+              <span style="font-size:0.7rem; opacity:0.8;">STR/INT/END/GRO</span>
+            </button>
+            <button class="cheat-btn cheat-level" onclick="applyCheat('${userId}', 'setHeight178')">
+              <span>📏 신장 178cm 즉시 달성</span>
+              <span style="font-size:0.7rem; opacity:0.8;">성장 목표 완료</span>
+            </button>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">경험치 (EXP)</div>
-            <div class="stat-val" style="color:#a855f7;">${p.exp || 0}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">근력 / 지능 / 체력</div>
-            <div class="stat-val">${s.str || 14} / ${s.int || 12} / ${s.end || 14}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">보스 토벌 단계</div>
-            <div class="stat-val" style="color:#ef4444;">STAGE ${r.unlockedStage || 1}</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">연속 출석일</div>
-            <div class="stat-val" style="color:#34d399;">${q.dailyStreak || 1}일</div>
+
+          <div style="font-size:0.8rem; font-weight:700; color:#cbd5e1; margin:12px 0 6px 0;">⚔️ 보스 레이드 & 퀘스트 & 칭호 종결</div>
+          <div class="action-panel-grid">
+            <button class="cheat-btn cheat-boss" onclick="applyCheat('${userId}', 'clearAllBosses')">
+              <span>⚔️ 1~50 보스 전원 토벌</span>
+              <span style="font-size:0.7rem; opacity:0.8;">전 단계 올클리어</span>
+            </button>
+            <button class="cheat-btn cheat-boss" onclick="applyCheat('${userId}', 'unlockOmegaBoss')">
+              <span>👑 100단계 절대 거신 해금</span>
+              <span style="font-size:0.7rem; opacity:0.8;">히든 찐막 최종보스</span>
+            </button>
+            <button class="cheat-btn cheat-quest" onclick="applyCheat('${userId}', 'completeTodayQuests')">
+              <span>📜 오늘의 일일 퀘스트 올클</span>
+              <span style="font-size:0.7rem; opacity:0.8;">당일 퀘스트 완료</span>
+            </button>
+            <button class="cheat-btn cheat-quest" onclick="applyCheat('${userId}', 'setStreak', 100)">
+              <span>📅 연속 출석 100일 달성</span>
+              <span style="font-size:0.7rem; opacity:0.8;">스트릭 100일</span>
+            </button>
+            <button class="cheat-btn cheat-omega" onclick="applyCheat('${userId}', 'grantOmegaSword')">
+              <span>🗡️ 절대 거신의 멸천성검 지급</span>
+              <span style="font-size:0.7rem; opacity:0.8;">신화급 종결 무기</span>
+            </button>
+            <button class="cheat-btn cheat-omega" onclick="applyCheat('${userId}', 'unlockAllTitles')">
+              <span>🏆 전설의 칭호 ALL 언락</span>
+              <span style="font-size:0.7rem; opacity:0.8;">모든 칭호 해금</span>
+            </button>
           </div>
         </div>
 
-        <div style="margin-top:14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+        <!-- 2. Stats & Progression Tab -->
+        <div id="tab_stats_${hexId}" style="display:none;">
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">레벨 (LV)</div>
+              <div class="stat-val" style="color:#38bdf8;">Lv.${p.level || 1}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">골드 (GOLD)</div>
+              <div class="stat-val" style="color:#facc15;">${goldFmt} G</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">경험치 (EXP)</div>
+              <div class="stat-val" style="color:#a855f7;">${p.exp || 0}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">근력 (STR)</div>
+              <div class="stat-val">${s.str || 14}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">지능 (INT)</div>
+              <div class="stat-val">${s.int || 12}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">체력 (END)</div>
+              <div class="stat-val">${s.end || 14}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">성장잠재력 (GRO)</div>
+              <div class="stat-val">${s.gro || 15}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">신장 (Height)</div>
+              <div class="stat-val" style="color:#34d399;">${heightVal.toFixed ? heightVal.toFixed(2) : heightVal} cm</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">보스 토벌 단계</div>
+              <div class="stat-val" style="color:#ef4444;">STAGE ${r.unlockedStage || 1}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">연속 출석일</div>
+              <div class="stat-val" style="color:#34d399;">${q.dailyStreak || 1}일</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Raw JSON Editor Tab -->
+        <div id="tab_json_${hexId}" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
             <span style="font-size:0.85rem; font-weight:700; color:#94a3b8;">원시 세이브 JSON 편집기</span>
-            <div class="btn-group" style="margin-top:0;">
-              <button class="btn-action btn-amber" onclick="addGoldToUser('${userId}', 1000000)">+1,000,000 G 지급</button>
+            <div class="btn-group">
               <button class="btn-action btn-cyan" onclick="saveUserChanges('${userId}')">💾 서버에 변경사항 즉시 저장</button>
             </div>
           </div>
           <textarea class="json-editor" id="json_${hexId}">${JSON.stringify(saveJson, null, 2)}</textarea>
         </div>
+
+        <!-- 4. Danger Zone Tab -->
+        <div id="tab_danger_${hexId}" style="display:none; background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.3); border-radius:10px; padding:14px; margin-top:8px;">
+          <h4 style="color:#f87171; margin:0 0 10px 0; font-size:0.95rem;">⚠️ 위험 관리 구역 (Danger Zone)</h4>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-action btn-amber" onclick="changeUserPasswordPrompt('${userId}')">
+              🔑 비밀번호 강제 변경
+            </button>
+            <button class="btn-action btn-rose" onclick="resetUserProgressToLv1('${userId}')">
+              🔄 캐릭터 데이터 초기화 (Lv.1 리셋)
+            </button>
+            <button class="btn-action btn-rose" onclick="deleteUserAccount('${userId}')">
+              🗑️ 계정 영구 삭제
+            </button>
+          </div>
+        </div>
       `;
     }
 
-    function addGoldToUser(userId, amount) {
-      const hexId = userIdToHex(userId);
-      const txt = document.getElementById(`json_${hexId}`);
-      if (!txt) return;
-      try {
-        const obj = JSON.parse(txt.value);
-        if (!obj.player) obj.player = {};
-        obj.player.gold = (Number(obj.player.gold) || 0) + amount;
-        obj.lastSaved = new Date().toISOString();
-        txt.value = JSON.stringify(obj, null, 2);
-        alert(`골드가 +${amount.toLocaleString()} G 추가되었습니다. [서버에 변경사항 즉시 저장]을 눌러 반영하세요!`);
-      } catch (e) {
-        alert("JSON 파싱 에러: " + e.message);
-      }
+    function switchUserTab(hexId, activeTabId, btnEl) {
+      const parent = document.getElementById(`details_${hexId}`);
+      if (!parent) return;
+
+      ['tab_cheats_', 'tab_stats_', 'tab_json_', 'tab_danger_'].forEach(prefix => {
+        const el = document.getElementById(prefix + hexId);
+        if (el) el.style.display = 'none';
+      });
+
+      const activeEl = document.getElementById(activeTabId);
+      if (activeEl) activeEl.style.display = 'block';
+
+      const buttons = parent.querySelectorAll('.subtab-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
     }
 
-    async function saveUserChanges(userId) {
-      const hexId = userIdToHex(userId);
-      const txt = document.getElementById(`json_${hexId}`);
-      if (!txt) return;
+    async function applyCheat(userId, cheatType, param) {
+      let save = cachedUserSaves[userId];
+      if (!save) return alert('세이브 데이터를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
 
-      let parsedData;
-      try {
-        parsedData = JSON.parse(txt.value);
-      } catch (e) {
-        return alert("유효하지 않은 JSON 형식입니다: " + e.message);
+      if (!save.player) save.player = {};
+      if (!save.player.stats) save.player.stats = { str: 14, int: 12, end: 14, gro: 15 };
+      if (!save.raid) save.raid = { unlockedStage: 1, clearedStages: [] };
+      if (!save.quests) save.quests = { dailyStreak: 1, completedToday: {}, history: {} };
+
+      let msg = '';
+
+      switch (cheatType) {
+        case 'addGold':
+          save.player.gold = (Number(save.player.gold) || 0) + param;
+          msg = `골드 +${param.toLocaleString()} G 지급 완료! (현재: ${save.player.gold.toLocaleString()} G)`;
+          break;
+        case 'setGold':
+          save.player.gold = param;
+          msg = `골드가 ${param} G로 설정되었습니다.`;
+          break;
+        case 'addLevel':
+          save.player.level = Math.min(100, (Number(save.player.level) || 1) + param);
+          msg = `레벨이 Lv.${save.player.level}로 증가했습니다!`;
+          break;
+        case 'setLevel':
+          save.player.level = param;
+          msg = `레벨이 Lv.${param}으로 설정되었습니다.`;
+          break;
+        case 'boostStats':
+          save.player.stats.str = (save.player.stats.str || 14) + param;
+          save.player.stats.int = (save.player.stats.int || 12) + param;
+          save.player.stats.end = (save.player.stats.end || 14) + param;
+          save.player.stats.gro = (save.player.stats.gro || 15) + param;
+          msg = `전 스탯이 +${param}씩 폭풍 성장했습니다!`;
+          break;
+        case 'setHeight178':
+          save.player.baseHeight = 178;
+          save.player.growthPoints = 50000;
+          msg = `신장이 최종 각성 목표인 178.00 cm로 달성 완료되었습니다!`;
+          break;
+        case 'clearAllBosses':
+          save.raid.unlockedStage = 50;
+          save.raid.clearedStages = Array.from({ length: 50 }, (_, i) => i + 1);
+          msg = `1~50단계 모든 보스가 올클리어되었습니다!`;
+          break;
+        case 'unlockOmegaBoss':
+          save.raid.unlockedStage = 100;
+          if (!save.raid.clearedStages.includes(50)) save.raid.clearedStages.push(50);
+          msg = `👑 100단계 절대 거신 오메가 크로노스가 즉시 해금되었습니다!`;
+          break;
+        case 'completeTodayQuests':
+          save.quests.completedToday = {
+            height_rope_1000: true,
+            height_stretch_spine: true,
+            height_iron_posture: true,
+            height_sleep_deep: true,
+            height_protein_boost: true
+          };
+          msg = `오늘의 모든 일일 수련 퀘스트가 완료 처리되었습니다!`;
+          break;
+        case 'setStreak':
+          save.quests.dailyStreak = param;
+          msg = `연속 출석 스트릭이 ${param}일로 설정되었습니다!`;
+          break;
+        case 'grantOmegaSword':
+          const omegaSword = {
+            id: "item_omega_sword",
+            slot: "weapon",
+            name: "절대 거신의 멸천성검",
+            rarity: "mythic",
+            stats: { atk: 350, def: 180, str: 45, int: 35, end: 40, gro: 20 },
+            desc: "100단계 절대 거신 오메가 크로노스를 무너뜨리고 쟁취한 신화급 멸천의 대검."
+          };
+          if (!save.player.equipment) save.player.equipment = {};
+          save.player.equipment.weapon = omegaSword;
+          if (!Array.isArray(save.player.inventory)) save.player.inventory = [];
+          if (!save.player.inventory.some(it => it && it.id === 'item_omega_sword')) {
+            save.player.inventory.push(omegaSword);
+          }
+          msg = `🗡️ 신화급 종결 무기 [절대 거신의 멸천성검]이 장착 및 가방에 지급되었습니다!`;
+          break;
+        case 'unlockAllTitles':
+          const allTitles = [
+            "초보 수련자 (173cm)", "슬라임 포식자", "성장의 첫걸음", "고블린 도살자", "오크 분쇄자",
+            "심연의 파괴자", "거신의 심장", "100단계 절대 거신 토벌자", "178cm 각성자"
+          ];
+          save.player.unlockedTitles = Array.from(new Set([...(save.player.unlockedTitles || []), ...allTitles]));
+          msg = `🏆 모든 히든 및 보스 격파 칭호가 전부 해금되었습니다!`;
+          break;
       }
+
+      cachedUserSaves[userId] = save;
+      const hexId = userIdToHex(userId);
+      const jsonEl = document.getElementById(`json_${hexId}`);
+      if (jsonEl) jsonEl.value = JSON.stringify(save, null, 2);
+
+      await saveUserChanges(userId, true);
+      alert(`✅ [${userId}] 치트 적용 완료!\n${msg}`);
+      renderUserDetailView(userId, hexId, save);
+    }
+
+    async function saveUserChanges(userId, silent = false) {
+      const hexId = userIdToHex(userId);
+      let parsedData = cachedUserSaves[userId];
+
+      const jsonEl = document.getElementById(`json_${hexId}`);
+      if (jsonEl) {
+        try {
+          parsedData = JSON.parse(jsonEl.value);
+          cachedUserSaves[userId] = parsedData;
+        } catch (e) {
+          return alert('유효하지 않은 JSON 형식입니다: ' + e.message);
+        }
+      }
+
+      if (!parsedData) return;
 
       parsedData.ownerAccountId = userId;
       parsedData.lastSaved = new Date().toISOString();
@@ -624,22 +1109,142 @@
         });
 
         // 4. Update registry
+        const oldP = (rawAccountsRegistry[userId] && rawAccountsRegistry[userId].p) || '1234';
+        rawAccountsRegistry[userId] = {
+          p: oldP,
+          bk: newBk || (rawAccountsRegistry[userId] && rawAccountsRegistry[userId].bk),
+          pk: newPk || (rawAccountsRegistry[userId] && rawAccountsRegistry[userId].pk),
+          ts: Date.now()
+        };
+
         await fetch(`${NTFY_BASE}registry`, {
           method: 'POST',
           body: JSON.stringify({
-            [userId]: {
-              bk: newBk,
-              pk: newPk,
-              ts: Date.now()
-            }
+            [userId]: rawAccountsRegistry[userId]
           })
         });
 
-        alert(`✅ [${userId}] 계정의 세이브 데이터가 성공적으로 서버에 업데이트되었습니다!\n유저 기기에서 새로고침 또는 앱 진입 시 최신 데이터로 자동 반영됩니다.`);
-        loadAllAccounts();
+        if (!silent) {
+          alert(`✅ [${userId}] 계정의 세이브 데이터가 성공적으로 서버에 업데이트되었습니다!\n유저 기기에서 새로고침 또는 앱 진입 시 실시간으로 반영됩니다.`);
+        }
+        calculateKpiStats();
       } catch (err) {
-        alert("저장 실패: " + err.message);
+        if (!silent) alert('저장 실패: ' + err.message);
       }
+    }
+
+    async function changeUserPasswordPrompt(userId) {
+      const newPw = prompt(`[${userId}] 계정의 새 비밀번호를 입력하세요:`);
+      if (!newPw || !newPw.trim()) return;
+
+      const cleanPw = newPw.trim();
+      const current = rawAccountsRegistry[userId] || {};
+      current.p = cleanPw;
+      current.ts = Date.now();
+      rawAccountsRegistry[userId] = current;
+
+      try {
+        await fetch(`${NTFY_BASE}registry`, {
+          method: 'POST',
+          body: JSON.stringify({ [userId]: current })
+        });
+        alert(`✅ [${userId}] 계정의 비밀번호가 [${cleanPw}]로 변경되었습니다!`);
+        filterAccountsList();
+      } catch (e) {
+        alert('비밀번호 변경 실패: ' + e.message);
+      }
+    }
+
+    async function resetUserProgressToLv1(userId) {
+      if (!confirm(`⚠️ 경고: [${userId}] 계정의 모든 레벨, 골드, 장비, 보스 클리어 기록을 초기화하시겠습니까?`)) return;
+
+      const hexId = userIdToHex(userId);
+      const resetSave = {
+        player: {
+          name: userId,
+          level: 1,
+          exp: 0,
+          gold: 500,
+          baseHeight: 173,
+          targetHeight: 178,
+          growthPoints: 0,
+          stats: { str: 14, int: 12, end: 14, gro: 15 },
+          activeTitle: "초보 수련자 (173cm)",
+          unlockedTitles: ["초보 수련자 (173cm)"],
+          equipment: { weapon: null, armor: null, shoes: null, ring: null, aura: null },
+          inventory: []
+        },
+        quests: {
+          dailyStreak: 1,
+          startDate: new Date().toISOString().slice(0, 10),
+          lastActiveDate: new Date().toISOString().slice(0, 10),
+          completedToday: {},
+          history: {},
+          customQuests: []
+        },
+        raid: {
+          unlockedStage: 1,
+          clearedStages: [],
+          clearCounts: {}
+        },
+        resetTimestamp: Date.now(),
+        lastSaved: new Date().toISOString()
+      };
+
+      cachedUserSaves[userId] = resetSave;
+      const jsonEl = document.getElementById(`json_${hexId}`);
+      if (jsonEl) jsonEl.value = JSON.stringify(resetSave, null, 2);
+
+      await saveUserChanges(userId, true);
+      alert(`🔄 [${userId}] 계정이 Lv.1 초기 상태로 리셋되었습니다.`);
+      renderUserDetailView(userId, hexId, resetSave);
+    }
+
+    async function deleteUserAccount(userId) {
+      if (!confirm(`🚨 영구 삭제 경고: [${userId}] 계정을 데이터베이스에서 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다!`)) return;
+
+      const hexId = userIdToHex(userId);
+      try {
+        // Mark deleted in registry
+        rawAccountsRegistry[userId] = { deleted: true, ts: Date.now() };
+        await fetch(`${NTFY_BASE}registry`, {
+          method: 'POST',
+          body: JSON.stringify({ [userId]: { deleted: true, ts: Date.now() } })
+        });
+
+        // Push tombstone to user channel
+        await fetch(`${NTFY_BASE}u_${hexId}`, {
+          method: 'POST',
+          body: JSON.stringify({ u: userId, deleted: true, ts: Date.now() })
+        });
+
+        delete cachedUserSaves[userId];
+        delete rawAccountsRegistry[userId];
+
+        alert(`🗑️ [${userId}] 계정이 성공적으로 삭제되었습니다.`);
+        filterAccountsList();
+        calculateKpiStats();
+      } catch (e) {
+        alert('계정 삭제 실패: ' + e.message);
+      }
+    }
+
+    function exportAllDatabaseJson() {
+      const exportData = {
+        exportTime: new Date().toISOString(),
+        registry: rawAccountsRegistry,
+        saves: cachedUserSaves
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hunter_rpg_db_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     // Init on load
