@@ -263,7 +263,6 @@ class GameState {
     }
     const hdrCloudStatus = document.getElementById('hdrCloudStatus');
     const hdrCloudBtn = document.getElementById('hdrCloudBtn');
-    const statusCloudLabel = document.getElementById('statusCloudLabel');
     if (this.cloudSession && this.cloudSession.userId) {
       if (hdrCloudStatus) {
         hdrCloudStatus.textContent = `🟢 ${this.cloudSession.userId}`;
@@ -273,9 +272,6 @@ class GameState {
         hdrCloudBtn.style.borderColor = 'rgba(52, 211, 153, 0.5)';
         hdrCloudBtn.style.background = 'rgba(16, 185, 129, 0.14)';
       }
-      if (statusCloudLabel) {
-        statusCloudLabel.textContent = `🟢 [${this.cloudSession.userId}] 계정 서버 연동 중`;
-      }
     } else {
       if (hdrCloudStatus) {
         hdrCloudStatus.textContent = '☁️ 로그인';
@@ -284,9 +280,6 @@ class GameState {
       if (hdrCloudBtn) {
         hdrCloudBtn.style.borderColor = 'rgba(0, 229, 255, 0.5)';
         hdrCloudBtn.style.background = 'rgba(0, 229, 255, 0.12)';
-      }
-      if (statusCloudLabel) {
-        statusCloudLabel.textContent = '미연동 - 클릭하여 아이디/비번 로그인';
       }
     }
   }
@@ -1755,6 +1748,11 @@ class GameState {
           nextData = JSON.parse(JSON.stringify(this.data));
         }
 
+        // Put account ID into character name field
+        if (!nextData.player.name || nextData.player.name === '오경호') {
+          nextData.player.name = userId;
+        }
+
         nextData.ownerAccountId = userId;
         this.saveCloudSession({
           userId,
@@ -1794,11 +1792,10 @@ class GameState {
 
         if (hadDifferentOwner) {
           this.data = this.getDefaultState();
-          if (userId !== '오경호') {
-            this.data.player.name = userId;
-          }
         }
 
+        // User request: "회원가입 할때 아이디를 오경호 들어간 이름칸에 아이디를 넣자"
+        this.data.player.name = userId;
         this.data.ownerAccountId = userId;
         this.saveCloudSession({
           userId,
