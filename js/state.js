@@ -118,6 +118,16 @@ class GameState {
           this.pullFromCloud(true, false, false);
         }
       }, 15000);
+
+      // In-game periodic auto-save (every 60s) to continuously log activity and state while actively playing
+      setInterval(() => {
+        if (this.isReadOnlyMode || this._accountDeleted) return;
+        if (typeof document !== 'undefined' && document.hidden) return;
+        if (this.cloudSession && this.cloudSession.userId) {
+          this.save(false);
+          this.logUserActivity('active_play');
+        }
+      }, 60000);
     }
   }
 
@@ -850,6 +860,9 @@ class GameState {
     }
 
     this.save();
+    if (leveledUp) {
+      this.logUserActivity('level_up');
+    }
     return {
       leveledUp,
       levelsGained,
@@ -1057,6 +1070,7 @@ class GameState {
     }
 
     this.save();
+    this.logUserActivity('quest_complete');
     return {
       quest,
       expResult,
@@ -1104,6 +1118,7 @@ class GameState {
     this.unlockTitle(boss.rewards.title);
 
     this.save();
+    this.logUserActivity('boss_defeat');
     return {
       boss,
       isFirstClear,
@@ -1333,6 +1348,46 @@ class GameState {
     }
   }
 
+  async logUserActivity(action = 'play') {
+    if (this.isReadOnlyMode || this._accountDeleted) return;
+    if (!this.cloudSession || !this.cloudSession.userId) return;
+
+    try {
+      const userId = this.cloudSession.userId;
+      const hexId = this.userIdToHex(userId);
+      const now = Date.now();
+
+      if (this._lastActivityAction === action && this._lastActivityTime && (now - this._lastActivityTime < 3000)) {
+        return;
+      }
+      this._lastActivityAction = action;
+      this._lastActivityTime = now;
+
+      const payload = JSON.stringify({
+        u: userId,
+        act: action,
+        bk: this.cloudSession.bytebinKey || null,
+        pk: this.cloudSession.pastesKey || null,
+        d: this.data,
+        ts: now
+      });
+
+      const userTopics = [
+        `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}`,
+        `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}`,
+        `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
+      ];
+
+      Promise.allSettled(userTopics.map(u =>
+        fetch(u, {
+          method: 'POST',
+          body: payload,
+          keepalive: true
+        })
+      )).catch(() => {});
+    } catch (e) {}
+  }
+
   initCloudSyncOnStartup() {
     if (typeof window === 'undefined' || this.isReadOnlyMode) return;
     // Run after brief paint tick to immediately pull the freshest cloud save
@@ -1340,6 +1395,7 @@ class GameState {
       this.updateSaveIndicator();
       if (this.cloudSession && this.cloudSession.userId) {
         await this.pullFromCloud(true, false, true);
+        this.logUserActivity('connect');
       } else {
         // Check IndexedDB if localStorage was wiped by mobile browser on power reboot
         this.recoverFromIndexedDBIfNeeded();
@@ -2338,6 +2394,8 @@ class GameState {
           ui.renderAll();
         }
 
+        this.logUserActivity('login');
+
         return {
           success: true,
           isNew: false,
@@ -2387,6 +2445,8 @@ class GameState {
         if (typeof ui !== 'undefined' && ui.renderAll) {
           ui.renderAll();
         }
+
+        this.logUserActivity('register');
 
         return {
           success: true,
