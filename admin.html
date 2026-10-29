@@ -2251,6 +2251,13 @@
                   if (ts > 0) {
                     rawEvents.push({ ts, data: p, rawMsg: msg });
                   }
+                  // If payload has lastSaved from a prior session, also preserve it
+                  if (p && p.d && p.d.lastSaved) {
+                    const sTs = new Date(p.d.lastSaved).getTime();
+                    if (!isNaN(sTs) && sTs > 0 && Math.abs(sTs - ts) > 60000) {
+                      rawEvents.push({ ts: sTs, data: { act: 'connect', d: p.d, ts: sTs } });
+                    }
+                  }
                 }
               } catch (e) {}
             }
@@ -2365,27 +2372,91 @@
         deduped.push(ev);
       }
 
-      actAllEvents = deduped;
-      actEventsByDate = {};
-
+      // Group raw deduped events by local date
+      const tempByDate = {};
       for (const ev of deduped) {
         const d = new Date(ev.ts);
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         const dateKey = `${y}-${m}-${day}`;
-        if (!actEventsByDate[dateKey]) actEventsByDate[dateKey] = [];
-        actEventsByDate[dateKey].push(ev);
+        if (!tempByDate[dateKey]) tempByDate[dateKey] = [];
+        tempByDate[dateKey].push(ev);
       }
 
+      // Filter: Keep ONLY meaningful events (사이트 접속, 골드, 레벨, 퀘스트, 보스 클리어)
+      // Discard background sync / auto-save noise within seconds of each other
+      actEventsByDate = {};
+      const allMeaningfulEvents = [];
+
+      for (const [dKey, dayEvents] of Object.entries(tempByDate)) {
+        dayEvents.sort((a, b) => a.ts - b.ts);
+        const meaningful = [];
+        let lastKept = null;
+
+        for (const ev of dayEvents) {
+          const act = (ev.data && ev.data.act) || '';
+          const isTombstone = ev.data && ev.data.deleted === true;
+          if (isTombstone) {
+            meaningful.push(ev);
+            lastKept = ev;
+            continue;
+          }
+
+          if (!lastKept) {
+            // First visit of the day: always keep
+            meaningful.push(ev);
+            lastKept = ev;
+            continue;
+          }
+
+          const currP = ev.data?.d?.player || {};
+          const prevP = lastKept.data?.d?.player || {};
+          const currR = ev.data?.d?.raid || {};
+          const prevR = lastKept.data?.d?.raid || {};
+          const currQ = ev.data?.d?.quests || {};
+          const prevQ = lastKept.data?.d?.quests || {};
+
+          const lvGained = (Number(currP.level) || 1) - (Number(prevP.level) || 1);
+          const goldDiff = (Number(currP.gold) || 0) - (Number(prevP.gold) || 0);
+
+          const currCleared = (currR && Array.isArray(currR.clearedStages)) ? currR.clearedStages : [];
+          const prevCleared = (prevR && Array.isArray(prevR.clearedStages)) ? prevR.clearedStages : [];
+          const newlyCleared = currCleared.filter(s => !prevCleared.includes(s));
+
+          const currQuests = getQuestsCount(currQ, dKey);
+          const prevQuests = getQuestsCount(prevQ, dKey);
+          const questDiff = currQuests - prevQuests;
+
+          const timeDiff = ev.ts - lastKept.ts;
+          const isNewSession = timeDiff >= 15 * 60 * 1000; // 15분 이상 경과 후 재방문
+          const isExplicitAction = act === 'login' || act === 'register' || act === 'quest_complete' || act === 'boss_defeat' || act === 'level_up';
+          const hasProgressionChange = lvGained > 0 || goldDiff !== 0 || newlyCleared.length > 0 || questDiff > 0;
+
+          // 의미 있는 활동(사이트 접속, 골드 변동, 레벨업, 퀘스트, 보스 격파)만 등록
+          if (hasProgressionChange || isExplicitAction || isNewSession) {
+            meaningful.push(ev);
+            lastKept = ev;
+          }
+        }
+
+        if (meaningful.length > 0) {
+          actEventsByDate[dKey] = meaningful;
+          allMeaningfulEvents.push(...meaningful);
+        }
+      }
+
+      allMeaningfulEvents.sort((a, b) => a.ts - b.ts);
+      actAllEvents = allMeaningfulEvents;
+
       // Update Summary Bar
-      const totalEvents = deduped.length;
+      const totalEvents = allMeaningfulEvents.length;
       const activeDays = Object.keys(actEventsByDate).length;
       document.getElementById('actSummaryTotalEvents').textContent = `${totalEvents}회`;
       document.getElementById('actSummaryActiveDays').textContent = `${activeDays}일`;
-      if (deduped.length > 0) {
-        document.getElementById('actSummaryFirstDate').textContent = formatKoreanDateTime(deduped[0].ts);
-        document.getElementById('actSummaryLastDate').textContent = formatKoreanDateTime(deduped[deduped.length - 1].ts);
+      if (allMeaningfulEvents.length > 0) {
+        document.getElementById('actSummaryFirstDate').textContent = formatKoreanDateTime(allMeaningfulEvents[0].ts);
+        document.getElementById('actSummaryLastDate').textContent = formatKoreanDateTime(allMeaningfulEvents[allMeaningfulEvents.length - 1].ts);
       } else {
         document.getElementById('actSummaryFirstDate').textContent = '기록 없음';
         document.getElementById('actSummaryLastDate').textContent = '기록 없음';
@@ -2600,10 +2671,8 @@
 
           // Action badge
           let actionBadge = '';
-          if (actionType === 'connect') {
-            actionBadge = '<span class="stat-chip" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">🟢 게임 접속</span>';
-          } else if (actionType === 'cloud_save') {
-            actionBadge = '<span class="stat-chip" style="color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.08);">💾 클라우드 저장</span>';
+          if (actionType === 'connect' || !prevEv) {
+            actionBadge = '<span class="stat-chip" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">🟢 사이트 접속</span>';
           } else if (actionType === 'login') {
             actionBadge = '<span class="stat-chip" style="color:#a855f7; border-color:rgba(168,85,247,0.3); background:rgba(168,85,247,0.08);">🔑 로그인</span>';
           } else if (actionType === 'register') {
@@ -2614,8 +2683,6 @@
             actionBadge = '<span class="stat-chip" style="color:#facc15; border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08);">⭐ 레벨업</span>';
           } else if (actionType === 'quest_complete') {
             actionBadge = '<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08);">📜 퀘스트 완료</span>';
-          } else if (actionType === 'active_play') {
-            actionBadge = '<span class="stat-chip" style="color:#60a5fa; border-color:rgba(96,165,250,0.3); background:rgba(96,165,250,0.08);">🎮 플레이 중</span>';
           }
 
           // Build dynamic chips
@@ -2646,21 +2713,12 @@
             const maxStage = Math.max(...currCleared);
             dynamicChips.push(`<span class="stat-chip stage" style="color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);">🏆 Stage ${maxStage} 보스 처치함</span>`);
           }
-          // NEVER display "보스 미토벌"!
 
-          // 4. Quests count: always show how many performed
+          // 4. Quests count: show when performed
           if (questDiff > 0) {
             dynamicChips.push(`<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08); font-weight:700;">📜 퀘스트 ${currQuests}개 수행 (+${questDiff}개 완료)</span>`);
           } else if (currQuests > 0) {
             dynamicChips.push(`<span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.08);">📜 퀘스트 ${currQuests}개 수행</span>`);
-          } else if (!prevEv) {
-            dynamicChips.push(`<span class="stat-chip" style="color:#94a3b8; border-color:rgba(148,163,184,0.3); background:rgba(148,163,184,0.06);">📜 퀘스트 0개 수행</span>`);
-          }
-
-          // 5. If nothing changed compared to previous and no actionBadge
-          const hasProgressionChange = lvGained > 0 || goldDiff !== 0 || newlyCleared.length > 0 || questDiff > 0;
-          if (prevEv && !hasProgressionChange && !actionBadge) {
-            dynamicChips.push(`<span class="stat-chip" style="color:#94a3b8; border-color:rgba(148,163,184,0.3); background:rgba(148,163,184,0.06);">🟢 접속만 함</span>`);
           }
 
           const stats = player.stats ? `STR ${player.stats.str || 14} · INT ${player.stats.int || 12} · END ${player.stats.end || 14} · GRO ${player.stats.gro || 15}` : '';

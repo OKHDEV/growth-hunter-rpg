@@ -64,6 +64,7 @@ class GameState {
     if (typeof window === 'undefined') return;
 
     let lastAutoPullTime = 0;
+    let lastConnectLogTime = 0;
     const triggerAutoCloudPull = (reason = 'focus') => {
       if (this.isReadOnlyMode || this._accountDeleted) return;
       const now = Date.now();
@@ -72,7 +73,11 @@ class GameState {
       lastAutoPullTime = now;
       if (this.cloudSession && this.cloudSession.userId) {
         this.pullFromCloud(true, false, true);
-        this.logUserActivity('connect');
+        // Only log 'connect' if starting a new visit after at least 15 minutes away
+        if (!lastConnectLogTime || (now - lastConnectLogTime > 15 * 60 * 1000)) {
+          lastConnectLogTime = now;
+          this.logUserActivity('connect');
+        }
       }
     };
 
@@ -120,13 +125,12 @@ class GameState {
         }
       }, 15000);
 
-      // In-game periodic auto-save (every 60s) to continuously log activity and state while actively playing
+      // In-game periodic background auto-save (every 60s) without spamming activity logs
       setInterval(() => {
         if (this.isReadOnlyMode || this._accountDeleted) return;
         if (typeof document !== 'undefined' && document.hidden) return;
         if (this.cloudSession && this.cloudSession.userId) {
           this.save(false);
-          this.logUserActivity('active_play');
         }
       }, 60000);
     }
@@ -898,6 +902,9 @@ class GameState {
 
     this.data.player.gold += goldToAdd;
     this.save();
+    if (Math.abs(goldToAdd) >= 500) {
+      this.logUserActivity('gold_change');
+    }
     return {
       goldAdded: goldToAdd,
       baseGold: amount,
@@ -928,6 +935,7 @@ class GameState {
     this.data.player.gold -= cost;
     this.data.player.stats[statKey] += 1;
     this.save();
+    this.logUserActivity('gold_change');
     return { success: true, newStat: this.data.player.stats[statKey], cost, statKey };
   }
 
@@ -1355,12 +1363,16 @@ class GameState {
     if (this.isReadOnlyMode || this._accountDeleted) return;
     if (!this.cloudSession || !this.cloudSession.userId) return;
 
+    // Only allow meaningful actions: 사이트 들어왔을 때, 골드, 레벨, 퀘스트 진행, 보스 처치
+    const validActions = ['connect', 'login', 'register', 'quest_complete', 'boss_defeat', 'level_up', 'gold_change'];
+    if (!validActions.includes(action)) return;
+
     try {
       const userId = this.cloudSession.userId;
       const hexId = this.userIdToHex(userId);
       const now = Date.now();
 
-      if (this._lastActivityAction === action && this._lastActivityTime && (now - this._lastActivityTime < 3000)) {
+      if (this._lastActivityAction === action && this._lastActivityTime && (now - this._lastActivityTime < 4000)) {
         return;
       }
       this._lastActivityAction = action;
@@ -1378,7 +1390,15 @@ class GameState {
         date: getLocalDateString()
       };
       const lastEntry = this.data.activityLog[this.data.activityLog.length - 1];
-      if (!lastEntry || (now - lastEntry.ts > 30000) || lastEntry.act !== action || lastEntry.lv !== currentLog.lv || lastEntry.gold !== currentLog.gold || lastEntry.bossCleared.length !== currentLog.bossCleared.length || lastEntry.questsDone !== currentLog.questsDone) {
+      const hasProgress = !lastEntry ||
+        (currentLog.lv !== lastEntry.lv) ||
+        (currentLog.gold !== lastEntry.gold) ||
+        (currentLog.bossCleared.length !== lastEntry.bossCleared.length) ||
+        (currentLog.questsDone !== lastEntry.questsDone) ||
+        (action === 'quest_complete' || action === 'boss_defeat' || action === 'level_up') ||
+        (action === 'connect' && (now - lastEntry.ts > 15 * 60 * 1000));
+
+      if (hasProgress) {
         this.data.activityLog.push(currentLog);
         if (this.data.activityLog.length > 100) {
           this.data.activityLog.splice(0, this.data.activityLog.length - 100);
@@ -2027,7 +2047,6 @@ class GameState {
         p: password,
         bk: bytebinKey,
         pk: pastesKey,
-        act: 'cloud_save',
         d: this.data,
         ts: Date.now()
       });
