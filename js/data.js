@@ -422,12 +422,14 @@ function generate50Bosses() {
     const trainingDays = Math.round(stage * 18);
     const trainingMonths = parseFloat((stage * 0.6).toFixed(1));
 
-    // Balanced Linear + Mild Quadratic curve:
-    // Stage 1: HP 1,400, ATK 180, DEF 35 (Tight 7-turn duel vs Lv.10-15 player)
-    // Stage 50: HP 41,859, ATK 5,115, DEF 1,842 (Epic 8-turn climax vs Lv.100 player with max gear & stats)
-    const maxHp = Math.round(1400 + (stage - 1) * 650 + Math.pow(stage - 1, 1.35) * 45);
-    const atk = Math.round(180 + (stage - 1) * 75 + Math.pow(stage - 1, 1.30) * 8);
-    const def = Math.round(35 + (stage - 1) * 35 + Math.pow(stage - 1, 1.20) * 3);
+    // Hardcore balanced boss scaling (challenging 8~12 turn raid battles):
+    // Stage 1: HP 1,900, ATK 200, DEF 40
+    // Stage 10: HP 10,317, ATK 781, DEF 379
+    // Stage 25: HP 25,595, ATK 1,793, DEF 987
+    // Stage 50: HP 52,831, ATK 3,531, DEF 2,058
+    const maxHp = Math.round(1900 + (stage - 1) * 820 + Math.pow(stage - 1, 1.38) * 50);
+    const atk = Math.round(200 + (stage - 1) * 56 + Math.pow(stage - 1, 1.20) * 5.5);
+    const def = Math.round(40 + (stage - 1) * 34 + Math.pow(stage - 1, 1.14) * 2.5);
 
     const rewardsExp = Math.round(350 * Math.pow(1.085, stage - 1) + stage * 90);
     const rewardsGold = Math.round(120 * Math.pow(1.08, stage - 1) + stage * 40);
@@ -451,7 +453,7 @@ function generate50Bosses() {
       maxHp,
       atk,
       def,
-      crit: 0.05 + Math.min(0.20, stage * 0.003),
+      crit: 0.06 + Math.min(0.18, stage * 0.003),
       image: info.img,
       visual,
       introQuote: info.quote,
@@ -491,9 +493,9 @@ const SECRET_FINAL_BOSS = {
   recommendedLevel: 120, // 50단계(Lv.100)를 초월한 3년차 극한 목표 레벨
   trainingDays: 1095,
   trainingMonths: 36,
-  maxHp: 180000,
-  atk: 6800,
-  def: 3200,
+  maxHp: 195000,
+  atk: 4500,
+  def: 2200,
   crit: 0.25,
   image: "assets/bosses/boss_secret_omega.jpg",
   introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 100단계 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",

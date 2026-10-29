@@ -26,6 +26,7 @@ class BattleEngine {
     this.inBattle = true;
     this.turn = 1;
     this.isTurnProcessing = false;
+    this.enrageTriggered = false;
     this.battleLog = [];
     document.body.classList.add('in-battle');
 
@@ -38,6 +39,10 @@ class BattleEngine {
 
     const arenaEl = document.getElementById('battleArena');
     const bossCardEl = document.getElementById('bossCard');
+    if (bossCardEl) {
+      bossCardEl.style.boxShadow = '';
+      bossCardEl.style.borderColor = '';
+    }
 
     if (boss.isSecretFinal) {
       if (arenaEl) arenaEl.classList.add('arena-omega-mode');
@@ -91,7 +96,7 @@ class BattleEngine {
     const isPlayerCrit = Math.random() < pStats.crit;
     let playerRawDmg = Math.round(pStats.atk * (isPlayerCrit ? 1.5 : 1.0));
     // Apply boss defense
-    let playerNetDmg = Math.max(1, Math.round(playerRawDmg - (this.boss.def * 0.75)));
+    let playerNetDmg = Math.max(1, Math.round(playerRawDmg - (this.boss.def * 0.72)));
     // Add small variance (+- 5%)
     playerNetDmg = Math.round(playerNetDmg * (0.95 + Math.random() * 0.1));
 
@@ -128,10 +133,29 @@ class BattleEngine {
         if (!this.inBattle) return;
 
         const bossCrit = Math.random() < this.boss.crit;
-        let bossRawDmg = Math.round(this.boss.atk * (bossCrit ? 1.35 : 1.0));
-        // Apply player defense
-        let bossNetDmg = Math.max(15, Math.round(bossRawDmg - (pStats.def * 0.85)));
-        // Add small variance
+
+        // Boss Enrage (HP 30% 이하 시 붉은 분노 각성: 공격력 +20%)
+        const isEnraged = this.bossHp <= (this.bossMaxHp * 0.30);
+        if (isEnraged && !this.enrageTriggered) {
+          this.enrageTriggered = true;
+          this.addLog(`🔥 [보스 광포화 각성!] ${this.boss.name}이(가) 빈사 상태에서 격노하여 붉은 투기를 폭발시킵니다! (보스 공격력 +20%)`, 'boss-action');
+          this.shakeElement('battleArena', 'heavy');
+          const bCard = document.getElementById('bossCard');
+          if (bCard) {
+            bCard.style.boxShadow = '0 0 35px rgba(239, 68, 68, 0.85)';
+            bCard.style.borderColor = '#ef4444';
+          }
+        }
+
+        // Boss Special Smashing Strike every 3 turns (3턴마다 필살 강타: 위력 +25%)
+        const isSpecialTurn = (this.turn % 3 === 0);
+
+        let bMult = (isEnraged ? 1.20 : 1.0) * (isSpecialTurn ? 1.25 : 1.0) * (bossCrit ? 1.35 : 1.0);
+        let bossRawDmg = Math.round(this.boss.atk * bMult);
+
+        // Apply player defense with piercing protection (보스 공격력의 최소 22%는 방어력을 관통하여 확실한 위협을 줌)
+        const minBossDmg = Math.max(25, Math.round(bossRawDmg * 0.22));
+        let bossNetDmg = Math.max(minBossDmg, Math.round(bossRawDmg - (pStats.def * 0.72)));
         bossNetDmg = Math.round(bossNetDmg * (0.95 + Math.random() * 0.1));
 
         // Audio & Visual Effects
@@ -142,19 +166,35 @@ class BattleEngine {
         }
         this.animateBossStrike();
         this.animatePlayerHit();
-        this.shakeElement('battleArena', 'heavy');
+        this.shakeElement('battleArena', (isSpecialTurn || bossCrit) ? 'heavy' : 'medium');
 
         const flashOverlay = document.getElementById('screenFlashOverlay');
         if (flashOverlay) {
           flashOverlay.classList.add('flash-red');
-          setTimeout(() => flashOverlay.classList.remove('flash-red'), 260);
+          setTimeout(() => flashOverlay.classList.remove('flash-red'), (isSpecialTurn || bossCrit) ? 320 : 220);
         }
 
-        this.spawnFloatingText(`💀 보스 반격! -${bossNetDmg.toLocaleString()}`, '#ff0055', 'player', true);
+        const floatLabel = isSpecialTurn ? `⚡ 보스 필살 강타! -${bossNetDmg.toLocaleString()}` : `💀 보스 반격! -${bossNetDmg.toLocaleString()}`;
+        this.spawnFloatingText(floatLabel, (isSpecialTurn || isEnraged) ? '#ff0055' : '#ef4444', 'player', isSpecialTurn || bossCrit);
         this.playerHp = Math.max(0, this.playerHp - bossNetDmg);
         this.updateBattleUI();
+
         const defPName = (state.data && state.data.player && state.data.player.name) || '헌터';
-        this.addLog(`💀 [보스 반격] ${this.boss.name}의 파괴적 강타! ${defPName}에게 ${bossNetDmg.toLocaleString()} 치명타 피해!`, 'boss-action');
+        let actionTag = '💀 [보스 반격]';
+        let extraTag = '';
+        if (isSpecialTurn && isEnraged) {
+          actionTag = '🔥⚡ [광포화 필살기]';
+          extraTag = ' (분노 + 필살 강타!)';
+        } else if (isSpecialTurn) {
+          actionTag = '⚡ [보스 필살 강타]';
+          extraTag = ' (3턴 주기 특수 강타)';
+        } else if (isEnraged) {
+          actionTag = '🔥 [광포화 공격]';
+          extraTag = ' (분노 각성)';
+        }
+        if (bossCrit) extraTag += ' (💥 치명타 작렬!)';
+
+        this.addLog(`${actionTag} ${this.boss.name}의 파괴적 공격! ${defPName}에게 ${bossNetDmg.toLocaleString()} 피해!${extraTag}`, 'boss-action');
 
         // Check Player Defeat
         if (this.playerHp <= 0) {
@@ -411,6 +451,12 @@ class BattleEngine {
     sound.stopBGM();
     sound.playVictory();
 
+    const bCard = document.getElementById('bossCard');
+    if (bCard) {
+      bCard.style.boxShadow = '';
+      bCard.style.borderColor = '';
+    }
+
     const hpRatio = this.playerHp / this.playerMaxHp;
     let grade = "A";
     if (hpRatio >= 0.7) grade = "SSS";
@@ -432,6 +478,12 @@ class BattleEngine {
     sound.stopBGM();
     sound.playDefeat();
 
+    const bCard = document.getElementById('bossCard');
+    if (bCard) {
+      bCard.style.boxShadow = '';
+      bCard.style.borderColor = '';
+    }
+
     this.addLog(`💀 [패배] 보스의 압도적인 공격력에 무릎을 꿇었습니다.`, "system");
     this.addLog(`💡 [성장 팁] 일일 퀘스트를 매일 수행해 체력(END)과 근력(STR)을 30일간 극한으로 단련하세요!`, "boss-quote");
 
@@ -446,6 +498,11 @@ class BattleEngine {
     document.body.classList.remove('in-battle');
     sound.stopBGM();
     sound.startBGM('ambient');
+    const bCard = document.getElementById('bossCard');
+    if (bCard) {
+      bCard.style.boxShadow = '';
+      bCard.style.borderColor = '';
+    }
     ui.switchTab('bossTab');
   }
 }
