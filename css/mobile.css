@@ -162,7 +162,7 @@ body.in-battle .app-container {
     flex-shrink: 0;
   }
 
-  .quick-stat-badge {
+  .quick-stat-badge:not(#hdrAdminBtn):not(.admin-quick-badge) {
     display: flex !important; /* All 4 badges: Cloud, Rank/Level, Gold, Streak are visible on mobile */
     flex-direction: column;
     align-items: center;
@@ -590,4 +590,18 @@ body.in-battle .app-container {
   .stat-badge-val {
     font-size: 10px;
   }
+}
+
+/* Strict mobile suppression for admin buttons on non-admin accounts */
+body:not(.admin-authenticated) #hdrAdminBtn,
+body:not(.admin-authenticated) #floatingAdminBtn,
+body:not(.admin-authenticated) #settingsAdminBtnWrap,
+body:not(.admin-authenticated) #modalAdminLink,
+body:not(.admin-authenticated) .admin-quick-badge {
+  display: none !important;
+}
+
+body.admin-authenticated #hdrAdminBtn,
+body.admin-authenticated .admin-quick-badge {
+  display: flex !important;
 }

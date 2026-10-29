@@ -2164,6 +2164,11 @@ class GameState {
       return { success: false, message: '비밀번호를 입력해주세요.' };
     }
 
+    if (typeof localStorage !== 'undefined' && userId.toLowerCase() !== 'admin') {
+      localStorage.removeItem('isAdminLoggedIn');
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('isAdminLoggedIn');
+    }
+
     try {
       const reg = await this.fetchCloudRegistry();
       let existingRecord = reg[userId] || null;

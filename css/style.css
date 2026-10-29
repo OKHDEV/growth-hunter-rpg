@@ -2271,3 +2271,26 @@ body.auth-gate-locked .mobile-nav-bar {
   color: #64748b;
   line-height: 1.4;
 }
+
+/* ==================== STRICT ADMIN-ONLY VISIBILITY RULES ==================== */
+#hdrAdminBtn,
+#floatingAdminBtn,
+#settingsAdminBtnWrap,
+#modalAdminLink,
+.admin-quick-badge {
+  display: none !important;
+}
+
+body.admin-authenticated #hdrAdminBtn,
+body.admin-authenticated .admin-quick-badge {
+  display: inline-flex !important;
+}
+body.admin-authenticated #floatingAdminBtn {
+  display: inline-flex !important;
+}
+body.admin-authenticated #settingsAdminBtnWrap {
+  display: block !important;
+}
+body.admin-authenticated #modalAdminLink {
+  display: block !important;
+}

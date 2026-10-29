@@ -1593,25 +1593,34 @@ class UIManager {
       localStorage.getItem('isAdminLoggedIn') === 'true'
     );
 
-    const hdrAdminBtn = document.getElementById('hdrAdminBtn');
-    if (hdrAdminBtn) {
-      hdrAdminBtn.style.display = isStrictAdmin ? 'inline-flex' : 'none';
+    if (isStrictAdmin) {
+      document.body.classList.add('admin-authenticated');
+    } else {
+      document.body.classList.remove('admin-authenticated');
+      // If active user is NOT admin, purge any leftover admin keys in storage
+      if (typeof localStorage !== 'undefined' && (!state.cloudSession || String(state.cloudSession.userId).trim().toLowerCase() !== 'admin')) {
+        localStorage.removeItem('isAdminLoggedIn');
+      }
+      if (typeof sessionStorage !== 'undefined' && (!state.cloudSession || String(state.cloudSession.userId).trim().toLowerCase() !== 'admin')) {
+        sessionStorage.removeItem('isAdminLoggedIn');
+      }
     }
 
-    const floatingAdminBtn = document.getElementById('floatingAdminBtn');
-    if (floatingAdminBtn) {
-      floatingAdminBtn.style.display = isStrictAdmin ? 'inline-flex' : 'none';
-    }
+    const setVisibility = (el, show, displayType = 'inline-flex') => {
+      if (!el) return;
+      if (show) {
+        el.classList.add('visible-admin');
+        el.style.setProperty('display', displayType, 'important');
+      } else {
+        el.classList.remove('visible-admin');
+        el.style.setProperty('display', 'none', 'important');
+      }
+    };
 
-    const settingsAdminBtnWrap = document.getElementById('settingsAdminBtnWrap');
-    if (settingsAdminBtnWrap) {
-      settingsAdminBtnWrap.style.display = isStrictAdmin ? 'block' : 'none';
-    }
-
-    const modalAdminLink = document.getElementById('modalAdminLink');
-    if (modalAdminLink) {
-      modalAdminLink.style.display = isStrictAdmin ? 'block' : 'none';
-    }
+    setVisibility(document.getElementById('hdrAdminBtn'), isStrictAdmin, 'inline-flex');
+    setVisibility(document.getElementById('floatingAdminBtn'), isStrictAdmin, 'inline-flex');
+    setVisibility(document.getElementById('settingsAdminBtnWrap'), isStrictAdmin, 'block');
+    setVisibility(document.getElementById('modalAdminLink'), isStrictAdmin, 'block');
   }
 
   setAuthGateMode(mode) {
@@ -1764,6 +1773,11 @@ class UIManager {
         return;
       }
     }
+
+    // For any regular user account, immediately purge any admin privilege tokens
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('isAdminLoggedIn');
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('isAdminLoggedIn');
+    document.body.classList.remove('admin-authenticated');
 
     if (btnLogin) btnLogin.disabled = true;
     if (btnReg) btnReg.disabled = true;
