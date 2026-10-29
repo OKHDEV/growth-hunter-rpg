@@ -221,7 +221,7 @@ class UIManager {
         : '';
 
       const multBadgeHtml = (activeMults.expMultiplier > 1 || activeMults.goldMultiplier > 1)
-        ? `<span style="font-size: 11px; color: #facc15; font-weight: 800; margin-left: 6px; background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.45); padding: 2px 7px; border-radius: 4px;">EXP x${activeMults.expMultiplier} / 골드 x${activeMults.goldMultiplier}</span>`
+        ? `<span style="font-size: 11px; color: #facc15; font-weight: 800; margin-left: 6px; background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.45); padding: 2px 7px; border-radius: 4px;">EXP +${Math.round((activeMults.expMultiplier - 1) * 100)}% / 골드 +${Math.round((activeMults.goldMultiplier - 1) * 100)}%</span>`
         : '';
 
       statTitle.innerHTML = `<div>${p.activeTitle} ${multBadgeHtml}</div>${statLineHtml}`;
@@ -1695,13 +1695,35 @@ class UIManager {
   async handleCloudForceDownload() {
     sound.playClick();
     this.showToast("⏳ 클라우드 서버에서 최신 기록을 불러오는 중...");
-    const res = await state.pullFromCloud(false, false);
+    const res = await state.pullFromCloud(false, true); // Force overwrite local with authoritative cloud save
     this.renderCloudModalState();
     if (res && res.success) {
       sound.playLevelUp();
       this.showToast(`☁️ [${state.cloudSession.userId}] 서버 데이터 동기화 완료!`);
     } else {
       this.showToast("서버 불러오기 실패. 잠시 후 다시 시도해주세요.", "error");
+    }
+  }
+
+  async handleRestoreByKeyOrCode(source = 'gate') {
+    sound.playClick();
+    const inputEl = document.getElementById(source === 'gate' ? 'authGateRestoreInput' : 'cloudModalRestoreInput');
+    const keyVal = inputEl ? inputEl.value.trim() : '';
+    if (!keyVal) {
+      this.showToast('클라우드 키 또는 백업 코드를 입력해주세요!', 'error');
+      return;
+    }
+    this.showToast('⏳ 클라우드에서 세이브 데이터를 복원 중...');
+    const res = await state.importFromCloudKey(keyVal);
+    if (res && res.success) {
+      sound.playLevelUp();
+      this.closeCloudModal();
+      this.updateAuthGateVisibility();
+      this.renderAll();
+      this.showToast(`🎉 [${res.userId}] 데이터가 100% 완벽 복원되어 메인 화면으로 진입합니다!`);
+    } else {
+      sound.playDefeat();
+      this.showToast((res && res.message) || '복원에 실패했습니다.', 'error');
     }
   }
 

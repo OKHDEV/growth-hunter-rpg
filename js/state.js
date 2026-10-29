@@ -16,7 +16,8 @@ class GameState {
     this.CLOUD_REGISTRY_ID = 'ff808181a09d98f701a186c07dd548c4';
     this.CLOUD_API_BASE = 'https://api.restful-api.dev/objects';
     this.BYTEBIN_URL = 'https://bytebin.lucko.me';
-    this.NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_prod_v3_';
+    this.PASTES_URL = 'https://api.pastes.dev';
+    this.NTFY_BASE = 'https://ntfy.sh/okh_gh_cloud_v4_';
     this.cloudSession = this.loadCloudSession();
     this._cloudSyncTimer = null;
     this._isSyncingCloud = false;
@@ -372,6 +373,82 @@ class GameState {
     }
   }
 
+  async importFromCloudKey(inputStr) {
+    if (!inputStr || !inputStr.trim()) {
+      return { success: false, message: '클라우드 키 또는 백업 코드를 입력해주세요.' };
+    }
+    const clean = inputStr.trim();
+
+    // 1. Check if it is a base64 save code
+    if (clean.length > 30) {
+      try {
+        const jsonStr = decodeURIComponent(atob(clean));
+        const parsed = JSON.parse(jsonStr);
+        if (parsed && (parsed.player || parsed.STORAGE_KEY)) {
+          this.loadFromObject(parsed, true);
+          if (parsed.ownerAccountId) {
+            this.saveCloudSession({
+              userId: parsed.ownerAccountId,
+              password: '',
+              bytebinKey: null,
+              lastSyncTime: new Date().toISOString()
+            });
+          }
+          if (typeof ui !== 'undefined') {
+            ui.renderAll();
+            ui.updateAuthGateVisibility();
+            ui.showToast("🎉 세이브 코드로 데이터가 100% 복원되었습니다!", "success");
+          }
+          return { success: true, userId: parsed.ownerAccountId || parsed.player.name };
+        }
+      } catch (e) {}
+    }
+
+    // 2. Otherwise treat as 10-char Bytebin / Pastes cloud key
+    try {
+      // Try Bytebin
+      let fetchedSave = null;
+      try {
+        const bRes = await fetch(`${this.BYTEBIN_URL}/${clean}`);
+        if (bRes.ok) {
+          const j = await bRes.json();
+          if (j && j.player) fetchedSave = j;
+        }
+      } catch (e) {}
+
+      // Try Pastes.dev mirror
+      if (!fetchedSave) {
+        try {
+          const pRes = await fetch(`${this.PASTES_URL}/${clean}`);
+          if (pRes.ok) {
+            const j = await pRes.json();
+            if (j && j.player) fetchedSave = j;
+          }
+        } catch (e) {}
+      }
+
+      if (fetchedSave && fetchedSave.player) {
+        this.loadFromObject(fetchedSave, true);
+        const ownerId = fetchedSave.ownerAccountId || fetchedSave.player.name || '오경호';
+        this.saveCloudSession({
+          userId: ownerId,
+          password: '',
+          bytebinKey: clean,
+          lastSyncTime: new Date().toISOString()
+        });
+        if (typeof ui !== 'undefined') {
+          ui.renderAll();
+          ui.updateAuthGateVisibility();
+          ui.showToast(`🎉 클라우드 키 [${clean}] 로 [${ownerId}] 계정 기록이 완벽 복원되었습니다!`, "success");
+        }
+        return { success: true, userId: ownerId };
+      }
+      return { success: false, message: '유효한 클라우드 키 또는 백업 코드를 찾을 수 없습니다.' };
+    } catch (err) {
+      return { success: false, message: '복원 중 네트워크 오류가 발생했습니다: ' + err.message };
+    }
+  }
+
   resetAll() {
     localStorage.removeItem(this.STORAGE_KEY);
     localStorage.removeItem(this.MIRROR_KEY);
@@ -650,8 +727,13 @@ class GameState {
   getStatUpgradeCost(statKey) {
     const cur = (this.data.player.stats && this.data.player.stats[statKey]) || 10;
     const diff = Math.max(0, cur - 10);
-    // Highly affordable & rewarding stat upgrade curve for daily growth
-    return Math.max(50, Math.round(50 * Math.pow(1.04, diff) + diff * 15));
+    // 2-Year Long-term daily progression curve:
+    // Starts at 200 gold, scales smoothly with quadratic & linear factor
+    // Level 10: 200g, Level 15: 760g, Level 20: 1,830g, Level 30: 5,280g, Level 50: 17,200g, Level 80: 45,200g
+    const base = 200;
+    const linear = diff * 50;
+    const quadratic = Math.pow(diff, 1.85) * 16;
+    return Math.round(base + linear + quadratic);
   }
 
   upgradeStatWithGold(statKey) {
@@ -1402,13 +1484,11 @@ class GameState {
           reg = typeof json.data.u === 'string' ? JSON.parse(json.data.u) : json.data.u;
         }
       }
-    } catch (e) {
-      console.warn("Primary registry fetch warning:", e);
-    }
+    } catch (e) {}
 
-    // Also check Ntfy backup registry stream
+    // Multi-device Ntfy registry stream (using &since=all for reliable persistence)
     try {
-      const nRes = await fetch(`${this.NTFY_BASE}registry/json?poll=1`);
+      const nRes = await fetch(`${this.NTFY_BASE}registry/json?poll=1&since=all`);
       if (nRes.ok) {
         const text = (await nRes.text()).trim();
         if (text) {
@@ -1440,9 +1520,7 @@ class GameState {
           data: { u: str }
         })
       });
-    } catch (e) {
-      console.warn("Primary registry update warning:", e);
-    }
+    } catch (e) {}
 
     try {
       await fetch(`${this.NTFY_BASE}registry`, {
@@ -1463,7 +1541,7 @@ class GameState {
       this.data.ownerAccountId = userId;
       this.data.lastSaved = new Date().toISOString();
 
-      // 1. Upload full uncompressed JSON to Bytebin
+      // 1. Upload full save JSON to Bytebin
       let bytebinKey = this.cloudSession.bytebinKey || null;
       try {
         const bRes = await fetch(`${this.BYTEBIN_URL}/post`, {
@@ -1480,65 +1558,55 @@ class GameState {
         }
       } catch (e) {}
 
-      // 2. Upload full save to Ntfy user channel
+      // 2. Upload full save JSON to secondary mirror (Pastes.dev)
+      let pastesKey = this.cloudSession.pastesKey || null;
+      try {
+        const pRes = await fetch(`${this.PASTES_URL}/post`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.data)
+        });
+        if (pRes.ok) {
+          const pJson = await pRes.json();
+          if (pJson && pJson.key) {
+            pastesKey = pJson.key;
+            this.cloudSession.pastesKey = pastesKey;
+          }
+        }
+      } catch (e) {}
+
+      // 3. Upload full save & keys to Ntfy user channel (live delivery + cached stream)
       const hexId = this.userIdToHex(userId);
+      const userPayload = JSON.stringify({
+        u: userId,
+        p: password,
+        bk: bytebinKey,
+        pk: pastesKey,
+        d: this.data,
+        ts: Date.now()
+      });
+
       try {
         await fetch(`${this.NTFY_BASE}u_${hexId}`, {
           method: 'POST',
-          body: JSON.stringify({
-            u: userId,
-            p: password,
-            bk: bytebinKey,
-            d: this.data,
-            ts: Date.now()
-          })
+          body: userPayload
         });
       } catch (e) {}
 
-      // 3. Upload compact permanent snapshot + bytebinKey to Restful-API permanent object
-      const packed = this.packSaveData(this.data);
-      const permPayload = {
-        name: `gh_save_${hexId}`,
-        data: {
-          p: password,
-          bk: bytebinKey || '',
-          s: JSON.stringify(packed)
-        }
-      };
-
-      if (this.cloudSession.objId) {
-        const putRes = await fetch(`${this.CLOUD_API_BASE}/${this.cloudSession.objId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(permPayload)
-        });
-        if (!putRes.ok && putRes.status === 404) {
-          this.cloudSession.objId = null;
-        }
-      }
-
-      if (!this.cloudSession.objId) {
-        const postRes = await fetch(this.CLOUD_API_BASE, {
+      // 4. Update master account registry
+      const regUpdate = { [userId]: { p: password, bk: bytebinKey, pk: pastesKey, ts: Date.now() } };
+      try {
+        await fetch(`${this.NTFY_BASE}registry`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(permPayload)
+          body: JSON.stringify(regUpdate)
         });
-        if (postRes.ok) {
-          const postJson = await postRes.json();
-          if (postJson && postJson.id) {
-            this.cloudSession.objId = postJson.id;
-            const reg = await this.fetchCloudRegistry();
-            reg[userId] = { p: password, o: postJson.id, k: bytebinKey || '' };
-            await this.updateCloudRegistry(reg);
-          }
-        }
-      }
+      } catch (e) {}
 
       this.cloudSession.lastSyncTime = new Date().toISOString();
       this.saveCloudSession(this.cloudSession);
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       this.updateSaveIndicator(`서버 동기화 완료: ${timeStr}`);
-      return { success: true, timeStr };
+      return { success: true, timeStr, bytebinKey, pastesKey };
     } catch (e) {
       console.error("Cloud sync error:", e);
       return { success: false, error: e.message };
@@ -1548,48 +1616,36 @@ class GameState {
   }
 
   async fetchAccountCloudData(userId, objId, fallbackBytebinKey = null) {
-    let fromPerm = null;
     let fromBytebin = null;
+    let fromPastes = null;
     let fromNtfy = null;
     let latestBk = fallbackBytebinKey;
+    let latestPk = null;
     let storedPassword = null;
 
-    // 1. Fetch permanent object from Restful-API
-    if (objId) {
-      try {
-        const r = await fetch(`${this.CLOUD_API_BASE}/${objId}?t=${Date.now()}`);
-        if (r.ok) {
-          const j = await r.json();
-          if (j && j.data) {
-            if (j.data.p) storedPassword = j.data.p;
-            if (j.data.bk) latestBk = j.data.bk;
-            if (j.data.s) {
-              const packed = typeof j.data.s === 'string' ? JSON.parse(j.data.s) : j.data.s;
-              fromPerm = this.unpackSaveData(packed);
-            }
-          }
-        }
-      } catch (e) {}
-    }
-
-    // 2. Fetch Ntfy user stream
+    // 1. Fetch from Ntfy user stream with &since=all for full cross-device catchup
     const hexId = this.userIdToHex(userId);
     try {
-      const nRes = await fetch(`${this.NTFY_BASE}u_${hexId}/json?poll=1`);
+      const nRes = await fetch(`${this.NTFY_BASE}u_${hexId}/json?poll=1&since=all`);
       if (nRes.ok) {
         const text = (await nRes.text()).trim();
         if (text) {
           const lines = text.split('\n');
+          let highestTs = 0;
           for (let i = lines.length - 1; i >= 0; i--) {
             try {
               const msg = JSON.parse(lines[i]);
               if (msg && msg.message) {
                 const parsed = JSON.parse(msg.message);
-                if (parsed && parsed.d && parsed.d.player) {
-                  fromNtfy = parsed.d;
+                if (parsed) {
                   if (parsed.p && !storedPassword) storedPassword = parsed.p;
                   if (parsed.bk && !latestBk) latestBk = parsed.bk;
-                  break;
+                  if (parsed.pk && !latestPk) latestPk = parsed.pk;
+                  const ts = parsed.ts || (msg.time * 1000) || 0;
+                  if (parsed.d && parsed.d.player && ts >= highestTs) {
+                    highestTs = ts;
+                    fromNtfy = parsed.d;
+                  }
                 }
               }
             } catch (err) {}
@@ -1598,7 +1654,7 @@ class GameState {
       }
     } catch (e) {}
 
-    // 3. Fetch full JSON from Bytebin if key available
+    // 2. Fetch full pristine save from Bytebin if key available
     if (latestBk) {
       try {
         const bRes = await fetch(`${this.BYTEBIN_URL}/${latestBk}`);
@@ -1611,18 +1667,32 @@ class GameState {
       } catch (e) {}
     }
 
-    let combined = fromBytebin || fromNtfy || fromPerm;
-    if (combined && fromPerm) {
-      combined = this.mergeSaveData(fromPerm, combined);
+    // 3. Fetch from Pastes.dev mirror if key available
+    if (latestPk && !fromBytebin) {
+      try {
+        const pRes = await fetch(`${this.PASTES_URL}/${latestPk}`);
+        if (pRes.ok) {
+          const pJson = await pRes.json();
+          if (pJson && pJson.player) {
+            fromPastes = pJson;
+          }
+        }
+      } catch (e) {}
     }
-    if (combined && fromNtfy) {
-      combined = this.mergeSaveData(fromNtfy, combined);
+
+    // Pick the most comprehensive & authoritative save
+    let combined = fromBytebin || fromPastes || fromNtfy;
+    if (fromBytebin && fromNtfy) {
+      combined = this.mergeSaveData(fromBytebin, fromNtfy);
+    } else if (!fromBytebin && fromPastes && fromNtfy) {
+      combined = this.mergeSaveData(fromPastes, fromNtfy);
     }
 
     return {
       cloudSave: combined,
       storedPassword,
-      latestBk
+      latestBk,
+      latestPk
     };
   }
 
@@ -1640,11 +1710,8 @@ class GameState {
         this.cloudSession.objId = objId;
       }
 
-      const { cloudSave, latestBk } = await this.fetchAccountCloudData(
-        userId,
-        objId,
-        (reg[userId] && reg[userId].k) || this.cloudSession.bytebinKey
-      );
+      const fallbackBk = (reg[userId] && reg[userId].bk) || this.cloudSession.bytebinKey;
+      const { cloudSave, latestBk, latestPk } = await this.fetchAccountCloudData(userId, objId, fallbackBk);
 
       if (!cloudSave) {
         if (!silent) {
@@ -1654,6 +1721,7 @@ class GameState {
       }
 
       if (latestBk) this.cloudSession.bytebinKey = latestBk;
+      if (latestPk) this.cloudSession.pastesKey = latestPk;
       this.saveCloudSession(this.cloudSession);
 
       const finalData = forceOverwriteLocal
@@ -1701,10 +1769,10 @@ class GameState {
       let existingRecord = reg[userId] || null;
 
       // Also check Ntfy user channel in case account was created earlier
-      const { cloudSave, storedPassword, latestBk } = await this.fetchAccountCloudData(
+      const { cloudSave, storedPassword, latestBk, latestPk } = await this.fetchAccountCloudData(
         userId,
         existingRecord ? existingRecord.o : null,
-        existingRecord ? existingRecord.k : null
+        existingRecord ? (existingRecord.bk || existingRecord.k) : null
       );
 
       const actualPassword = (existingRecord && existingRecord.p) || storedPassword;
@@ -1734,21 +1802,16 @@ class GameState {
           };
         }
 
-        // Check if current browser has unclaimed pre-login progress (made before logging in)
-        const hasUnclaimedPreLoginData = !this.data.ownerAccountId || this.data.ownerAccountId === userId;
-        const preLoginScore = this.getProgressionScore(this.data);
-
+        // Cross-device login: When explicitly logging in on any device, CLOUD DATA IS 100% AUTHORITATIVE!
+        // Never let an unplayed empty browser state overwrite our real character!
         let nextData;
-        if (hasUnclaimedPreLoginData && preLoginScore > 0 && cloudSave) {
-          // Smart merge pre-login progress with cloud account data!
-          nextData = this.mergeSaveData(this.data, cloudSave);
-        } else if (cloudSave) {
+        if (cloudSave) {
           nextData = JSON.parse(JSON.stringify(cloudSave));
         } else {
           nextData = JSON.parse(JSON.stringify(this.data));
         }
 
-        // Put account ID into character name field
+        // Put account ID into character name field if default
         if (!nextData.player.name || nextData.player.name === '오경호') {
           nextData.player.name = userId;
         }
@@ -1759,6 +1822,7 @@ class GameState {
           password,
           objId: existingRecord ? existingRecord.o : null,
           bytebinKey: latestBk || null,
+          pastesKey: latestPk || null,
           lastSyncTime: new Date().toISOString()
         });
 
@@ -1781,7 +1845,7 @@ class GameState {
           success: true,
           isNew: false,
           userId,
-          mergedPreLogin: hasUnclaimedPreLoginData && preLoginScore > 0
+          mergedPreLogin: false
         };
       } else {
         // Brand new account registration!
@@ -1802,6 +1866,7 @@ class GameState {
           password,
           objId: null,
           bytebinKey: null,
+          pastesKey: null,
           lastSyncTime: new Date().toISOString()
         });
 
@@ -1810,8 +1875,9 @@ class GameState {
         // Save into master registry
         reg[userId] = {
           p: password,
-          o: this.cloudSession.objId || '',
-          k: this.cloudSession.bytebinKey || ''
+          bk: this.cloudSession.bytebinKey || '',
+          pk: this.cloudSession.pastesKey || '',
+          ts: Date.now()
         };
         await this.updateCloudRegistry(reg);
 

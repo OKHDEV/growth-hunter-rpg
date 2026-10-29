@@ -12,10 +12,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css?v=20261029_27">
-  <link rel="stylesheet" href="css/battle.css?v=20261029_27">
-  <link rel="stylesheet" href="css/animations.css?v=20261029_27">
-  <link rel="stylesheet" href="css/mobile.css?v=20261029_27">
+  <link rel="stylesheet" href="css/style.css?v=20261029_28">
+  <link rel="stylesheet" href="css/battle.css?v=20261029_28">
+  <link rel="stylesheet" href="css/animations.css?v=20261029_28">
+  <link rel="stylesheet" href="css/mobile.css?v=20261029_28">
 </head>
 <body class="auth-gate-locked">
 
@@ -67,6 +67,21 @@
           ✨ 회원가입
           <div style="font-size: 10px; font-weight: 600; opacity: 0.92; margin-top: 2px;">새 계정 생성</div>
         </button>
+      </div>
+
+      <!-- Direct 1-Second Key / Code Restore Toggle -->
+      <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.15);">
+        <details style="font-size: 12px; color: #94a3b8; text-align: left;">
+          <summary style="cursor: pointer; color: #38bdf8; font-weight: 700; outline: none; user-select: none;">
+            📥 다른 기기 클라우드 키 또는 백업 코드로 1초 즉시 복원
+          </summary>
+          <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+            <input type="text" id="authGateRestoreInput" class="auth-input-field" placeholder="10자리 클라우드 키 또는 백업 코드 붙여넣기" style="font-size: 12px; padding: 8px 10px;">
+            <button type="button" class="btn btn-sm" onclick="ui.handleRestoreByKeyOrCode('gate')" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; font-weight: 800; padding: 8px;">
+              🚀 입력한 키/코드로 1초 즉시 복원 및 입장
+            </button>
+          </div>
+        </details>
       </div>
 
       <div class="auth-gate-footer-note">
@@ -1145,6 +1160,9 @@
           <button type="button" class="btn btn-sm btn-outline-gold" onclick="ui.handleCloudForceDownload()" style="width:100%; padding:10px; font-weight:700;">
             ⬇️ 서버 최신 기록을 현재 기기로 불러오기 (동기화)
           </button>
+          <button type="button" class="btn btn-sm" onclick="state.exportSaveCode()" style="width:100%; padding:9px; font-weight:700; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.5); color:#c084fc;">
+            📋 1초 백업 코드 복사 (카톡/메모장 보관용)
+          </button>
           <button type="button" class="btn btn-sm btn-outline-danger" onclick="ui.handleCloudLogout()" style="width:100%; padding:10px; margin-top:6px; border-color:#ef4444; color:#ef4444;">
             🚪 로그아웃 (로그인 화면으로 이동)
           </button>
@@ -1157,12 +1175,12 @@
   <div id="toastContainer"></div>
 
   <!-- JavaScript Modules -->
-  <script src="js/data.js?v=20261029_27"></script>
-  <script src="js/audio.js?v=20261029_27"></script>
-  <script src="js/state.js?v=20261029_27"></script>
-  <script src="js/battle.js?v=20261029_27"></script>
-  <script src="js/quests.js?v=20261029_27"></script>
-  <script src="js/ui.js?v=20261029_27"></script>
-  <script src="js/app.js?v=20261029_27"></script>
+  <script src="js/data.js?v=20261029_28"></script>
+  <script src="js/audio.js?v=20261029_28"></script>
+  <script src="js/state.js?v=20261029_28"></script>
+  <script src="js/battle.js?v=20261029_28"></script>
+  <script src="js/quests.js?v=20261029_28"></script>
+  <script src="js/ui.js?v=20261029_28"></script>
+  <script src="js/app.js?v=20261029_28"></script>
 </body>
 </html>
