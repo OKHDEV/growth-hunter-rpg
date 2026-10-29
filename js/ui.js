@@ -1579,22 +1579,31 @@ class UIManager {
   }
 
   updateAdminButtonsVisibility() {
-    const isAdmin = (typeof localStorage !== 'undefined' && localStorage.getItem('isAdminLoggedIn') === 'true') ||
-      (state.cloudSession && String(state.cloudSession.userId).toLowerCase() === 'admin');
+    const isStrictAdmin = Boolean(
+      state.cloudSession &&
+      String(state.cloudSession.userId).trim().toLowerCase() === 'admin' &&
+      typeof localStorage !== 'undefined' &&
+      localStorage.getItem('isAdminLoggedIn') === 'true'
+    );
 
     const hdrAdminBtn = document.getElementById('hdrAdminBtn');
     if (hdrAdminBtn) {
-      hdrAdminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+      hdrAdminBtn.style.display = isStrictAdmin ? 'inline-flex' : 'none';
     }
 
     const floatingAdminBtn = document.getElementById('floatingAdminBtn');
     if (floatingAdminBtn) {
-      floatingAdminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+      floatingAdminBtn.style.display = isStrictAdmin ? 'inline-flex' : 'none';
     }
 
     const settingsAdminBtnWrap = document.getElementById('settingsAdminBtnWrap');
     if (settingsAdminBtnWrap) {
-      settingsAdminBtnWrap.style.display = 'block';
+      settingsAdminBtnWrap.style.display = isStrictAdmin ? 'block' : 'none';
+    }
+
+    const modalAdminLink = document.getElementById('modalAdminLink');
+    if (modalAdminLink) {
+      modalAdminLink.style.display = isStrictAdmin ? 'block' : 'none';
     }
   }
 

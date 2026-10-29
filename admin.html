@@ -4,6 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>성장형 헌터 RPG - 슈퍼 관리자(Admin) 콘솔</title>
+  <script>
+    (function() {
+      try {
+        const isAuth = (typeof localStorage !== 'undefined') &&
+                       (localStorage.getItem('isAdminLoggedIn') === 'true') &&
+                       (localStorage.getItem('awakened_hunter_cloud_session_v1')?.toLowerCase().includes('"userid":"admin"'));
+        if (!isAuth) {
+          window.location.replace('index.html');
+        }
+      } catch (e) {
+        window.location.replace('index.html');
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css?v=20261029_36">
   <style>
     :root {
@@ -300,33 +314,6 @@
     .btn-rose { background: rgba(244, 63, 94, 0.18); border-color: #f43f5e; color: #fda4af; }
     .btn-rose:hover { background: #f43f5e; color: #fff; }
 
-    /* Admin Auth Gate Screen */
-    .admin-lock-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(4, 7, 16, 0.97);
-      backdrop-filter: blur(14px);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      box-sizing: border-box;
-    }
-    .admin-lock-box {
-      width: 100%;
-      max-width: 410px;
-      background: rgba(15, 23, 42, 0.98);
-      border: 1px solid rgba(0, 229, 255, 0.45);
-      border-radius: 18px;
-      padding: 26px 22px;
-      text-align: center;
-      box-shadow: 0 0 50px rgba(0, 229, 255, 0.3);
-    }
-
     /* Sticky Floating Return Button */
     .floating-back-btn {
       position: fixed;
@@ -355,39 +342,6 @@
   </style>
 </head>
 <body>
-
-  <!-- 🔒 Admin Auth Lock Gate (Shown if not authenticated) -->
-  <div id="adminAuthLockScreen" class="admin-lock-screen" style="display: none;">
-    <div class="admin-lock-box">
-      <div style="font-size: 46px; margin-bottom: 8px;">👑</div>
-      <h2 style="color: #00e5ff; margin: 0 0 6px 0; font-size: 1.4rem;">슈퍼 관리자(Admin) 콘솔</h2>
-      <p style="color: #94a3b8; font-size: 13px; margin: 0 0 18px 0; line-height: 1.5;">
-        관리자 계정으로 인증하세요.<br>
-        (아이디: <strong style="color:#38bdf8;">admin</strong> / 비밀번호: <strong style="color:#facc15;">admin1234</strong>)
-      </p>
-
-      <div style="margin-bottom: 12px; text-align: left;">
-        <label style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">관리자 아이디</label>
-        <input type="text" id="adminLockId" value="admin" style="width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;">
-      </div>
-
-      <div style="margin-bottom: 14px; text-align: left;">
-        <label style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">관리자 비밀번호</label>
-        <input type="password" id="adminLockPw" placeholder="admin1234 입력" style="width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: #0f172a; color: #fff; font-size: 15px; box-sizing: border-box;" onkeydown="if(event.key==='Enter') verifyAdminLogin();">
-      </div>
-
-      <div id="adminLockFeedback" style="font-size: 12px; min-height: 18px; margin-bottom: 12px; font-weight: 700; color: #f87171;"></div>
-
-      <div style="display: flex; gap: 10px;">
-        <button type="button" onclick="verifyAdminLogin()" style="flex: 1; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg, #0284c7, #00e5ff); color: #000; font-weight: 900; font-size: 14px; cursor: pointer;">
-          🔑 관리자 패널 열기
-        </button>
-        <a href="index.html" style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 14px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; font-weight: 700; font-size: 13px; text-decoration: none;">
-          🎮 메인 게임으로
-        </a>
-      </div>
-    </div>
-  </div>
 
   <!-- 🗄️ Main Admin Panel Content -->
   <div class="admin-container" id="adminMainContent">
@@ -478,43 +432,26 @@
     let cachedUserSaves = {}; // userId -> saveJson
 
     function checkAdminAuth() {
-      const isAuth = (localStorage.getItem('isAdminLoggedIn') === 'true') ||
-                     (sessionStorage.getItem('isAdminLoggedIn') === 'true');
+      const isAuth = (typeof localStorage !== 'undefined') &&
+                     (localStorage.getItem('isAdminLoggedIn') === 'true') &&
+                     (localStorage.getItem('awakened_hunter_cloud_session_v1')?.toLowerCase().includes('"userid":"admin"'));
 
-      const lockScreen = document.getElementById('adminAuthLockScreen');
-      const mainContent = document.getElementById('adminMainContent');
-
-      if (isAuth) {
-        if (lockScreen) lockScreen.style.display = 'none';
-        if (mainContent) mainContent.style.display = 'block';
-        loadAllAccounts();
-      } else {
-        if (lockScreen) lockScreen.style.display = 'flex';
-        if (mainContent) mainContent.style.display = 'none';
+      if (!isAuth) {
+        window.location.replace('index.html');
+        return;
       }
-    }
 
-    function verifyAdminLogin() {
-      const id = document.getElementById('adminLockId').value.trim();
-      const pw = document.getElementById('adminLockPw').value.trim();
-      const fb = document.getElementById('adminLockFeedback');
-
-      if (id.toLowerCase() === 'admin' && pw === 'admin1234') {
-        localStorage.setItem('isAdminLoggedIn', 'true');
-        sessionStorage.setItem('isAdminLoggedIn', 'true');
-        document.getElementById('adminAuthLockScreen').style.display = 'none';
-        document.getElementById('adminMainContent').style.display = 'block';
-        loadAllAccounts();
-      } else {
-        if (fb) fb.textContent = '❌ 아이디(admin) 또는 비밀번호(admin1234)가 일치하지 않습니다.';
-      }
+      loadAllAccounts();
     }
 
     function logoutAdmin() {
       if (confirm('관리자 세션을 로그아웃하고 메인 게임 화면으로 이동하시겠습니까?')) {
-        localStorage.removeItem('isAdminLoggedIn');
-        sessionStorage.removeItem('isAdminLoggedIn');
-        window.location.href = 'index.html';
+        try {
+          localStorage.removeItem('isAdminLoggedIn');
+          sessionStorage.removeItem('isAdminLoggedIn');
+          localStorage.removeItem('awakened_hunter_cloud_session_v1');
+        } catch (e) {}
+        window.location.replace('index.html');
       }
     }
 
