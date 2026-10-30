@@ -1,4 +1,4 @@
-// Game State & Persistence Manager: High School 2nd Grade (173cm -> 178cm)
+// Game State & Persistence Manager: Awakened Hunter Realistic Growth RPG
 // Daily reset is at midnight (game day runs from 00:00:00 to 23:59:59)
 function getLocalDateString(d = new Date()) {
   const year = d.getFullYear();
@@ -47,7 +47,7 @@ class GameState {
         glowColor: '#00e5ff',
         borderColor: '#00e5ff',
         accentColor: '#38bdf8',
-        desc: '고2 수련생 각성자. 178cm를 향해 매일 정직한 퀘스트를 수행하는 성장형 헌터의 시작점.'
+        desc: '수련생 각성자. 목표 신장을 향해 매일 정직한 퀘스트를 수행하는 성장형 헌터의 시작점.'
       },
       {
         id: 'card_shadow',
@@ -381,8 +381,8 @@ class GameState {
       resetTimestamp: 0,
       player: {
         name: "헌터",
-        grade: "고등학교 2학년",
-        title: "초보 수련자 (173cm)",
+        grade: "수련생 각성자",
+        title: "초보 수련자",
         avatar: "assets/player/hunter.jpg",
         cardId: "card_default",
         level: 1,
@@ -406,8 +406,8 @@ class GameState {
           aura: null
         },
         inventory: [],
-        unlockedTitles: ["초보 수련자 (173cm)"],
-        activeTitle: "초보 수련자 (173cm)"
+        unlockedTitles: ["초보 수련자"],
+        activeTitle: "초보 수련자"
       },
       quests: {
         dailyStreak: 1,
@@ -423,12 +423,12 @@ class GameState {
         folders: [
           {
             id: 'folder_growth',
-            name: '🌱 178cm 키 성장 루틴',
+            name: '🌱 키 성장 루틴',
             questIds: ['height_rope_1000', 'height_rope_2000', 'height_spine_stretch', 'height_golden_sleep', 'height_nutrition']
           },
           {
             id: 'folder_study',
-            name: '📚 고2 수험 & 두뇌 집중',
+            name: '📚 지능 & 두뇌 집중',
             questIds: ['study_pure_2h', 'study_pure_5h', 'study_wrong_notes', 'detox_night_phone']
           },
           {
@@ -1231,7 +1231,7 @@ class GameState {
     if (currentHeight >= 174.0) this.unlockTitle("성장판 해방자 (174cm)");
     if (currentHeight >= 176.0) this.unlockTitle("불굴의 수험생 (176cm)");
     if (currentHeight >= 177.0) this.unlockTitle("골격 파괴의 거인 (177cm)");
-    if (currentHeight >= 178.0) this.unlockTitle("178cm 신화의 절대 각성자");
+    if (currentHeight >= 178.0) this.unlockTitle("한계 초월의 절대 각성자");
 
     this.save();
   }
@@ -1343,7 +1343,7 @@ class GameState {
     if (currentHeight >= 174.0) this.unlockTitle("성장판 해방자 (174cm)");
     if (currentHeight >= 176.0) this.unlockTitle("불굴의 수험생 (176cm)");
     if (currentHeight >= 177.0) this.unlockTitle("골격 파괴의 거인 (177cm)");
-    if (currentHeight >= 178.0) this.unlockTitle("178cm 신화의 절대 각성자");
+    if (currentHeight >= 178.0) this.unlockTitle("한계 초월의 절대 각성자");
   }
 
   setActiveTitle(titleName) {
@@ -2999,7 +2999,7 @@ class GameState {
         }
 
         // Put account ID into character name field if default
-        if (!nextData.player.name || nextData.player.name === '오경호' || nextData.player.name === '헌터') {
+        if (!nextData.player.name || nextData.player.name === '\uC624\uACBD\uD638' || nextData.player.name === '헌터') {
           nextData.player.name = userId;
         }
 
@@ -3154,7 +3154,7 @@ class GameState {
 
       // 3. Migrate local character state to new ID
       this.data.ownerAccountId = newUserId;
-      if (!this.data.player.name || this.data.player.name === oldUserId || this.data.player.name === '오경호' || this.data.player.name === '헌터') {
+      if (!this.data.player.name || this.data.player.name === oldUserId || this.data.player.name === '\uC624\uACBD\uD638' || this.data.player.name === '헌터') {
         this.data.player.name = newUserId;
       }
 

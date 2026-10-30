@@ -536,7 +536,7 @@ const BOSS_VISUAL_DEFS = [
     weapon: "frostmourne_blade"
   },
 
-  // Zone 5: 178cm Mythic Temple (Stages 41~50) - God-tier, divine golden archangels, colossal titans, apex overlords
+  // Zone 5: Mythic Temple of Transcendence (Stages 41~50) - God-tier, divine golden archangels, colossal titans, apex overlords
   {
     stage: 41,
     name: "한계 돌파의 수문장, 게이트키퍼",
@@ -600,7 +600,7 @@ const BOSS_VISUAL_DEFS = [
     horns: "archangel_wings",
     headType: "vertical_archangel",
     features: "radiant_light_pillar",
-    weapon: "sword_of_178cm"
+    weapon: "sword_of_apex"
   },
   {
     stage: 46,
@@ -721,7 +721,7 @@ function generateBossSVG(b) {
       <ellipse cx="200" cy="180" rx="125" ry="125" fill="${b.auraColor}" opacity="0.20" filter="url(#glow)"/>
     `;
   } else if (z === 5) {
-    // 178cm Mythic Temple: Multi-layered golden seraphic wings, divine halo, sun rays
+    // Mythic Temple of Transcendence: Multi-layered golden seraphic wings, divine halo, sun rays
     wingsOrAuraMarkup = `
       <circle cx="200" cy="155" r="95" fill="none" stroke="#fbbf24" stroke-width="4" filter="url(#glow)" opacity="0.8"/>
       <circle cx="200" cy="155" r="135" fill="none" stroke="${b.auraColor}" stroke-width="2" stroke-dasharray="14 6" opacity="0.7"/>

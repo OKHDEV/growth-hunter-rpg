@@ -1654,7 +1654,7 @@
               <span style="font-size:0.7rem; opacity:0.8;">STR/INT/END/GRO</span>
             </button>
             <button class="cheat-btn cheat-level" onclick="applyCheat('${jsUserId}', 'setHeight178')">
-              <span>📏 신장 178cm 즉시 달성</span>
+              <span>📏 목표 신장 즉시 달성</span>
               <span style="font-size:0.7rem; opacity:0.8;">성장 목표 완료</span>
             </button>
           </div>
@@ -1866,8 +1866,8 @@
           break;
         case 'unlockAllTitles':
           const allTitles = [
-            "초보 수련자 (173cm)", "슬라임 포식자", "성장의 첫걸음", "고블린 도살자", "오크 분쇄자",
-            "심연의 파괴자", "거신의 심장", "100단계 절대 거신 토벌자", "178cm 각성자"
+            "초보 수련자", "슬라임 포식자", "성장의 첫걸음", "고블린 도살자", "오크 분쇄자",
+            "심연의 파괴자", "거신의 심장", "100단계 절대 거신 토벌자", "한계 초월자"
           ];
           save.player.unlockedTitles = Array.from(new Set([...(save.player.unlockedTitles || []), ...allTitles]));
           msg = `🏆 모든 히든 및 보스 격파 칭호가 전부 해금되었습니다!`;

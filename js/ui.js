@@ -1,4 +1,4 @@
-// UI Management: High School 2nd Grade (173cm -> 178cm) & 3D Boxing Controls & Modals
+// UI Management: Awakened Hunter Realistic Growth RPG & Combat Controls & Modals
 class UIManager {
   constructor() {
     this.currentTab = 'statusTab';
@@ -1006,7 +1006,7 @@ class UIManager {
         { id: 2, name: "Zone 2: 왜소·중력 (11~20층)" },
         { id: 3, name: "Zone 3: 수험·번아웃 (21~30층)" },
         { id: 4, name: "Zone 4: 유전·편견 (31~40층)" },
-        { id: 5, name: "Zone 5: 178cm 신전 (41~50층)" },
+        { id: 5, name: "Zone 5: 초월의 신전 (41~50층)" },
         { id: 6, name: "👑 [100단계] 100레벨 최종보스" }
       ];
 
@@ -1076,7 +1076,7 @@ class UIManager {
         </div>
         <div class="boss-info-wrap">
           <div class="boss-month-tag" style="margin-bottom:6px; ${boss.isSecretFinal ? 'border-color:#f59e0b; color:#fbbf24; background:rgba(245,158,11,0.25); font-weight:800;' : (v ? `border-color:${v.color}88; color:${v.color}; background:${v.color}1a;` : '')}">
-            ${boss.isSecretFinal ? '👑 [100단계 찐막 최종보스] 100레벨 신장 178cm 절대 거신' : `⏳ ${boss.trainingMonths}달(${boss.trainingDays}일) 매일 수련 필수`}
+            ${boss.isSecretFinal ? '👑 [100단계 찐막 최종보스] 100레벨 절대 거신' : `⏳ ${boss.trainingMonths}달(${boss.trainingDays}일) 매일 수련 필수`}
           </div>
           <div class="boss-title-row">
             <h3 class="boss-card-name" style="${boss.isSecretFinal ? 'font-size:22px; color:#fbbf24; text-shadow:0 0 15px rgba(245,158,11,0.6);' : (v ? `text-shadow: 0 0 12px ${v.color}55;` : '')}">${boss.name}</h3>

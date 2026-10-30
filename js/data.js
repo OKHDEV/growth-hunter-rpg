@@ -11,20 +11,19 @@ function escapeHtml(str) {
 if (typeof window !== 'undefined') window.escapeHtml = escapeHtml;
 if (typeof global !== 'undefined') global.escapeHtml = escapeHtml;
 
-// Game Data Definitions: High School 2nd Grade (173cm -> 178cm Realistic Growth) & 50 Epic Bosses
+// Game Data Definitions: Awakened Hunter Realistic Growth RPG & 50 Epic Bosses
 
-// Quests tailored for High School Sophomore (Study, Height Growth, Dopamine Detox, Fitness)
+// Quests tailored for Realistic Growth (Study, Height Growth, Dopamine Detox, Fitness)
 // Realistic Growth Points Calibration:
-// Target: 173.00 cm -> 178.00 cm (+5.00 cm = 50.0 mm).
+// Target: Current cm -> Target cm (+5.00 cm = 50.0 mm).
 // Formula: 1,000 Growth Points = 0.1 cm (1.0 mm).
-// So 50,000 Growth Points = exactly +5.00 cm over months of daily grind!
 // Completing daily quests gives 5 ~ 25 Growth Points (+0.005 ~ +0.025 cm = realistic micro-stimulus).
 const INITIAL_QUESTS = [
-  // --- 1. 신체 & 키 성장 (173cm -> 178cm 고2 성장판 자극) ---
+  // --- 1. 신체 & 키 성장 (성장판 자극) ---
   {
     id: "height_rope_1000",
-    title: "[고2 키성장] 성장판 자극: 줄넘기 1,000회",
-    description: "고2 닫혀가는 성장판을 깨우는 필수 충격 루틴. 발목과 무릎을 탄력있게 튕겨주세요.",
+    title: "[키성장] 성장판 자극: 줄넘기 1,000회",
+    description: "성장판을 깨우는 필수 충격 루틴. 발목과 무릎을 탄력있게 튕겨주세요.",
     category: "height",
     categoryName: "신체 & 키 성장",
     tier: "C",
@@ -38,8 +37,8 @@ const INITIAL_QUESTS = [
   },
   {
     id: "height_rope_2000",
-    title: "[고2 키성장] 한계 도약: 줄넘기 2,000회",
-    description: "성장판에 강력한 수직 자극을 가하여 178cm를 향한 뼈 성장을 촉진합니다.",
+    title: "[키성장] 한계 도약: 줄넘기 2,000회",
+    description: "성장판에 강력한 수직 자극을 가하여 목표 신장을 향한 뼈 성장을 촉진합니다.",
     category: "height",
     categoryName: "신체 & 키 성장",
     tier: "B",
@@ -97,7 +96,7 @@ const INITIAL_QUESTS = [
   {
     id: "height_nutrition",
     title: "골격 합성 영양: 칼슘 우유 500ml + 계란 2개 (단백질 30g)",
-    description: "178cm를 위한 뼈와 근육의 필수 건축자재 공급.",
+    description: "목표 신장을 위한 뼈와 근육의 필수 건축자재 공급.",
     category: "height",
     categoryName: "신체 & 키 성장",
     tier: "D",
@@ -177,7 +176,7 @@ const INITIAL_QUESTS = [
     icon: "smartphone"
   },
 
-  // --- 3. 고2 수험 & 학업 (순공 몰입) ---
+  // --- 3. 지능 수험 & 학업 (순공 몰입) ---
   {
     id: "study_pure_2h",
     title: "집중 몰입: 스마트폰 없이 순공 2시간 달성",
@@ -335,27 +334,27 @@ const BOSS_NAMES_DATA = [
 
   // Zone 4: 유전과 편견의 얼어붙은 빙벽 (Stage 31~40)
   { stage: 31, name: "유전 탓의 원령, 헤레디티", sub: "Heredity Wraith", quote: "“부모님 키가 작으면 끝이야! 노력으로 키가 크겠냐?”", img: "assets/bosses/boss_stage_31.jpg" },
-  { stage: 32, name: "늦깎이 절망마, 레이트블루머", sub: "Late Bloomer Denier", quote: "“고2는 이미 뼈 다 닫혔어! 헛된 희망을 버려라!”", img: "assets/bosses/boss_stage_32.jpg" },
+  { stage: 32, name: "늦깎이 절망마, 레이트블루머", sub: "Late Bloomer Denier", quote: "“너는 이미 뼈 다 닫혔어! 헛된 희망을 버려라!”", img: "assets/bosses/boss_stage_32.jpg" },
   { stage: 33, name: "불규칙 식습관의 괴수, 말뉴트리션", sub: "Malnutrition Behemoth", quote: "“끼니를 거르고 탄수화물만 채워 뼈를 굶주리게 하마!”", img: "assets/bosses/boss_stage_33.jpg" },
-  { stage: 34, name: "골격 동결의 마녀, 본프리즈", sub: "Bone Freeze Witch", quote: "“네 173cm의 척추를 얼음처럼 딱딱하게 굳혀버리겠다!”", img: "assets/bosses/boss_stage_34.jpg" },
+  { stage: 34, name: "골격 동결의 마녀, 본프리즈", sub: "Bone Freeze Witch", quote: "“네 굳어버린 척추를 얼음처럼 딱딱하게 굳혀버리겠다!”", img: "assets/bosses/boss_stage_34.jpg" },
   { stage: 35, name: "수면 장애의 몽마, 나이트메어", sub: "Nightmare Incubus", quote: "“밤새 악몽에 시달리며 피로를 짊어지고 등교해라!”", img: "assets/bosses/boss_stage_35.jpg" },
   { stage: 36, name: "의지력 영하의 빙룡, 프로스트팽", sub: "Frostfang Wyrm", quote: "“차가운 현실의 벽 앞에서 네 오만한 열정을 얼려버리리라!”", img: "assets/bosses/boss_stage_36.jpg" },
   { stage: 37, name: "자세 왜곡의 골렘, 스콜리오", sub: "Scoliosis Golem", quote: "“골반이 틀어지고 다리 길이가 짝짝이가 될 것이다!”", img: "assets/bosses/boss_stage_37.jpg" },
   { stage: 38, name: "성장 호르몬 차단마, 소마토블록", sub: "Somato Blocker", quote: "“뇌하수체에서 뿜어져 나오는 호르몬을 완전히 가로막겠다!”", img: "assets/bosses/boss_stage_38.jpg" },
-  { stage: 39, name: "한계 조롱의 악귀, 모커리", sub: "Mockery Demon", quote: "“네가 178cm가 된다고? 친구들이 비웃는 소리가 들리는구나!”", img: "assets/bosses/boss_stage_39.jpg" },
-  { stage: 40, name: "절망의 골격 군주, 스켈레톤 킹", sub: "Skeleton Sovereign", quote: "“뼈마디의 절규를 들어라! 넌 173cm의 껍데기를 절대 벗지 못한다!”", img: "assets/bosses/boss_stage_40.jpg" },
+  { stage: 39, name: "한계 조롱의 악귀, 모커리", sub: "Mockery Demon", quote: "“네가 목표를 이룬다고? 세상이 비웃는 소리가 들리는구나!”", img: "assets/bosses/boss_stage_39.jpg" },
+  { stage: 40, name: "절망의 골격 군주, 스켈레톤 킹", sub: "Skeleton Sovereign", quote: "“뼈마디의 절규를 들어라! 넌 왜소한 껍데기를 절대 벗지 못한다!”", img: "assets/bosses/boss_stage_40.jpg" },
 
-  // Zone 5: 신장 178cm 초월과 운명의 신전 (Stage 41~50)
+  // Zone 5: 한계 초월과 운명의 신전 (Stage 41~50)
   { stage: 41, name: "한계 돌파의 수문장, 게이트키퍼", sub: "Apex Gatekeeper", quote: "“여기서부터는 진짜 각성한 자만이 발을 들일 수 있다!”", img: "assets/bosses/boss_stage_41.jpg" },
-  { stage: 42, name: "황금 비율의 심판관, 프로포션", sub: "Judge of Proportion", quote: "“173cm의 왜소함을 버리고 황금비율의 전신을 증명하라!”", img: "assets/bosses/boss_stage_42.jpg" },
+  { stage: 42, name: "황금 비율의 심판관, 프로포션", sub: "Judge of Proportion", quote: "“과거의 왜소함을 버리고 황금비율의 전신을 증명하라!”", img: "assets/bosses/boss_stage_42.jpg" },
   { stage: 43, name: "성장호르몬의 폭풍령, 소마토스톰", sub: "Somato Storm", quote: "“매일의 줄넘기와 수면으로 다져진 골격을 시험하겠다!”", img: "assets/bosses/boss_stage_43.jpg" },
   { stage: 44, name: "백절불굴의 투신, 인빅터스", sub: "Invictus Fighter", quote: "“수천 번의 좌절을 딛고 일어선 검격만을 인정하리라!”", img: "assets/bosses/boss_stage_44.jpg" },
   { stage: 45, name: "척추 기립의 대천사, 버티컬", sub: "Archangel Vertical", quote: "“구부러졌던 모든 뼈를 곧추세워 하늘을 찌르는 자태를 보이라!”", img: "assets/bosses/boss_stage_45.jpg" },
   { stage: 46, name: "도약의 절대 지배자, 에어본", sub: "Airborne Sovereign", quote: "“줄넘기 수만 회의 탄력으로 허공을 밟고 날아올라라!”", img: "assets/bosses/boss_stage_46.jpg" },
-  { stage: 47, name: "175cm의 관문 수호신, 센티넬", sub: "175cm Sentinel", quote: "“첫 번째 벽, 175cm를 넘어서기 위한 피와 땀을 증명하라!”", img: "assets/bosses/boss_stage_47.jpg" },
-  { stage: 48, name: "177cm의 환영 군주, 팬텀미라지", sub: "177cm Mirage Lord", quote: "“마지막 1cm를 앞두고 포기했던 수많은 패자들의 무덤이다!”", img: "assets/bosses/boss_stage_48.jpg" },
-  { stage: 49, name: "황금 신장의 수호신, 에이펙스", sub: "Apex Guardian", quote: "“178cm의 완성까지 단 한 걸음... 신의 권능을 견뎌보아라!”", img: "assets/bosses/boss_stage_49.jpg" },
-  { stage: 50, name: "한계의 절대군주, 크로노스", sub: "Supreme Overlord Chronos", quote: "“모든 핑계를 부수고 178cm의 기적을 완성하였구나, 진정한 각성자여!”", img: "assets/bosses/boss5.jpg" }
+  { stage: 47, name: "신역의 관문 수호신, 센티넬", sub: "Gate Sentinel", quote: "“첫 번째 벽을 넘어서기 위한 피와 땀을 증명하라!”", img: "assets/bosses/boss_stage_47.jpg" },
+  { stage: 48, name: "환영의 군주, 팬텀미라지", sub: "Mirage Overlord", quote: "“마지막 한 걸음을 앞두고 포기했던 수많은 패자들의 무덤이다!”", img: "assets/bosses/boss_stage_48.jpg" },
+  { stage: 49, name: "황금 신장의 수호신, 에이펙스", sub: "Apex Guardian", quote: "“황금 신장의 완성까지 단 한 걸음... 신의 권능을 견뎌보아라!”", img: "assets/bosses/boss_stage_49.jpg" },
+  { stage: 50, name: "한계의 절대군주, 크로노스", sub: "Supreme Overlord Chronos", quote: "“모든 핑계를 부수고 한계 초월의 기적을 완성하였구나, 진정한 각성자여!”", img: "assets/bosses/boss5.jpg" }
 ];
 
 // 50 Distinct Elemental & Awakening Visual Themes for Stages 1~50
@@ -417,9 +416,9 @@ const BOSS_VISUAL_EVOLUTIONS = [
   { hue: 295, sat: 1.85, con: 1.36, bri: 1.08, flip: 1, zoom: 1.28, pos: "50% 22%", color: "#ef4444", subColor: "#f97316", auraName: "백절불굴의 투신염", rankTag: "XLIV. 무패의 투신" },
   { hue: 205, sat: 1.85, con: 1.36, bri: 1.12, flip: -1, zoom: 1.28, pos: "50% 18%", color: "#00e5ff", subColor: "#38bdf8", auraName: "대천사의 수직 승천광", rankTag: "XLV. 천공의 기립" },
   { hue: 95, sat: 1.9, con: 1.38, bri: 1.08, flip: 1, zoom: 1.3, pos: "52% 20%", color: "#10b981", subColor: "#00e5ff", auraName: "창공 도약의 소닉붐", rankTag: "XLVI. 중력 초월자" },
-  { hue: 55, sat: 1.9, con: 1.38, bri: 1.1, flip: -1, zoom: 1.3, pos: "55% 24%", color: "#f59e0b", subColor: "#ec4899", auraName: "175cm 돌파의 성화", rankTag: "XLVII. 제1벽 수호신" },
-  { hue: 240, sat: 1.9, con: 1.4, bri: 1.1, flip: -1, zoom: 1.32, pos: "50% 20%", color: "#c084fc", subColor: "#00e5ff", auraName: "177cm 차원 왜곡 환영", rankTag: "XLVIII. 제2벽 환영왕" },
-  { hue: 165, sat: 1.95, con: 1.42, bri: 1.12, flip: 1, zoom: 1.34, pos: "58% 22%", color: "#facc15", subColor: "#ef4444", auraName: "178cm 신역의 천벌룡", rankTag: "XLIX. 신역의 수호신" },
+  { hue: 55, sat: 1.9, con: 1.38, bri: 1.1, flip: -1, zoom: 1.3, pos: "55% 24%", color: "#f59e0b", subColor: "#ec4899", auraName: "한계 돌파의 성화", rankTag: "XLVII. 제1벽 수호신" },
+  { hue: 240, sat: 1.9, con: 1.4, bri: 1.1, flip: -1, zoom: 1.32, pos: "50% 20%", color: "#c084fc", subColor: "#00e5ff", auraName: "차원 왜곡의 환영", rankTag: "XLVIII. 제2벽 환영왕" },
+  { hue: 165, sat: 1.95, con: 1.42, bri: 1.12, flip: 1, zoom: 1.34, pos: "58% 22%", color: "#facc15", subColor: "#ef4444", auraName: "신역의 천벌룡", rankTag: "XLIX. 신역의 수호신" },
   { hue: 345, sat: 2.0, con: 1.45, bri: 1.15, flip: 1, zoom: 1.36, pos: "50% 16%", color: "#ffd700", subColor: "#ff0055", auraName: "크로노스 50층 신화 각성", rankTag: "👑 50층 최종 군주" }
 ];
 
@@ -511,7 +510,7 @@ const SECRET_FINAL_BOSS = {
   def: 2200,
   crit: 0.25,
   image: "assets/bosses/boss_secret_omega.jpg",
-  introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 178cm 100단계 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
+  introQuote: "“50개의 나태와 왜소의 시련을 모두 넘었구나... 허나 100단계 절대 거신 앞에선 한 줌의 먼지일 뿐이다!”",
   isSecretFinal: true,
   rewards: {
     exp: 250000,
@@ -532,7 +531,7 @@ const SECRET_FINAL_BOSS = {
         gro: 100
       }
     },
-    title: "178cm 신화의 절대신"
+    title: "신화의 절대신"
   }
 };
 
@@ -577,7 +576,7 @@ const PLAYER_SKILLS = [
   },
   {
     id: "ultimate_limit_break",
-    name: "[궁극기] 한계 돌파 : 신장 178cm 개화 멸신참",
+    name: "[궁극기] 한계 돌파 : 신장 개화 멸신참",
     key: "R",
     costRage: 100,
     desc: "분노 게이지 100% 시 발동! 시네마틱 화면 암전과 함께 전 화면을 파괴하는 극대 참격!",
@@ -589,8 +588,8 @@ const PLAYER_SKILLS = [
 // Titles unlocked across milestones, bosses, and growth habits
 const TITLES_DATA = {
   // === MYTHIC (신화 - 최고위 등급) ===
-  "178cm 신화의 절대신": {
-    name: "178cm 신화의 절대신",
+  "신화의 절대신": {
+    name: "신화의 절대신",
     rarity: "mythic",
     reqLevel: 100,
     desc: "제100의 벽, 절대 거신 오메가 크로노스를 굴복시키고 신의 반열에 오른 전설.",
@@ -600,16 +599,16 @@ const TITLES_DATA = {
     stats: { atk: 5000, def: 2500, str: 100, int: 100, end: 100, gro: 100, maxHp: 10000, crit: 0.20 },
     unlockHint: "100단계 절대 거신 오메가 크로노스 격파"
   },
-  "178cm 신화의 절대 각성자": {
-    name: "178cm 신화의 절대 각성자",
+  "한계 초월의 절대 각성자": {
+    name: "한계 초월의 절대 각성자",
     rarity: "mythic",
     reqLevel: 80,
-    desc: "Stage 50 크로노스를 꺾고 178cm 목표 신장을 완벽히 쟁취한 전설.",
+    desc: "Stage 50 크로노스를 꺾고 목표 신장을 완벽히 쟁취한 전설.",
     bonusText: "공격력 +1,500, 방어력 +800, 전 스탯 +80, 최대 체력 +5,000, 치명타율 +15% | EXP +35% / 골드 +30%",
     expMultiplier: 1.35,
     goldMultiplier: 1.30,
     stats: { atk: 1500, def: 800, str: 80, int: 80, end: 80, gro: 80, maxHp: 5000, crit: 0.15 },
-    unlockHint: "신장 178.0cm 달성 & Stage 50 보스 격파"
+    unlockHint: "목표 신장 달성 & Stage 50 보스 격파"
   },
   "시공간의 초월자": {
     name: "시공간의 초월자",
@@ -624,8 +623,8 @@ const TITLES_DATA = {
   },
 
   // === LEGENDARY (레전더리 - 전설 등급) ===
-  "골격 파괴의 거인 (177cm)": {
-    name: "골격 파괴의 거인 (177cm)",
+  "골격 파괴의 거인": {
+    name: "골격 파괴의 거인",
     rarity: "legendary",
     reqLevel: 60,
     desc: "Stage 40 스켈레톤 킹을 굴복시키고 골격을 완벽히 개조한 자.",
@@ -633,13 +632,13 @@ const TITLES_DATA = {
     expMultiplier: 1.24,
     goldMultiplier: 1.20,
     stats: { atk: 500, def: 250, str: 45, int: 35, end: 45, gro: 40, maxHp: 2500, crit: 0.10 },
-    unlockHint: "신장 177.0cm 달성 & Stage 40 격파"
+    unlockHint: "Stage 40 스켈레톤 킹 격파"
   },
   "황금 신장의 수호신": {
     name: "황금 신장의 수호신",
     rarity: "legendary",
     reqLevel: 55,
-    desc: "178cm의 완성까지 단 한 걸음, 황금 골격을 증명한 자.",
+    desc: "목표 신장의 완성까지 단 한 걸음, 황금 골격을 증명한 자.",
     bonusText: "공격력 +450, 방어력 +220, 전 스탯 +35, 키 성장 속도 +50%, 최대 체력 +2,000 | EXP +22% / 골드 +18%",
     expMultiplier: 1.22,
     goldMultiplier: 1.18,
@@ -784,11 +783,22 @@ const TITLES_DATA = {
   },
 
   // === NORMAL (노말 - 일반 등급) ===
-  "초보 수련자 (173cm)": {
-    name: "초보 수련자 (173cm)",
+  "초보 수련자": {
+    name: "초보 수련자",
     rarity: "normal",
     reqLevel: 1,
-    desc: "178cm를 향해 첫 발을 내딛은 고2 수련자.",
+    desc: "목표 신장을 향해 첫 발을 내딛은 성장 수련자.",
+    bonusText: "공격력 +15, 방어력 +10, STR +5, END +5, 최대 체력 +100 | 기본 밸런스 유지",
+    expMultiplier: 1.0,
+    goldMultiplier: 1.0,
+    stats: { atk: 15, def: 10, str: 5, end: 5, maxHp: 100 },
+    unlockHint: "기본 지급"
+  },
+  "초보 수련자 (173cm)": {
+    name: "초보 수련자",
+    rarity: "normal",
+    reqLevel: 1,
+    desc: "목표 신장을 향해 첫 발을 내딛은 성장 수련자.",
     bonusText: "공격력 +15, 방어력 +10, STR +5, END +5, 최대 체력 +100 | 기본 밸런스 유지",
     expMultiplier: 1.0,
     goldMultiplier: 1.0,
@@ -833,6 +843,12 @@ const TITLES_DATA = {
 // Global helper to safely look up title metadata or construct fallback for dynamic boss titles
 function getTitleMetadata(tName) {
   if (TITLES_DATA[tName]) return TITLES_DATA[tName];
+
+  // Legacy title aliases
+  if (tName && tName.includes('신화의 절대신')) return TITLES_DATA['신화의 절대신'];
+  if (tName && tName.includes('절대 각성자')) return TITLES_DATA['한계 초월의 절대 각성자'];
+  if (tName && tName.includes('골격 파괴의 거인')) return TITLES_DATA['골격 파괴의 거인'];
+  if (tName && tName.includes('초보 수련자')) return TITLES_DATA['초보 수련자'];
 
   // Try finding matching boss from BOSS_NAMES_DATA or TITLES_DATA keys
   const cleaned = tName.replace(' 격파자', '').trim();
