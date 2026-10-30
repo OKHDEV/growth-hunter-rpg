@@ -19,6 +19,7 @@ class UIManager {
     this.setupTabNavigation();
     this.updateAuthGateVisibility();
     this.updateHeaderAndStats();
+    this.renderPlayerCard();
     this.renderAttendanceCalendar();
     this.renderBossStageCards();
     this.renderInventory();
@@ -353,6 +354,7 @@ class UIManager {
 
   renderAll() {
     this.updateHeaderAndStats();
+    this.renderPlayerCard();
     this.updateAdminButtonsVisibility();
     if (typeof quests !== 'undefined' && quests.renderQuestList) {
       quests.renderQuestList();
@@ -1150,7 +1152,45 @@ class UIManager {
     }
   }
 
-  // --- Profile Edit Modal (Direct Method) ---
+  // --- Player Card & Profile Edit Modal ---
+
+  renderPlayerCard() {
+    if (typeof state === 'undefined' || !state.getPlayerCard) return;
+    const card = state.getPlayerCard();
+    if (!card) return;
+
+    // 1. Update Hunter Main Avatar
+    const avatarImg = document.getElementById('hunterMainAvatar');
+    if (avatarImg) {
+      avatarImg.src = card.image;
+      avatarImg.alt = card.name;
+    }
+
+    // 2. Update Battle Arena Player Avatar
+    const battleAvatar = document.getElementById('battlePlayerAvatar');
+    if (battleAvatar) {
+      battleAvatar.src = card.image;
+    }
+
+    // 3. Update Hunter Hero Card Theme Class
+    const heroCard = document.getElementById('hunterHeroCard');
+    if (heroCard) {
+      if (state.PLAYER_CARDS) {
+        state.PLAYER_CARDS.forEach(c => {
+          if (c.themeClass) heroCard.classList.remove(c.themeClass);
+        });
+      }
+      heroCard.classList.add(card.themeClass);
+    }
+
+    // 4. Update Card Badge on Avatar
+    const cardBadge = document.getElementById('hunterCardBadge');
+    if (cardBadge) {
+      cardBadge.textContent = `🎴 ${card.badge}`;
+      cardBadge.style.borderColor = card.borderColor || '#00e5ff';
+      cardBadge.style.color = card.accentColor || '#38bdf8';
+    }
+  }
 
   openProfileModal() {
     sound.playClick();
@@ -1159,7 +1199,49 @@ class UIManager {
     document.getElementById('editNameInput').value = state.data.player.name;
     document.getElementById('editHeightInput').value = state.data.player.baseHeight;
     document.getElementById('editTargetHeightInput').value = state.data.player.targetHeight || 178.0;
+
+    // Initialize temporary selection with current active card
+    this._tempSelectedCardId = (state.data.player && state.data.player.cardId) || 'card_default';
+    this.renderPlayerCardPicker();
+
     modal.classList.remove('hidden');
+  }
+
+  renderPlayerCardPicker() {
+    const grid = document.getElementById('playerCardPickerGrid');
+    const label = document.getElementById('selectedCardNameLabel');
+    if (!grid || typeof state === 'undefined' || !state.getPlayerCards) return;
+
+    const cards = state.getPlayerCards();
+    const selectedCard = state.getPlayerCard(this._tempSelectedCardId);
+    if (label && selectedCard) {
+      label.textContent = selectedCard.name;
+      label.style.color = selectedCard.accentColor || '#fde047';
+    }
+
+    grid.innerHTML = cards.map(c => {
+      const isSelected = c.id === this._tempSelectedCardId;
+      return `
+        <div class="card-picker-item ${isSelected ? 'selected' : ''}" 
+             onclick="ui.selectCardInPicker('${c.id}')"
+             title="${c.name} (${c.tag}) - ${c.desc}">
+          <div class="card-picker-thumb-wrap">
+            <img src="${c.image}" alt="${c.name}" class="card-picker-thumb" loading="lazy">
+            <div class="card-picker-check">✓</div>
+          </div>
+          <div class="card-picker-info">
+            <div class="card-picker-name">${c.name}</div>
+            <div class="card-picker-tag" style="color:${c.accentColor};">${c.tag}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  selectCardInPicker(cardId) {
+    sound.playClick();
+    this._tempSelectedCardId = cardId;
+    this.renderPlayerCardPicker();
   }
 
   closeProfileModal() {
@@ -1180,11 +1262,27 @@ class UIManager {
       state.data.player.targetHeight = targetVal;
     }
 
-    state.save();
+    // Apply & Save Selected Player Card
+    let cardChanged = false;
+    if (this._tempSelectedCardId) {
+      if (state.data.player.cardId !== this._tempSelectedCardId) cardChanged = true;
+      state.setPlayerCard(this._tempSelectedCardId);
+    } else {
+      state.save(true);
+    }
+
     this.closeProfileModal();
     sound.playQuestComplete();
+    this.renderPlayerCard();
     this.updateHeaderAndStats();
-    this.showToast("프로필이 성공적으로 변경되었습니다.");
+    this.renderAll();
+
+    const activeCard = state.getPlayerCard();
+    if (cardChanged) {
+      this.showToast(`✨ [${activeCard.name}] 플레이어 카드로 변경 및 프로필이 저장되었습니다!`, 'success');
+    } else {
+      this.showToast("✨ 프로필이 성공적으로 변경되었습니다.", 'success');
+    }
   }
 
   // --- Inventory & Titles UI ---

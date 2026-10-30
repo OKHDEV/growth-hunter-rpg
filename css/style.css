@@ -2332,3 +2332,282 @@ body.admin-authenticated #settingsAdminBtnWrap {
 body.admin-authenticated #modalAdminLink {
   display: block !important;
 }
+
+/* ==================== 15 PLAYER CARDS & VISUAL THEMES ==================== */
+.card-badge-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid var(--cyan-neon);
+  color: #38bdf8;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+/* Card Picker Modal Grid */
+.player-card-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 6px;
+  background: rgba(10, 14, 26, 0.85);
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+}
+
+@media (min-width: 480px) {
+  .player-card-picker-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.card-picker-item {
+  position: relative;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+}
+
+.card-picker-item:hover {
+  transform: translateY(-3px);
+  border-color: var(--cyan-neon);
+  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.3);
+}
+
+.card-picker-item.selected {
+  border-color: #fde047 !important;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.6) !important;
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.card-picker-thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 12;
+  overflow: hidden;
+  background: #020617;
+}
+
+.card-picker-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card-picker-item:hover .card-picker-thumb {
+  transform: scale(1.08);
+}
+
+.card-picker-check {
+  display: none;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #facc15;
+  color: #000;
+  font-size: 11px;
+  font-weight: 900;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+
+.card-picker-item.selected .card-picker-check {
+  display: flex;
+}
+
+.card-picker-info {
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-picker-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-picker-tag {
+  font-size: 9px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.card-picker-item.selected .card-picker-name {
+  color: #fde047;
+}
+
+/* 15 Hero Card Visual Themes for .hunter-hero-card */
+.card-theme-default {
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.35);
+  border-color: rgba(0, 229, 255, 0.5) !important;
+}
+.card-theme-default .hunter-avatar-wrap {
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.5) !important;
+}
+
+.card-theme-shadow {
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.45);
+  border-color: rgba(168, 85, 247, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(88, 28, 135, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-shadow .hunter-avatar-wrap {
+  border-color: #a855f7 !important;
+  box-shadow: 0 0 28px rgba(168, 85, 247, 0.6) !important;
+}
+
+.card-theme-flame {
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.45);
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(127, 29, 29, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-flame .hunter-avatar-wrap {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 28px rgba(239, 68, 68, 0.6) !important;
+}
+
+.card-theme-frost {
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.45);
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(12, 74, 110, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-frost .hunter-avatar-wrap {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.6) !important;
+}
+
+.card-theme-thunder {
+  box-shadow: 0 0 30px rgba(250, 204, 21, 0.45);
+  border-color: rgba(250, 204, 21, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(113, 63, 18, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-thunder .hunter-avatar-wrap {
+  border-color: #facc15 !important;
+  box-shadow: 0 0 28px rgba(250, 204, 21, 0.6) !important;
+}
+
+.card-theme-radiant {
+  box-shadow: 0 0 32px rgba(251, 191, 36, 0.5);
+  border-color: rgba(251, 191, 36, 0.7) !important;
+  background: radial-gradient(circle at top, rgba(120, 53, 15, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-radiant .hunter-avatar-wrap {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.65) !important;
+}
+
+.card-theme-abyss {
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.45);
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(76, 29, 149, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-abyss .hunter-avatar-wrap {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 28px rgba(139, 92, 246, 0.6) !important;
+}
+
+.card-theme-dragon {
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.45);
+  border-color: rgba(249, 115, 22, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(124, 45, 18, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-dragon .hunter-avatar-wrap {
+  border-color: #f97316 !important;
+  box-shadow: 0 0 28px rgba(249, 115, 22, 0.6) !important;
+}
+
+.card-theme-wind {
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.45);
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(6, 78, 59, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-wind .hunter-avatar-wrap {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 28px rgba(16, 185, 129, 0.6) !important;
+}
+
+.card-theme-blood {
+  box-shadow: 0 0 32px rgba(225, 29, 72, 0.5);
+  border-color: rgba(225, 29, 72, 0.7) !important;
+  background: radial-gradient(circle at top, rgba(136, 19, 55, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-blood .hunter-avatar-wrap {
+  border-color: #e11d48 !important;
+  box-shadow: 0 0 30px rgba(225, 29, 72, 0.65) !important;
+}
+
+.card-theme-void {
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.45);
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(49, 46, 129, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-void .hunter-avatar-wrap {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 28px rgba(99, 102, 241, 0.6) !important;
+}
+
+.card-theme-cyber {
+  box-shadow: 0 0 32px rgba(236, 72, 153, 0.5);
+  border-color: rgba(236, 72, 153, 0.7) !important;
+  background: radial-gradient(circle at top, rgba(131, 24, 67, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-cyber .hunter-avatar-wrap {
+  border-color: #ec4899 !important;
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.65) !important;
+}
+
+.card-theme-celestial {
+  box-shadow: 0 0 32px rgba(224, 231, 255, 0.55);
+  border-color: rgba(199, 210, 254, 0.7) !important;
+  background: radial-gradient(circle at top, rgba(49, 46, 129, 0.3), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-celestial .hunter-avatar-wrap {
+  border-color: #c7d2fe !important;
+  box-shadow: 0 0 30px rgba(224, 231, 255, 0.7) !important;
+}
+
+.card-theme-phantom {
+  box-shadow: 0 0 30px rgba(20, 184, 166, 0.45);
+  border-color: rgba(20, 184, 166, 0.6) !important;
+  background: radial-gradient(circle at top, rgba(19, 78, 74, 0.35), rgba(15, 23, 42, 0.95)) !important;
+}
+.card-theme-phantom .hunter-avatar-wrap {
+  border-color: #14b8a6 !important;
+  box-shadow: 0 0 28px rgba(20, 184, 166, 0.6) !important;
+}
+
+.card-theme-sovereign {
+  box-shadow: 0 0 40px rgba(250, 204, 21, 0.6), 0 0 20px rgba(168, 85, 247, 0.5);
+  border-color: rgba(250, 204, 21, 0.85) !important;
+  background: radial-gradient(circle at top, rgba(113, 63, 18, 0.45), rgba(15, 23, 42, 0.98)) !important;
+}
+.card-theme-sovereign .hunter-avatar-wrap {
+  border-color: #facc15 !important;
+  box-shadow: 0 0 35px rgba(250, 204, 21, 0.8), 0 0 15px rgba(168, 85, 247, 0.6) !important;
+}

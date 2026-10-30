@@ -33,6 +33,190 @@ class GameState {
     this.isReadOnlyMode = false;
     this.spectatorUserId = null;
 
+    // 🎴 15 UNIQUE PLAYER HERO CARDS
+    this.PLAYER_CARDS = [
+      {
+        id: 'card_default',
+        name: '초보 각성자 (헌터 오경호)',
+        tag: '균형 · 수련',
+        badge: '초보 각성자',
+        image: 'assets/player/hunter.jpg',
+        themeClass: 'card-theme-default',
+        glowColor: '#00e5ff',
+        borderColor: '#00e5ff',
+        accentColor: '#38bdf8',
+        desc: '고2 수련생 각성자. 178cm를 향해 매일 정직한 퀘스트를 수행하는 성장형 헌터의 시작점.'
+      },
+      {
+        id: 'card_shadow',
+        name: '그림자 군주 (섀도우 로드)',
+        tag: '암흑 · 군단',
+        badge: '그림자 군주',
+        image: 'assets/player/card_shadow.jpg',
+        themeClass: 'card-theme-shadow',
+        glowColor: '#a855f7',
+        borderColor: '#9333ea',
+        accentColor: '#c084fc',
+        desc: '어둠을 자신의 영토로 삼아 절대적인 그림자 병단을 지휘하는 어둠의 군주.'
+      },
+      {
+        id: 'card_flame',
+        name: '진홍의 염제 (헬 블레이즈)',
+        tag: '화염 · 폭멸',
+        badge: '진홍의 염제',
+        image: 'assets/player/card_flame.jpg',
+        themeClass: 'card-theme-flame',
+        glowColor: '#ef4444',
+        borderColor: '#dc2626',
+        accentColor: '#f87171',
+        desc: '모든 불순물을 태워버리는 불멸의 업화를 두른 지옥의 화염 지배자.'
+      },
+      {
+        id: 'card_frost',
+        name: '절대영도 서리군주 (프로스트 킹)',
+        tag: '빙결 · 제어',
+        badge: '서리군주',
+        image: 'assets/player/card_frost.jpg',
+        themeClass: 'card-theme-frost',
+        glowColor: '#38bdf8',
+        borderColor: '#0284c7',
+        accentColor: '#7dd3fc',
+        desc: '숨결마저 시공간을 얼어붙게 만드는 태고의 영구동토 절대 빙결 지배자.'
+      },
+      {
+        id: 'card_thunder',
+        name: '뇌신 번개의 인도자 (볼트 마스터)',
+        tag: '뇌격 · 신속',
+        badge: '뇌신',
+        image: 'assets/player/card_thunder.jpg',
+        themeClass: 'card-theme-thunder',
+        glowColor: '#facc15',
+        borderColor: '#eab308',
+        accentColor: '#fde047',
+        desc: '천둥과 번개를 채찍처럼 다루며 초광속으로 전장을 가르는 천둥의 전령.'
+      },
+      {
+        id: 'card_radiant',
+        name: '황금빛 태양성기사 (솔라 팔라딘)',
+        tag: '신성 · 불굴',
+        badge: '태양성기사',
+        image: 'assets/player/card_radiant.jpg',
+        themeClass: 'card-theme-radiant',
+        glowColor: '#fbbf24',
+        borderColor: '#d97706',
+        accentColor: '#fef08a',
+        desc: '눈부신 황금빛 서광으로 아군을 수호하고 모든 악을 심판하는 태양의 성전사.'
+      },
+      {
+        id: 'card_abyss',
+        name: '심연의 밤사냥꾼 (어비스 워커)',
+        tag: '암살 · 은밀',
+        badge: '심연사냥꾼',
+        image: 'assets/player/card_abyss.jpg',
+        themeClass: 'card-theme-abyss',
+        glowColor: '#8b5cf6',
+        borderColor: '#7c3aed',
+        accentColor: '#a78bfa',
+        desc: '빛조차 닿지 않는 심연의 틈새에서 적의 숨통을 소리 없이 끊는 암살자.'
+      },
+      {
+        id: 'card_dragon',
+        name: '용혈의 드래곤나이트 (용기사)',
+        tag: '용족 · 파괴',
+        badge: '용기사',
+        image: 'assets/player/card_dragon.jpg',
+        themeClass: 'card-theme-dragon',
+        glowColor: '#f97316',
+        borderColor: '#ea580c',
+        accentColor: '#fb923c',
+        desc: '고대 드래곤의 심장을 계승하여 마그마의 생명력과 파괴력을 품은 용기사.'
+      },
+      {
+        id: 'card_wind',
+        name: '질풍의 취록검성 (윈드 블레이더)',
+        tag: '바람 · 연속',
+        badge: '질풍검성',
+        image: 'assets/player/card_wind.jpg',
+        themeClass: 'card-theme-wind',
+        glowColor: '#10b981',
+        borderColor: '#059669',
+        accentColor: '#34d399',
+        desc: '칼날이 바람보다 빨라 잔상조차 보이지 않는 신속 무쌍의 녹색 검성.'
+      },
+      {
+        id: 'card_blood',
+        name: '혈월의 버서커 (블러드 팽)',
+        tag: '광폭 · 흡혈',
+        badge: '혈월버서커',
+        image: 'assets/player/card_blood.jpg',
+        themeClass: 'card-theme-blood',
+        glowColor: '#e11d48',
+        borderColor: '#be123c',
+        accentColor: '#fb7185',
+        desc: '붉은 달 아래 투기를 폭발시키며 상처를 입을수록 더욱 흉포해지는 광전사.'
+      },
+      {
+        id: 'card_void',
+        name: '시공간 차원방랑자 (보이드 트래블러)',
+        tag: '차원 · 성운',
+        badge: '차원방랑자',
+        image: 'assets/player/card_void.jpg',
+        themeClass: 'card-theme-void',
+        glowColor: '#6366f1',
+        borderColor: '#4f46e5',
+        accentColor: '#818cf8',
+        desc: '다차원의 시공간을 넘나들며 우주 성운과 중력을 자유자재로 다루는 방랑자.'
+      },
+      {
+        id: 'card_cyber',
+        name: '사이버네틱 네온워커 (사이버 펑크)',
+        tag: '첨단 · 플라즈마',
+        badge: '사이버워커',
+        image: 'assets/player/card_cyber.jpg',
+        themeClass: 'card-theme-cyber',
+        glowColor: '#ec4899',
+        borderColor: '#db2777',
+        accentColor: '#f472b6',
+        desc: '첨단 나노슈트와 고출력 플라즈마 빔 블레이드를 장착한 미래형 각성병기.'
+      },
+      {
+        id: 'card_celestial',
+        name: '천상의 수호대천사 (아크엔젤)',
+        tag: '천상 · 정화',
+        badge: '수호대천사',
+        image: 'assets/player/card_celestial.jpg',
+        themeClass: 'card-theme-celestial',
+        glowColor: '#e0e7ff',
+        borderColor: '#a5b4fc',
+        accentColor: '#c7d2fe',
+        desc: '순백의 날개와 성스러운 은빛 광채로 모든 저주를 정화하는 천상의 수호자.'
+      },
+      {
+        id: 'card_phantom',
+        name: '영혼의 사령관 (팬텀 로드)',
+        tag: '영혼 · 유령',
+        badge: '영혼사령관',
+        image: 'assets/player/card_phantom.jpg',
+        themeClass: 'card-theme-phantom',
+        glowColor: '#14b8a6',
+        borderColor: '#0d9488',
+        accentColor: '#2dd4bf',
+        desc: '이승을 떠도는 혼령들을 부려 전장을 유령의 청록빛 안개로 지배하는 사령관.'
+      },
+      {
+        id: 'card_sovereign',
+        name: '불멸의 신화황제 (이모탈 엠페러)',
+        tag: '신화 · 초월',
+        badge: '신화황제',
+        image: 'assets/player/card_sovereign.jpg',
+        themeClass: 'card-theme-sovereign',
+        glowColor: '#eab308',
+        borderColor: '#ca8a04',
+        accentColor: '#fef08a',
+        desc: '모든 차원과 원소의 한계를 초월하여 절대적 지위를 확립한 최고위 신화 황제.'
+      }
+    ];
+
     // Check if spectator / view-only mode is active
     try {
       const isSpectator = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('spectator_active') === 'true') ||
@@ -136,6 +320,24 @@ class GameState {
     }
   }
 
+  getPlayerCards() {
+    return this.PLAYER_CARDS;
+  }
+
+  getPlayerCard(cardId = null) {
+    const id = cardId || (this.data && this.data.player && this.data.player.cardId) || 'card_default';
+    return this.PLAYER_CARDS.find(c => c.id === id) || this.PLAYER_CARDS[0];
+  }
+
+  setPlayerCard(cardId) {
+    const card = this.getPlayerCard(cardId);
+    if (!this.data.player) this.data.player = {};
+    this.data.player.cardId = card.id;
+    this.data.player.avatar = card.image;
+    this.save(true);
+    return card;
+  }
+
   getDefaultState() {
     return {
       lastSaved: new Date().toISOString(),
@@ -145,6 +347,7 @@ class GameState {
         grade: "고등학교 2학년",
         title: "초보 수련자 (173cm)",
         avatar: "assets/player/hunter.jpg",
+        cardId: "card_default",
         level: 1,
         exp: 0,
         gold: 500,
@@ -291,6 +494,8 @@ class GameState {
       player: {
         ...def.player,
         ...(parsed.player || {}),
+        cardId: (parsed.player && parsed.player.cardId) || 'card_default',
+        avatar: (parsed.player && parsed.player.avatar) || (this.getPlayerCard((parsed.player && parsed.player.cardId) || 'card_default').image),
         stats: { ...def.player.stats, ...((parsed.player && parsed.player.stats) || {}) },
         equipment: { ...def.player.equipment, ...((parsed.player && parsed.player.equipment) || {}) },
         unlockedTitles: (parsed.player && parsed.player.unlockedTitles) || def.player.unlockedTitles,
@@ -1744,6 +1949,10 @@ class GameState {
     if (!merged.player.activeTitle || !merged.player.unlockedTitles.includes(merged.player.activeTitle)) {
       merged.player.activeTitle = cp.activeTitle || lp.activeTitle || "초보 수련자 (173cm)";
     }
+
+    // Player Hero Card
+    merged.player.cardId = (lp && lp.cardId) || (cp && cp.cardId) || 'card_default';
+    merged.player.avatar = this.getPlayerCard(merged.player.cardId).image;
 
     // Union of inventory items (by id, keeping higher enhance level)
     const invMap = new Map();

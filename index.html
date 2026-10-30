@@ -183,10 +183,11 @@
       <div class="status-grid">
 
         <!-- Left: Hunter Portrait & Height Showcase -->
-        <div class="hunter-hero-card hunter-aura-glow">
-          <div class="hunter-avatar-wrap">
+        <div class="hunter-hero-card hunter-aura-glow" id="hunterHeroCard">
+          <div class="hunter-avatar-wrap" id="hunterAvatarWrap">
             <img src="assets/player/hunter.jpg" alt="성장하는 각성자" class="hunter-avatar-img" id="hunterMainAvatar">
             <div class="rank-badge-overlay" id="statPlayerRank">E급 각성자</div>
+            <div class="card-badge-overlay" id="hunterCardBadge">🎴 초보 각성자</div>
           </div>
 
           <div class="hunter-name-title">
@@ -1000,27 +1001,44 @@
     </div>
   </div>
 
-  <!-- 8. Edit Profile Modal (Base Height 173cm, Target Height 178cm) -->
+  <!-- 8. Edit Profile Modal (Base Height 173cm, Target Height 178cm & 15 Player Cards) -->
   <div id="profileEditModal" class="qte-modal-overlay hidden">
-    <div class="qte-modal-box" style="border-color: var(--cyan-neon); text-align:left;">
-      <h3 style="color:var(--cyan-neon); text-align:center;">각성자 프로필 설정</h3>
-      <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+    <div class="qte-modal-box" style="border-color: var(--cyan-neon); text-align:left; max-width: 540px; width: 94%; max-height: 88vh; display: flex; flex-direction: column;">
+      <h3 style="color:var(--cyan-neon); text-align:center; margin: 0 0 12px 0;">각성자 프로필 & 플레이어 카드 설정</h3>
+      <div style="overflow-y:auto; padding-right:4px; display:flex; flex-direction:column; gap:12px;">
         <div>
-          <label style="font-size:12px; color:var(--text-muted);">헌터 닉네임</label>
-          <input type="text" id="editNameInput" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+          <label style="font-size:12px; color:var(--text-muted); font-weight:600;">헌터 닉네임</label>
+          <input type="text" id="editNameInput" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; box-sizing:border-box;">
         </div>
-        <div>
-          <label style="font-size:12px; color:var(--text-muted);">현재 기본 신장 (cm)</label>
-          <input type="number" step="0.1" id="editHeightInput" value="173.0" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label style="font-size:12px; color:var(--text-muted); font-weight:600;">현재 기본 신장 (cm)</label>
+            <input type="number" step="0.1" id="editHeightInput" value="173.0" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="font-size:12px; color:var(--text-muted); font-weight:600;">최종 목표 신장 (cm)</label>
+            <input type="number" step="0.1" id="editTargetHeightInput" value="178.0" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; box-sizing:border-box;">
+          </div>
         </div>
-        <div>
-          <label style="font-size:12px; color:var(--text-muted);">최종 목표 신장 (cm)</label>
-          <input type="number" step="0.1" id="editTargetHeightInput" value="178.0" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+
+        <!-- 🎴 Player Card Selection (Total 15 Cards) -->
+        <div style="margin-top: 4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="font-size:13px; font-weight:800; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+              <span>🎴 상태창 플레이어 카드 선택</span>
+              <span style="font-size:11px; color:#94a3b8; font-weight:normal;">(총 15종)</span>
+            </label>
+            <span id="selectedCardNameLabel" style="font-size:12px; font-weight:800; color:#fde047;">초보 각성자</span>
+          </div>
+          <div id="playerCardPickerGrid" class="player-card-picker-grid">
+            <!-- Dynamically populated 15 cards -->
+          </div>
         </div>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-          <button class="btn btn-primary" id="btnSaveProfile" onclick="ui.saveProfile()" style="flex:1; padding:12px;">저장하기</button>
-          <button class="btn btn-outline-cyan" id="btnCloseProfileModal" onclick="ui.closeProfileModal()" style="padding:12px;">취소</button>
-        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.1);">
+        <button class="btn btn-primary" id="btnSaveProfile" onclick="ui.saveProfile()" style="flex:1; padding:12px;">💾 변경사항 저장하기</button>
+        <button class="btn btn-outline-cyan" id="btnCloseProfileModal" onclick="ui.closeProfileModal()" style="padding:12px;">취소</button>
       </div>
     </div>
   </div>
