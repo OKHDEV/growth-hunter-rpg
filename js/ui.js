@@ -583,7 +583,7 @@ class UIManager {
     const questsData = state.data.quests;
     const todayStr = getLocalDateString();
     const todayCompletedCount = Object.keys(questsData.completedToday || {}).length;
-    questsData.history[todayStr] = todayCompletedCount;
+    questsData.history[todayStr] = Math.max(questsData.history[todayStr] || 0, todayCompletedCount);
 
     const firstDayIndex = new Date(year, month, 1).getDay(); // 0: Sun, 1: Mon, ...
     const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
@@ -752,7 +752,7 @@ class UIManager {
     if (!questsData.history) questsData.history = {};
 
     const todayCompletedCount = Object.keys(questsData.completedToday || {}).length;
-    questsData.history[todayStr] = todayCompletedCount;
+    questsData.history[todayStr] = Math.max(questsData.history[todayStr] || 0, todayCompletedCount);
 
     // Calculate overall stats from startDate to today
     const startObj = new Date(questsData.startDate + 'T00:00:00');
@@ -771,7 +771,7 @@ class UIManager {
         const cm = String(cur.getMonth() + 1).padStart(2, '0');
         const cd = String(cur.getDate()).padStart(2, '0');
         const cStr = `${cy}-${cm}-${cd}`;
-        const cnt = (cStr === todayStr) ? todayCompletedCount : (questsData.history[cStr] || 0);
+        const cnt = (cStr === todayStr) ? Math.max(questsData.history[cStr] || 0, todayCompletedCount) : (questsData.history[cStr] || 0);
 
         if (cnt > 0) {
           doneDays++;

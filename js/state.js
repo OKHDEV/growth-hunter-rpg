@@ -909,7 +909,7 @@ class GameState {
       this.data.quests.history[prevDate] = Math.max(this.data.quests.history[prevDate] || 0, completedCount);
 
       if (diffDays > 1) {
-        // Fill skipped days with 0 in history
+        // Fill skipped days with 0 in history only if not recorded yet
         for (let i = 1; i < diffDays; i++) {
           const missedDate = new Date(lastDate);
           missedDate.setDate(missedDate.getDate() + i);
@@ -920,14 +920,6 @@ class GameState {
           if (this.data.quests.history[missedStr] === undefined) {
             this.data.quests.history[missedStr] = 0;
           }
-        }
-        this.data.quests.dailyStreak = 0;
-      } else if (diffDays === 1) {
-        const effectiveCount = Math.max(completedCount, this.data.quests.history[prevDate] || 0);
-        if (effectiveCount > 0) {
-          this.data.quests.dailyStreak += 1;
-        } else {
-          this.data.quests.dailyStreak = 0;
         }
       }
 
@@ -1377,8 +1369,12 @@ class GameState {
 
     this.data.quests.completedToday[questId] = true;
     const today = getLocalDateString();
+    this.data.quests.lastActiveDate = today;
     if (!this.data.quests.history) this.data.quests.history = {};
-    this.data.quests.history[today] = Object.keys(this.data.quests.completedToday).length;
+    this.data.quests.history[today] = Math.max(
+      this.data.quests.history[today] || 0,
+      Object.keys(this.data.quests.completedToday).length
+    );
 
     // Maintain cumulative quest completions count
     if (!this.data.quests.completionCounts) this.data.quests.completionCounts = {};
@@ -2147,7 +2143,10 @@ class GameState {
       }
     }
 
-    merged.quests.history[today] = Object.keys(merged.quests.completedToday).length;
+    merged.quests.history[today] = Math.max(
+      merged.quests.history[today] || 0,
+      Object.keys(merged.quests.completedToday || {}).length
+    );
 
     // Union of completionCounts
     merged.quests.completionCounts = { ...((cloudData.quests && cloudData.quests.completionCounts) || {}) };
@@ -2712,13 +2711,13 @@ class GameState {
     if (!this.cloudSession || !this.cloudSession.userId) {
       return { success: false, message: '로그인된 클라우드 계정이 없습니다.' };
     }
-    // If local unsaved changes are pending, flush them first rather than pulling stale cloud data
-    if (this._cloudSyncTimer !== null || this._isSyncingCloud) {
-      if (this._cloudSyncTimer !== null) {
-        clearTimeout(this._cloudSyncTimer);
-        this._cloudSyncTimer = null;
-      }
-      return await this.syncToCloud(true);
+    // If local unsaved changes timer is pending, cancel timer and proceed to fetch + merge cloud data
+    if (this._cloudSyncTimer !== null) {
+      clearTimeout(this._cloudSyncTimer);
+      this._cloudSyncTimer = null;
+    }
+    if (this._isSyncingCloud) {
+      return { success: false, inFlight: true };
     }
 
     try {
