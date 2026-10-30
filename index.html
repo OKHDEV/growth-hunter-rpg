@@ -41,6 +41,31 @@
   <canvas id="particleCanvas"></canvas>
   <div id="screenFlashOverlay"></div>
 
+  <!-- 📸 Instagram-Style Pull-To-Refresh Indicators (Top & Bottom) -->
+  <div id="pullToRefreshTop" class="pull-to-refresh-indicator top" aria-hidden="true">
+    <div class="ptr-content">
+      <div class="ptr-icon-wrap">
+        <svg class="ptr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        <div class="ptr-spinner"></div>
+      </div>
+      <span class="ptr-text">당겨서 새로고침</span>
+    </div>
+  </div>
+
+  <div id="pullToRefreshBottom" class="pull-to-refresh-indicator bottom" aria-hidden="true">
+    <div class="ptr-content">
+      <div class="ptr-icon-wrap">
+        <svg class="ptr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        <div class="ptr-spinner"></div>
+      </div>
+      <span class="ptr-text">올려서 새로고침</span>
+    </div>
+  </div>
+
   <!-- ==================== AWAKENED HUNTER INTRO LOGIN & SIGN-UP GATE ==================== -->
   <div id="authGateScreen" class="auth-gate-overlay">
     <div class="auth-gate-card">

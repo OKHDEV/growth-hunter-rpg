@@ -2749,3 +2749,104 @@ select {
     padding-right: env(safe-area-inset-right, 0px);
   }
 }
+
+/* ========================================================
+   📸 Instagram-Style Pull-To-Refresh System (Top & Bottom)
+   ======================================================== */
+.pull-to-refresh-indicator {
+  position: fixed;
+  left: 50%;
+  z-index: 999999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.1s linear;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pull-to-refresh-indicator.top {
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  transform: translate(-50%, -75px);
+}
+
+.pull-to-refresh-indicator.bottom {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+  transform: translate(-50%, 75px);
+}
+
+.ptr-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(56, 189, 248, 0.5);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.35);
+  border-radius: 9999px;
+  padding: 8px 18px 8px 12px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.ptr-icon-wrap {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.ptr-icon {
+  width: 17px;
+  height: 17px;
+  color: var(--cyan-neon);
+  transition: transform 0.05s linear;
+}
+
+.ptr-spinner {
+  display: none;
+  width: 17px;
+  height: 17px;
+  border: 2.5px solid rgba(56, 189, 248, 0.25);
+  border-top-color: var(--cyan-neon);
+  border-radius: 50%;
+  animation: ptrSpin 0.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.pull-to-refresh-indicator.ready .ptr-content {
+  border-color: #38bdf8;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85), 0 0 24px rgba(56, 189, 248, 0.65);
+  transform: scale(1.04);
+}
+
+.pull-to-refresh-indicator.ready .ptr-text {
+  color: #38bdf8;
+}
+
+.pull-to-refresh-indicator.refreshing .ptr-icon {
+  display: none;
+}
+
+.pull-to-refresh-indicator.refreshing .ptr-spinner {
+  display: block;
+}
+
+.pull-to-refresh-indicator.refreshing .ptr-content {
+  border-color: #00e5ff;
+  box-shadow: 0 8px 36px rgba(0, 0, 0, 0.9), 0 0 28px rgba(0, 229, 255, 0.8);
+}
+
+.pull-to-refresh-indicator.refreshing .ptr-text {
+  color: #00e5ff;
+}
+
+@keyframes ptrSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

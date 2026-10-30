@@ -16,6 +16,7 @@ class UIManager {
 
   init() {
     this.initCanvas();
+    this.initPullToRefresh();
     this.setupTabNavigation();
     this.updateAuthGateVisibility();
     this.updateHeaderAndStats();
@@ -57,6 +58,226 @@ class UIManager {
     } else if (banner) {
       banner.style.display = 'none';
     }
+  }
+
+  // --- 📸 Instagram-Style Pull-To-Refresh System (Top & Bottom) ---
+  initPullToRefresh() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const topEl = document.getElementById('pullToRefreshTop');
+    const btmEl = document.getElementById('pullToRefreshBottom');
+    if (!topEl && !btmEl) return;
+
+    let startY = 0;
+    let startX = 0;
+    let isPulling = false;
+    let pullDir = null; // 'top' | 'bottom'
+    let pullDist = 0;
+    let isRefreshing = false;
+    let hapticFired = false;
+    let isMouseDown = false;
+    const THRESHOLD = 72; // px drag required to trigger reload
+
+    const renderIndicator = (dir, dist) => {
+      const el = dir === 'top' ? topEl : btmEl;
+      if (!el) return;
+
+      el.style.transition = 'none';
+      el.style.opacity = String(Math.min(1, dist / 32));
+
+      if (dir === 'top') {
+        el.style.transform = `translate(-50%, ${-65 + dist}px)`;
+      } else {
+        el.style.transform = `translate(-50%, ${65 - dist}px)`;
+      }
+
+      const icon = el.querySelector('.ptr-icon');
+      if (icon) {
+        icon.style.transform = `rotate(${dist * 5}deg)`;
+      }
+
+      const text = el.querySelector('.ptr-text');
+      if (dist >= THRESHOLD) {
+        el.classList.add('ready');
+        if (text) text.textContent = '놓으면 새로고침';
+        if (!hapticFired) {
+          hapticFired = true;
+          try { if (navigator.vibrate) navigator.vibrate(15); } catch(e) {}
+        }
+      } else {
+        el.classList.remove('ready');
+        if (text) text.textContent = dir === 'top' ? '당겨서 새로고침' : '올려서 새로고침';
+        hapticFired = false;
+      }
+    };
+
+    const cancelIndicator = (dir) => {
+      const el = dir === 'top' ? topEl : btmEl;
+      if (!el) return;
+      el.classList.remove('ready');
+      el.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.25s ease';
+      el.style.transform = dir === 'top' ? 'translate(-50%, -75px)' : 'translate(-50%, 75px)';
+      el.style.opacity = '0';
+      const icon = el.querySelector('.ptr-icon');
+      if (icon) icon.style.transform = 'rotate(0deg)';
+    };
+
+    const triggerReload = (dir) => {
+      isRefreshing = true;
+      const el = dir === 'top' ? topEl : btmEl;
+      if (el) {
+        el.classList.add('refreshing');
+        el.style.transition = 'transform 0.2s ease';
+        if (dir === 'top') {
+          el.style.transform = 'translate(-50%, 25px)';
+        } else {
+          el.style.transform = 'translate(-50%, -25px)';
+        }
+        const text = el.querySelector('.ptr-text');
+        if (text) text.textContent = '⚡ 최신 데이터 새로고침 중...';
+      }
+
+      try { if (typeof sound !== 'undefined' && sound.playClick) sound.playClick(); } catch(e) {}
+      try { if (typeof state !== 'undefined' && state.save) state.save(true); } catch(e) {}
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    };
+
+    // Touch Event Handlers (iPhone & Mobile Devices)
+    const onTouchStart = (e) => {
+      if (isRefreshing || !e.touches || e.touches.length !== 1) return;
+      // Do not trigger if interacting with an open modal box
+      if (e.target && e.target.closest && e.target.closest('.modal-backdrop:not(.hidden), .modal:not(.hidden), .qte-overlay:not(.hidden), .modal-box, .qte-modal-box, .result-card')) {
+        return;
+      }
+
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+      isPulling = false;
+      pullDir = null;
+      pullDist = 0;
+      hapticFired = false;
+    };
+
+    const onTouchMove = (e) => {
+      if (isRefreshing || !e.touches || e.touches.length !== 1) return;
+      const curY = e.touches[0].clientY;
+      const curX = e.touches[0].clientX;
+      const diffY = curY - startY;
+      const diffX = curX - startX;
+
+      // Ignore if horizontal gesture is dominant (tab switching, sliders)
+      if (!isPulling && Math.abs(diffX) > Math.abs(diffY)) {
+        return;
+      }
+
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+
+      // Top boundary pull (at top of page and pulling down)
+      if (!isPulling && scrollY <= 2 && diffY > 10) {
+        isPulling = true;
+        pullDir = 'top';
+      }
+
+      // Bottom boundary pull (at bottom of page and pulling up)
+      if (!isPulling && scrollY >= (maxScroll - 5) && diffY < -10) {
+        isPulling = true;
+        pullDir = 'bottom';
+      }
+
+      if (isPulling) {
+        const raw = pullDir === 'top' ? diffY : -diffY;
+        if (raw <= 0) {
+          cancelIndicator(pullDir);
+          return;
+        }
+
+        pullDist = Math.min(105, raw * 0.44);
+
+        if (e.cancelable && pullDist > 14) {
+          e.preventDefault();
+        }
+
+        renderIndicator(pullDir, pullDist);
+      }
+    };
+
+    const onTouchEnd = () => {
+      if (!isPulling || isRefreshing) return;
+      isPulling = false;
+
+      if (pullDist >= THRESHOLD) {
+        triggerReload(pullDir);
+      } else {
+        cancelIndicator(pullDir);
+      }
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    // Mouse Drag Support (Desktop & Simulation)
+    const onMouseDown = (e) => {
+      if (e.button !== 0 || isRefreshing) return;
+      if (e.target && e.target.closest && e.target.closest('.modal-backdrop:not(.hidden), .modal:not(.hidden), .qte-overlay:not(.hidden), .modal-box')) {
+        return;
+      }
+      isMouseDown = true;
+      startY = e.clientY;
+      startX = e.clientX;
+      isPulling = false;
+      pullDir = null;
+      pullDist = 0;
+      hapticFired = false;
+    };
+
+    const onMouseMove = (e) => {
+      if (!isMouseDown || isRefreshing) return;
+      const curY = e.clientY;
+      const curX = e.clientX;
+      const diffY = curY - startY;
+      const diffX = curX - startX;
+      if (!isPulling && Math.abs(diffX) > Math.abs(diffY)) return;
+
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+
+      if (!isPulling && scrollY <= 2 && diffY > 15) {
+        isPulling = true;
+        pullDir = 'top';
+      }
+      if (!isPulling && scrollY >= (maxScroll - 5) && diffY < -15) {
+        isPulling = true;
+        pullDir = 'bottom';
+      }
+
+      if (isPulling) {
+        const raw = pullDir === 'top' ? diffY : -diffY;
+        if (raw <= 0) {
+          cancelIndicator(pullDir);
+          return;
+        }
+        pullDist = Math.min(105, raw * 0.44);
+        renderIndicator(pullDir, pullDist);
+      }
+    };
+
+    const onMouseUp = () => {
+      if (isMouseDown && isPulling) {
+        onTouchEnd();
+      }
+      isMouseDown = false;
+      isPulling = false;
+    };
+
+    window.addEventListener('mousedown', onMouseDown, { passive: true });
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    window.addEventListener('mouseup', onMouseUp, { passive: true });
   }
 
   // --- Canvas Particle FX ---
