@@ -26,7 +26,18 @@ class UIManager {
     this.setupEventListeners();
     this.setupCombatControls();
 
-    // Check and queue any retroactive rewards (such as newly unlocked cards for returning users)
+    // Check and queue any retroactive rewards (such as newly unlocked cards and titles for returning users)
+    if (typeof state !== 'undefined' && state.pendingRetroactiveTitles && state.pendingRetroactiveTitles.length > 0) {
+      state.pendingRetroactiveTitles.forEach(tName => {
+        this.queueRewardModal({
+          type: 'title',
+          titleName: tName,
+          source: '📜 각성 칭호 달성 보상'
+        });
+      });
+      state.pendingRetroactiveTitles = [];
+    }
+
     if (typeof state !== 'undefined' && state.pendingRetroactiveCards && state.pendingRetroactiveCards.length > 0) {
       state.pendingRetroactiveCards.forEach(card => {
         this.queueRewardModal({
@@ -1620,6 +1631,9 @@ class UIManager {
       setTimeout(() => {
         this.showNextRewardModal();
       }, 300);
+    } else if (this.isRewardModalActive) {
+      const rModal = document.getElementById('rewardAcquisitionModal');
+      if (rModal) rModal.classList.remove('hidden');
     }
   }
 
@@ -2720,6 +2734,28 @@ class UIManager {
     this.closeCloudModal();
     this.renderCloudModalState();
     this.renderAll();
+
+    // Check and queue any retroactive titles or cards from the loaded cloud account
+    if (typeof state !== 'undefined' && state.pendingRetroactiveTitles && state.pendingRetroactiveTitles.length > 0) {
+      state.pendingRetroactiveTitles.forEach(tName => {
+        this.queueRewardModal({
+          type: 'title',
+          titleName: tName,
+          source: '📜 각성 칭호 달성 보상'
+        });
+      });
+      state.pendingRetroactiveTitles = [];
+    }
+    if (typeof state !== 'undefined' && state.pendingRetroactiveCards && state.pendingRetroactiveCards.length > 0) {
+      state.pendingRetroactiveCards.forEach(card => {
+        this.queueRewardModal({
+          type: 'card',
+          card: card,
+          source: card.id === 'card_sovereign' ? '👑 Stage 100 신화 거신 격파 달성' : '📜 누적 퀘스트 달성 보상'
+        });
+      });
+      state.pendingRetroactiveCards = [];
+    }
 
     if (res.isNew) {
       this.showToast(`🎉 [${res.userId}] 회원가입 완료! 기존 기기 수련 기록이 100% 계정에 저장되어 메인 화면으로 입장합니다!`);

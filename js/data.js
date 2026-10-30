@@ -748,6 +748,17 @@ const TITLES_DATA = {
     stats: { atk: 65, def: 35, str: 15, maxHp: 400 },
     unlockHint: "Stage 1 슬로스 격파"
   },
+  "줄넘기 한계 도약자": {
+    name: "줄넘기 한계 도약자",
+    rarity: "rare",
+    reqLevel: 5,
+    desc: "성장판에 강력한 수직 자극을 가하며 2,000회의 도약을 달성한 헌터.",
+    bonusText: "공격력 +40, 방어력 +25, STR +15, END +15, 최대 체력 +300 | EXP +5% / 골드 +4%",
+    expMultiplier: 1.05,
+    goldMultiplier: 1.04,
+    stats: { atk: 40, def: 25, str: 15, end: 15, maxHp: 300 },
+    unlockHint: "줄넘기 2,000회 퀘스트 완료"
+  },
   "줄넘기 3,500회 극한 달성자": {
     name: "줄넘기 3,500회 극한 달성자",
     rarity: "rare",

@@ -831,6 +831,12 @@ class QuestManager {
 
     ui.showToast(toastMsg);
 
+    // If player leveled up, open Level Up Modal first so reward modals don't collide or get covered
+    if (result.expResult && result.expResult.leveledUp) {
+      sound.playLevelUp();
+      ui.showLevelUpModal(result.expResult);
+    }
+
     if (result.newlyUnlockedTitles && result.newlyUnlockedTitles.length > 0) {
       result.newlyUnlockedTitles.forEach(tName => {
         ui.showToast(`🎉 각성 칭호 획득! [${tName}]`, "gold");
@@ -858,11 +864,6 @@ class QuestManager {
           });
         }
       });
-    }
-
-    if (result.expResult && result.expResult.leveledUp) {
-      sound.playLevelUp();
-      ui.showLevelUpModal(result.expResult);
     }
 
     this.renderCurrentView();

@@ -9,6 +9,23 @@ function getLocalDateString(d = new Date()) {
 if (typeof window !== 'undefined') window.getLocalDateString = getLocalDateString;
 if (typeof global !== 'undefined') global.getLocalDateString = getLocalDateString;
 
+function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let timer = null;
+  const opts = { ...options };
+  if (controller) {
+    timer = setTimeout(() => {
+      try { controller.abort(); } catch (e) {}
+    }, timeoutMs);
+    opts.signal = controller.signal;
+  }
+  return fetch(url, opts).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+if (typeof window !== 'undefined') window.fetchWithTimeout = fetchWithTimeout;
+if (typeof global !== 'undefined') global.fetchWithTimeout = fetchWithTimeout;
+
 class GameState {
   constructor() {
     this.STORAGE_KEY = 'awakened_hunter_save_v2';
@@ -27,9 +44,7 @@ class GameState {
     this.LEGACY_REGISTRIES = [
       'https://ntfy.adminforge.de/okh_gh_cloud_registry/json?poll=1&since=0',
       'https://ntfy.tedomum.fr/okh_gh_cloud_registry/json?poll=1&since=0',
-      'https://ntfy.sh/okh_gh_cloud_v4_registry/json?poll=1&since=0',
-      'https://ntfy.sh/okh_gh_cloud_prod_v3_registry/json?poll=1&since=0',
-      'https://ntfy.sh/okh_gh_cloud_v2_registry/json?poll=1&since=0'
+      'https://ntfy.sh/okh_gh_cloud_v4_registry/json?poll=1&since=0'
     ];
     this._lastRegistrySync = 0;
     this.isReadOnlyMode = false;
@@ -1441,31 +1456,71 @@ class GameState {
   checkRetroactiveUnlocks() {
     if (!this.data || !this.data.player) return;
     const completed = this.data.quests.completedToday || {};
+    const counts = this.data.quests.completionCounts || {};
+    const hasDone = (id) => Boolean(completed[id] || (counts[id] && counts[id] > 0));
 
-    if (completed['height_rope_1000'] || completed['height_rope_2000'] || completed['height_rope_3500']) {
-      this.unlockTitle("줄넘기 입문자");
+    const newlyUnlockedTitles = [];
+    const checkAndUnlock = (title) => {
+      if (this.unlockTitle(title)) {
+        newlyUnlockedTitles.push(title);
+      }
+    };
+
+    if (hasDone('height_rope_1000') || hasDone('height_rope_2000') || hasDone('height_rope_3500')) {
+      checkAndUnlock("줄넘기 입문자");
     }
-    if (completed['height_rope_3500']) {
-      this.unlockTitle("줄넘기 3,500회 극한 달성자");
+    if (hasDone('height_rope_2000') || hasDone('height_rope_3500')) {
+      checkAndUnlock("줄넘기 한계 도약자");
     }
-    if (completed['height_spine_stretch']) {
-      this.unlockTitle("자세 교정 수련생");
+    if (hasDone('height_rope_3500')) {
+      checkAndUnlock("줄넘기 3,500회 극한 달성자");
     }
-    if (completed['height_nutrition']) {
-      this.unlockTitle("성장 영양 보급자");
+    if (hasDone('height_spine_stretch')) {
+      checkAndUnlock("자세 교정 수련생");
     }
-    if (completed['height_golden_sleep']) {
-      this.unlockTitle("성장 골든타임의 수호자");
+    if ((counts['height_spine_stretch'] || 0) >= 20) {
+      checkAndUnlock("척추 기립의 대천사");
     }
-    if (completed['detox_shorts_24h']) {
-      this.unlockTitle("디톡스 24시간 철인");
+    if (hasDone('height_nutrition')) {
+      checkAndUnlock("성장 영양 보급자");
+    }
+    if (hasDone('height_golden_sleep')) {
+      checkAndUnlock("성장 골든타임의 수호자");
+    }
+    if (hasDone('detox_shorts_24h')) {
+      checkAndUnlock("디톡스 24시간 철인");
+    }
+
+    const totalDetox = Object.keys(counts)
+      .filter(id => id.startsWith('detox_'))
+      .reduce((sum, id) => sum + (counts[id] || 0), 0);
+    if (totalDetox >= 15) {
+      checkAndUnlock("도파민의 종결자");
     }
 
     const currentHeight = this.getCurrentHeight();
-    if (currentHeight >= 174.0) this.unlockTitle("성장판 해방자 (174cm)");
-    if (currentHeight >= 176.0) this.unlockTitle("불굴의 수험생 (176cm)");
-    if (currentHeight >= 177.0) this.unlockTitle("골격 파괴의 거인 (177cm)");
-    if (currentHeight >= 178.0) this.unlockTitle("한계 초월의 절대 각성자");
+    if (currentHeight >= 174.0) checkAndUnlock("성장판 해방자 (174cm)");
+    if (currentHeight >= 176.0) checkAndUnlock("불굴의 수험생 (176cm)");
+    if (currentHeight >= 177.0) checkAndUnlock("골격 파괴의 거인 (177cm)");
+    if (currentHeight >= 178.0) checkAndUnlock("한계 초월의 절대 각성자");
+
+    if (newlyUnlockedTitles.length > 0) {
+      if (!this.pendingRetroactiveTitles) this.pendingRetroactiveTitles = [];
+      newlyUnlockedTitles.forEach(tName => {
+        if (!this.pendingRetroactiveTitles.includes(tName)) {
+          this.pendingRetroactiveTitles.push(tName);
+        }
+      });
+      if (typeof ui !== 'undefined' && typeof ui.queueRewardModal === 'function') {
+        newlyUnlockedTitles.forEach(tName => {
+          ui.queueRewardModal({
+            type: 'title',
+            titleName: tName,
+            source: '📜 각성 칭호 달성 보상'
+          });
+        });
+      }
+    }
 
     // Retroactive player cards unlock check (cumulative quests & stage 100 clear)
     const newlyUnlockedCards = this.checkCardUnlocks(false);
@@ -1525,9 +1580,12 @@ class GameState {
       }
     };
 
-    // 1. Jump rope quests -> 줄넘기 입문자 & 줄넘기 3,500회 극한 달성자
+    // 1. Jump rope quests -> 줄넘기 입문자 & 줄넘기 한계 도약자 & 줄넘기 3,500회 극한 달성자
     if (questId === 'height_rope_1000' || questId === 'height_rope_2000' || questId === 'height_rope_3500') {
       checkAndUnlock("줄넘기 입문자");
+    }
+    if (questId === 'height_rope_2000' || questId === 'height_rope_3500') {
+      checkAndUnlock("줄넘기 한계 도약자");
     }
     if (questId === 'height_rope_3500') {
       checkAndUnlock("줄넘기 3,500회 극한 달성자");
@@ -2539,7 +2597,7 @@ class GameState {
     // 1. Multi-mirror registry aggregation (adminforge, tedomum, ntfy.sh)
     try {
       const results = await Promise.allSettled(this.LEGACY_REGISTRIES.map(url =>
-        fetch(url, { signal: AbortSignal.timeout(4500) }).then(r => r.text())
+        fetchWithTimeout(url, {}, 2000).then(r => r.text())
       ));
 
       for (const res of results) {
@@ -2576,19 +2634,21 @@ class GameState {
       }
     } catch (e) {}
 
-    // 2. Fallback check RESTful API object
-    try {
-      const res = await fetch(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}?t=${Date.now()}`, { signal: AbortSignal.timeout(3000) });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.data && json.data.u) {
-          const restReg = typeof json.data.u === 'string' ? JSON.parse(json.data.u) : json.data.u;
-          for (const [uid, acc] of Object.entries(restReg || {})) {
-            if (!reg[uid]) reg[uid] = acc;
+    // 2. Fallback check RESTful API object (only if registry is completely empty)
+    if (Object.keys(reg).length === 0) {
+      try {
+        const res = await fetchWithTimeout(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}?t=${Date.now()}`, {}, 2000);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.data && json.data.u) {
+            const restReg = typeof json.data.u === 'string' ? JSON.parse(json.data.u) : json.data.u;
+            for (const [uid, acc] of Object.entries(restReg || {})) {
+              if (!reg[uid]) reg[uid] = acc;
+            }
           }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
 
     return reg || {};
   }
@@ -2601,15 +2661,15 @@ class GameState {
       'https://ntfy.sh/okh_gh_cloud_v4_registry'
     ];
     await Promise.allSettled(endpoints.map(url =>
-      fetch(url, {
+      fetchWithTimeout(url, {
         method: 'POST',
         body: str,
         keepalive: true
-      })
+      }, 2500)
     ));
 
     try {
-      await fetch(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}`, {
+      await fetchWithTimeout(`${this.CLOUD_API_BASE}/${this.CLOUD_REGISTRY_ID}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2617,7 +2677,7 @@ class GameState {
           data: { u: str }
         }),
         keepalive: true
-      });
+      }, 2500);
     } catch (e) {}
   }
 
@@ -2636,12 +2696,12 @@ class GameState {
       // 1. Upload full save JSON to Bytebin (with keepalive: true for pageleave safety)
       let bytebinKey = this.cloudSession.bytebinKey || null;
       try {
-        const bRes = await fetch(`${this.BYTEBIN_URL}/post`, {
+        const bRes = await fetchWithTimeout(`${this.BYTEBIN_URL}/post`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.data),
           keepalive: true
-        });
+        }, 3000);
         if (bRes.ok) {
           const bJson = await bRes.json();
           if (bJson && bJson.key) {
@@ -2654,12 +2714,12 @@ class GameState {
       // 2. Upload full save JSON to secondary mirror (Pastes.dev)
       let pastesKey = this.cloudSession.pastesKey || null;
       try {
-        const pRes = await fetch(`${this.PASTES_URL}/post`, {
+        const pRes = await fetchWithTimeout(`${this.PASTES_URL}/post`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.data),
           keepalive: true
-        });
+        }, 3000);
         if (pRes.ok) {
           const pJson = await pRes.json();
           if (pJson && pJson.key) {
@@ -2686,11 +2746,11 @@ class GameState {
         `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}`
       ];
       await Promise.allSettled(userTopics.map(u =>
-        fetch(u, {
+        fetchWithTimeout(u, {
           method: 'POST',
           body: userPayload,
           keepalive: true
-        })
+        }, 2500)
       ));
 
       // 4. Update master account registry ONLY when necessary (forceImmediate, or at least 5 minutes since last sync)
@@ -2706,11 +2766,11 @@ class GameState {
           'https://ntfy.sh/okh_gh_cloud_v4_registry'
         ];
         Promise.allSettled(regTopics.map(u =>
-          fetch(u, {
+          fetchWithTimeout(u, {
             method: 'POST',
             body: regStr,
             keepalive: true
-          })
+          }, 2500)
         )).catch(() => {});
       }
 
@@ -2741,19 +2801,17 @@ class GameState {
     let banUntil = null;
     let banReason = null;
 
-    // 1. Fetch from Ntfy user streams across mirrors with &since=0
+    // 1. Fetch from Ntfy user streams across active mirrors with &since=0
     const hexId = this.userIdToHex(userId);
     const userTopics = [
       `https://ntfy.adminforge.de/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
       `https://ntfy.tedomum.fr/okh_gh_cloud_u_${hexId}/json?poll=1&since=0`,
-      `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=0`,
-      `https://ntfy.sh/okh_gh_cloud_prod_v3_u_${hexId}/json?poll=1&since=0`,
-      `https://ntfy.sh/okh_gh_cloud_v2_u_${hexId}/json?poll=1&since=0`
+      `https://ntfy.sh/okh_gh_cloud_v4_u_${hexId}/json?poll=1&since=0`
     ];
 
     try {
       const results = await Promise.allSettled(userTopics.map(u =>
-        fetch(u, { signal: AbortSignal.timeout(4500) }).then(r => r.text())
+        fetchWithTimeout(u, {}, 2000).then(r => r.text())
       ));
 
       for (const res of results) {
@@ -2828,7 +2886,7 @@ class GameState {
     // 2. Fetch full pristine save from Bytebin if key available
     if (latestBk) {
       try {
-        const bRes = await fetch(`${this.BYTEBIN_URL}/${latestBk}`);
+        const bRes = await fetchWithTimeout(`${this.BYTEBIN_URL}/${latestBk}`, {}, 2500);
         if (bRes.ok) {
           const bJson = await bRes.json();
           if (bJson && bJson.player) {
@@ -2841,7 +2899,7 @@ class GameState {
     // 3. Fetch from Pastes.dev mirror if key available
     if (latestPk && !fromBytebin) {
       try {
-        const pRes = await fetch(`${this.PASTES_URL}/${latestPk}`);
+        const pRes = await fetchWithTimeout(`${this.PASTES_URL}/${latestPk}`, {}, 2500);
         if (pRes.ok) {
           const pJson = await pRes.json();
           if (pJson && pJson.player) {
@@ -3101,7 +3159,13 @@ class GameState {
 
     try {
       const reg = await this.fetchCloudRegistry();
-      const existingRecord = reg[userId] || null;
+      let existingRecord = reg[userId] || null;
+      if (!existingRecord) {
+        const matchingKey = Object.keys(reg).find(k => k.trim().toLowerCase() === userId.toLowerCase());
+        if (matchingKey) {
+          existingRecord = reg[matchingKey];
+        }
+      }
       const isRegDeleted = Boolean(existingRecord && existingRecord.deleted);
       const isRegBanned = Boolean(existingRecord && existingRecord.banned);
 
@@ -3215,7 +3279,8 @@ class GameState {
         this.loadFromObject(nextData, false);
         this.checkDailyReset();
         this.checkRetroactiveUnlocks();
-        await this.syncToCloud(true);
+        // Fire background cloud sync asynchronously without blocking login response
+        this.syncToCloud(true).catch(e => console.warn('[Cloud] Post-login background sync:', e));
 
         const serialized = JSON.stringify(this.data);
         localStorage.setItem(this.STORAGE_KEY, serialized);
