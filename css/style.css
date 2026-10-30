@@ -197,6 +197,33 @@ body {
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
 }
 
+/* Active Tab Re-Click Refresh Visual Feedback */
+.nav-btn.tab-btn-reloading,
+.mobile-nav-btn.tab-btn-reloading {
+  animation: tabBtnSpinPulse 0.35s ease-in-out infinite alternate !important;
+  color: var(--cyan-neon) !important;
+  text-shadow: 0 0 12px var(--cyan-neon) !important;
+  pointer-events: none;
+}
+
+@keyframes tabBtnSpinPulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(0.92); filter: brightness(1.7); box-shadow: 0 0 16px rgba(0, 229, 255, 0.85); }
+}
+
+.mobile-nav-btn.tab-btn-reloading .icon,
+.nav-btn.tab-btn-reloading .icon,
+.mobile-nav-btn.tab-btn-reloading span:first-child {
+  display: inline-block;
+  animation: tabIconSpin 0.5s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+}
+
+@keyframes tabIconSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.25); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
 /* Hidden Utility */
 .hidden {
   display: none !important;

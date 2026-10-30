@@ -19,10 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
   ui.init();
   quests.init();
 
-  // Support URL hash or query param navigation (e.g., index.html?tab=bossTab or #questTab)
+  // Support URL hash, query param, or sessionStorage navigation (e.g., index.html?tab=bossTab or #attendanceTab)
   const params = new URLSearchParams(window.location.search);
   const hash = window.location.hash.replace('#', '');
-  const initialTab = params.get('tab') || hash.split('_')[0];
+  const savedTab = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('current_active_tab') : null;
+  const initialTab = params.get('tab') || (hash ? hash.split('_')[0] : null) || savedTab;
   if (initialTab && document.getElementById(initialTab)) {
     ui.switchTab(initialTab);
     const bossId = params.get('boss');

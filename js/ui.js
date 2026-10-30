@@ -12,6 +12,7 @@ class UIManager {
     this.particleCanvas = null;
     this.particleCtx = null;
     this.particles = [];
+    this.isReloading = false;
   }
 
   init() {
@@ -368,13 +369,75 @@ class UIManager {
   setupTabNavigation() {
     const navButtons = document.querySelectorAll('.nav-btn, .mobile-nav-btn');
     navButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
         const targetTab = btn.dataset.tab;
-        if (targetTab) {
-          this.switchTab(targetTab);
+        if (!targetTab) return;
+
+        // If the user taps the tab they are already viewing -> trigger instant refresh
+        if (this.currentTab === targetTab) {
+          e.preventDefault();
+          this.reloadCurrentTab(targetTab, btn);
+          return;
         }
+
+        this.switchTab(targetTab);
       });
     });
+  }
+
+  reloadCurrentTab(tabId, btn) {
+    if (this.isReloading) return;
+    this.isReloading = true;
+
+    // 1. Audio and Haptics
+    try {
+      if (typeof sound !== 'undefined' && sound.playClick) {
+        sound.playClick();
+      }
+    } catch(e) {}
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate([25, 35, 45]); } catch(e) {}
+    }
+
+    // 2. Persist active tab so reload opens on this exact screen
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('current_active_tab', tabId);
+      }
+      history.replaceState(null, '', '#' + tabId);
+    } catch(e) {}
+
+    // 3. Save game data
+    try {
+      if (typeof state !== 'undefined' && state.save) {
+        state.save(true);
+      }
+    } catch(e) {}
+
+    // 4. Smooth scroll to top and visual feedback
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch(e) {}
+
+    if (btn) {
+      btn.classList.add('tab-btn-reloading');
+    }
+
+    const tabNames = {
+      'statusTab': '상태창',
+      'questTab': '일일 퀘스트',
+      'attendanceTab': '출석부',
+      'bossTab': '보스 레이드',
+      'inventoryTab': '인벤토리',
+      'settingsTab': '설정'
+    };
+    const tabName = tabNames[tabId] || '화면';
+    this.showToast(`⚡ ${tabName} 새로고침 중...`);
+
+    // 5. Reload page
+    setTimeout(() => {
+      window.location.reload();
+    }, 180);
   }
 
   switchTab(tabId) {
@@ -385,6 +448,12 @@ class UIManager {
 
     if (tabId !== 'battleArena') {
       document.body.classList.remove('in-battle');
+      try {
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('current_active_tab', tabId);
+        }
+        history.replaceState(null, '', '#' + tabId);
+      } catch(e) {}
     }
 
     const bossTabEl = document.getElementById('bossTab');
