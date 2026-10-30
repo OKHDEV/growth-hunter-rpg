@@ -479,7 +479,9 @@ class GameState {
         try {
           const parsed = JSON.parse(rawSave);
           this.loadFromObject(parsed, false);
+          this.checkDailyReset();
           this.checkRetroactiveUnlocks();
+          this.data.quests.dailyStreak = this.getDailyStreak();
           return;
         } catch(e) {
           console.error("Failed to parse spectator save data:", e);
@@ -884,8 +886,17 @@ class GameState {
   }
 
   checkDailyReset() {
-    if (this.isReadOnlyMode) return;
     const today = getLocalDateString();
+    if (!this.data.quests) {
+      this.data.quests = {
+        lastActiveDate: today,
+        completedToday: {},
+        progress: {},
+        history: {},
+        dailyStreak: 1
+      };
+      return;
+    }
     if (this.data.quests.lastActiveDate !== today) {
       const lastDate = new Date(this.data.quests.lastActiveDate + 'T00:00:00');
       const currentDate = new Date(today + 'T00:00:00');
@@ -924,7 +935,9 @@ class GameState {
       this.data.quests.completedToday = {};
       this.data.quests.progress = {};
       this.data.quests.dailyStreak = this.getDailyStreak();
-      this.save();
+      if (!this.isReadOnlyMode && !this._accountDeleted) {
+        this.save();
+      }
     }
   }
 
@@ -1798,7 +1811,9 @@ class GameState {
         lv: (this.data.player && this.data.player.level) || 1,
         gold: (this.data.player && this.data.player.gold) || 0,
         bossCleared: (this.data.raid && Array.isArray(this.data.raid.clearedStages)) ? [...this.data.raid.clearedStages] : [],
-        questsDone: Object.keys((this.data.quests && this.data.quests.completedToday) || {}).length,
+        questsDone: (this.data.quests && this.data.quests.lastActiveDate === getLocalDateString())
+          ? Object.keys(this.data.quests.completedToday || {}).length
+          : 0,
         date: getLocalDateString()
       };
       const lastEntry = this.data.activityLog[this.data.activityLog.length - 1];
@@ -2113,6 +2128,23 @@ class GameState {
     Object.entries((localData.quests && localData.quests.history) || {}).forEach(([dateKey, cnt]) => {
       merged.quests.history[dateKey] = Math.max(merged.quests.history[dateKey] || 0, cnt || 0);
     });
+
+    // If local or cloud had quests on a previous day that weren't yet moved to history, archive them
+    if (localData.quests && localData.quests.lastActiveDate && localData.quests.lastActiveDate !== today) {
+      const lPrevDate = localData.quests.lastActiveDate;
+      const lCount = Object.keys(localData.quests.completedToday || {}).length;
+      if (lCount > 0) {
+        merged.quests.history[lPrevDate] = Math.max(merged.quests.history[lPrevDate] || 0, lCount);
+      }
+    }
+    if (cloudData.quests && cloudData.quests.lastActiveDate && cloudData.quests.lastActiveDate !== today) {
+      const cPrevDate = cloudData.quests.lastActiveDate;
+      const cCount = Object.keys(cloudData.quests.completedToday || {}).length;
+      if (cCount > 0) {
+        merged.quests.history[cPrevDate] = Math.max(merged.quests.history[cPrevDate] || 0, cCount);
+      }
+    }
+
     merged.quests.history[today] = Object.keys(merged.quests.completedToday).length;
 
     // Union of completionCounts

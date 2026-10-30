@@ -1592,6 +1592,11 @@
       const jsUserId = escapeJs(userId);
       const goldFmt = typeof p.gold === 'number' ? p.gold.toLocaleString() : (p.gold || 0);
       const heightVal = p.baseHeight || 173;
+      const todayStr = (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      })();
+      const todayQuestsCount = getQuestsCount(q, todayStr, saveJson);
 
       detailContainer.innerHTML = `
         <!-- Spectator Quick View Bar -->
@@ -1728,6 +1733,10 @@
               <div class="stat-val" style="color:#ef4444;">${getBossStageText(r) || '-'}</div>
             </div>
             <div class="stat-box">
+              <div class="stat-label">오늘 완료 퀘스트</div>
+              <div class="stat-val" style="color:#10b981;">${todayQuestsCount}개</div>
+            </div>
+            <div class="stat-box">
               <div class="stat-label">연속 출석일</div>
               <div class="stat-val" style="color:#34d399;">${q.dailyStreak || 1}일</div>
             </div>
@@ -1834,6 +1843,11 @@
           msg = `👑 100단계 절대 거신 오메가 크로노스가 즉시 해금되었습니다!`;
           break;
         case 'completeTodayQuests':
+          const tTodayKey = (() => {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          })();
+          save.quests.lastActiveDate = tTodayKey;
           save.quests.completedToday = {
             height_rope_1000: true,
             height_stretch_spine: true,
@@ -1841,6 +1855,8 @@
             height_sleep_deep: true,
             height_protein_boost: true
           };
+          if (!save.quests.history) save.quests.history = {};
+          save.quests.history[tTodayKey] = 5;
           msg = `오늘의 모든 일일 수련 퀘스트가 완료 처리되었습니다!`;
           break;
         case 'setStreak':
@@ -2454,6 +2470,7 @@
                     ...cached,
                     quests: {
                       ...cached.quests,
+                      lastActiveDate: dateStr,
                       completedToday: count,
                       history: { [dateStr]: count }
                     }
@@ -2461,6 +2478,36 @@
                   ts: dateTs
                 }
               });
+            }
+          }
+        }
+
+        // 2-1. If lastActiveDate had completed quests not yet recorded in history
+        if (cached.quests && cached.quests.lastActiveDate) {
+          const activeDateStr = cached.quests.lastActiveDate;
+          if (!cached.quests.history || cached.quests.history[activeDateStr] === undefined) {
+            const activeCount = Object.keys(cached.quests.completedToday || {}).length;
+            if (activeCount > 0) {
+              const [y, m, d] = activeDateStr.split('-').map(Number);
+              if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+                const dateTs = new Date(y, m - 1, d, 12, 0, 0).getTime();
+                rawEvents.push({
+                  ts: dateTs,
+                  data: {
+                    act: 'quest_complete',
+                    d: {
+                      ...cached,
+                      quests: {
+                        ...cached.quests,
+                        lastActiveDate: activeDateStr,
+                        completedToday: activeCount,
+                        history: { ...(cached.quests.history || {}), [activeDateStr]: activeCount }
+                      }
+                    },
+                    ts: dateTs
+                  }
+                });
+              }
             }
           }
         }
@@ -2577,8 +2624,8 @@
           const prevCleared = (prevR && Array.isArray(prevR.clearedStages)) ? prevR.clearedStages : [];
           const newlyCleared = currCleared.filter(s => !prevCleared.includes(s));
 
-          const currQuests = getQuestsCount(currQ, dKey);
-          const prevQuests = getQuestsCount(prevQ, dKey);
+          const currQuests = getQuestsCount(currQ, dKey, ev.data?.d);
+          const prevQuests = getQuestsCount(prevQ, dKey, lastKept.data?.d);
           const questDiff = currQuests - prevQuests;
 
           const timeDiff = ev.ts - lastKept.ts;
@@ -2700,7 +2747,7 @@
       renderActivityTimeline(dateKey);
     }
 
-    function getQuestsCount(qObj, dKey) {
+    function getQuestsCount(qObj, dKey, saveObj = null) {
       if (!qObj) return 0;
       // 1. History record for specific date (number or array or object)
       if (qObj.history && dKey && qObj.history[dKey] !== undefined) {
@@ -2709,21 +2756,37 @@
         if (Array.isArray(val)) return val.length;
         if (typeof val === 'object' && val !== null) return Object.keys(val).filter(k => val[k]).length;
       }
-      // 2. completedToday
+
+      // 2. Determine what date completedToday belongs to
+      const lastActive = qObj.lastActiveDate ||
+        (saveObj && saveObj.quests && saveObj.quests.lastActiveDate) ||
+        (saveObj && saveObj.lastSaved ? String(saveObj.lastSaved).slice(0, 10) : null) ||
+        null;
+
+      // If lastActive date is known and does NOT match dKey, completedToday CANNOT belong to dKey!
+      if (dKey && lastActive && dKey !== lastActive) {
+        return 0;
+      }
+
+      // If lastActive is unknown, only count if dKey is today's local date
+      if (dKey && !lastActive) {
+        const todayStr = (() => {
+          const now = new Date();
+          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        })();
+        if (dKey !== todayStr) return 0;
+      }
+
+      // 3. completedToday for matching date
       if (qObj.completedToday) {
         if (typeof qObj.completedToday === 'number') return qObj.completedToday;
         if (Array.isArray(qObj.completedToday)) {
-          if (qObj.completedToday.length > 0) return qObj.completedToday.length;
+          return qObj.completedToday.length;
         } else if (typeof qObj.completedToday === 'object' && qObj.completedToday !== null) {
-          const validKeys = Object.keys(qObj.completedToday).filter(k => qObj.completedToday[k]);
-          if (validKeys.length > 0) return validKeys.length;
+          return Object.keys(qObj.completedToday).filter(k => qObj.completedToday[k]).length;
         }
       }
-      // 3. Fallback: cumulative completionCounts
-      if (qObj.completionCounts && typeof qObj.completionCounts === 'object') {
-        const sum = Object.values(qObj.completionCounts).reduce((a, b) => a + (Number(b) || 0), 0);
-        if (sum > 0) return sum;
-      }
+
       return 0;
     }
 
@@ -2818,8 +2881,8 @@
           const prevCleared = (prevRaid && Array.isArray(prevRaid.clearedStages)) ? prevRaid.clearedStages : [];
           const newlyCleared = (prevCleared.length > 0 || prevEv) ? currCleared.filter(s => !prevCleared.includes(s)) : [];
 
-          const currQuests = getQuestsCount(quests, dateKey);
-          const prevQuestsCount = prevQuests ? getQuestsCount(prevQuests, dateKey) : 0;
+          const currQuests = getQuestsCount(quests, dateKey, ev.data?.d || (actCurrentUserId && cachedUserSaves[actCurrentUserId]));
+          const prevQuestsCount = prevQuests ? getQuestsCount(prevQuests, dateKey, prevEv.data?.d) : 0;
           const questDiff = (prevEv && prevQuests) ? Math.max(0, currQuests - prevQuestsCount) : 0;
 
           // Action badge
