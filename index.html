@@ -976,9 +976,9 @@
           <span>키 성장치:</span>
           <span id="victoryGrowth" style="color:var(--green-growth);">+0 pt</span>
         </div>
-        <div class="reward-stat-line">
-          <span>해금 칭호:</span>
-          <span id="victoryDropTitle" style="color:var(--gold-mythic); font-weight:800;">[칭호]</span>
+        <div class="reward-stat-line" style="flex-direction:column; align-items:stretch; gap:4px; text-align:left;">
+          <span style="font-size:13px; color:#94a3b8;">해금 칭호:</span>
+          <div id="victoryDropTitle" style="color:var(--gold-mythic); font-weight:800;">[칭호]</div>
         </div>
         <div id="victoryDropItem"></div>
       </div>
@@ -1002,6 +1002,30 @@
       <div style="display:flex; gap:10px; width:100%;">
         <button class="btn btn-primary" style="flex:1; padding:12px;" onclick="ui.closeDefeatModal()">
           현실 수련하러 가기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. New Reward Acquisition Modal (보상 획득 및 지금 바로 장착하기 피드백 팝업) -->
+  <div id="rewardAcquisitionModal" class="result-modal-overlay hidden" style="z-index: 10000;">
+    <div class="result-card" style="border-color: var(--gold-mythic); box-shadow: 0 0 45px var(--gold-glow); max-width: 440px; width: 92%; padding: 24px 20px;">
+      <div style="font-size: 44px; margin-bottom: 6px;">🎁</div>
+      <div id="rewardAcqSourceTag" style="display:inline-block; font-size:12px; font-weight:800; padding:4px 12px; border-radius:20px; background:rgba(0, 229, 255, 0.15); border:1px solid rgba(0, 229, 255, 0.4); color:var(--cyan-neon); margin-bottom:8px;">
+        📜 퀘스트 완수 보상
+      </div>
+      <h2 id="rewardAcqTitle" class="result-title" style="color:var(--gold-mythic); font-size:22px; margin-bottom:12px;">새로운 보상 획득!</h2>
+      
+      <div id="rewardAcqContentBox" style="background:rgba(15, 23, 42, 0.85); border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:16px; margin-bottom:16px; text-align:left;">
+        <!-- Filled dynamically -->
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button type="button" id="btnRewardAcqEquip" class="btn" style="width:100%; padding:14px; font-size:15px; font-weight:800; background:linear-gradient(135deg, #06b6d4, #3b82f6); border:1px solid #67e8f9; color:#fff; box-shadow:0 0 20px rgba(6,182,212,0.4); cursor:pointer; border-radius:10px; transition:transform 0.15s ease;">
+          ⚡ 지금 바로 장착하기
+        </button>
+        <button type="button" id="btnRewardAcqClose" class="btn btn-outline-cyan" style="width:100%; padding:11px; font-size:14px; border-radius:10px;" onclick="ui.closeRewardAcquisitionModal()">
+          🎒 가방에 보관 (나중에 장착)
         </button>
       </div>
     </div>

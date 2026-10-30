@@ -834,6 +834,13 @@ class QuestManager {
     if (result.newlyUnlockedTitles && result.newlyUnlockedTitles.length > 0) {
       result.newlyUnlockedTitles.forEach(tName => {
         ui.showToast(`🎉 각성 칭호 획득! [${tName}]`, "gold");
+        if (typeof ui !== 'undefined' && typeof ui.queueRewardModal === 'function') {
+          ui.queueRewardModal({
+            type: 'title',
+            titleName: tName,
+            source: '📜 일일 퀘스트 완수 보상'
+          });
+        }
       });
       if (typeof ui !== 'undefined' && ui.renderInventory) {
         ui.renderInventory();

@@ -1233,12 +1233,19 @@ class GameState {
     this.data.player.growthPoints += points;
     // Check height milestones to unlock titles
     const currentHeight = this.getCurrentHeight();
-    if (currentHeight >= 174.0) this.unlockTitle("성장판 해방자 (174cm)");
-    if (currentHeight >= 176.0) this.unlockTitle("불굴의 수험생 (176cm)");
-    if (currentHeight >= 177.0) this.unlockTitle("골격 파괴의 거인 (177cm)");
-    if (currentHeight >= 178.0) this.unlockTitle("한계 초월의 절대 각성자");
+    const newlyUnlockedTitles = [];
+    const checkAndUnlock = (title) => {
+      if (this.unlockTitle(title)) {
+        newlyUnlockedTitles.push(title);
+      }
+    };
+    if (currentHeight >= 174.0) checkAndUnlock("성장판 해방자 (174cm)");
+    if (currentHeight >= 176.0) checkAndUnlock("불굴의 수험생 (176cm)");
+    if (currentHeight >= 177.0) checkAndUnlock("골격 파괴의 거인 (177cm)");
+    if (currentHeight >= 178.0) checkAndUnlock("한계 초월의 절대 각성자");
 
     this.save();
+    return { newlyUnlockedTitles, currentHeight };
   }
 
   addGold(amount) {
@@ -1427,7 +1434,12 @@ class GameState {
     const expResult = this.addExp(quest.exp);
     const goldResult = this.addGold(quest.gold);
     if (quest.growthPoints) {
-      this.addGrowthPoints(quest.growthPoints);
+      const gRes = this.addGrowthPoints(quest.growthPoints);
+      if (gRes && gRes.newlyUnlockedTitles && gRes.newlyUnlockedTitles.length > 0) {
+        gRes.newlyUnlockedTitles.forEach(t => {
+          if (!newlyUnlockedTitles.includes(t)) newlyUnlockedTitles.push(t);
+        });
+      }
     }
 
     this.save(true);
