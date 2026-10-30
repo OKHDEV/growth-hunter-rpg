@@ -217,22 +217,44 @@ class GameState {
       }
     ];
 
-    // Check if spectator / view-only mode is active
+    // Spectator / View-Only Mode Detection
+    // Strict Guard: Spectator mode MUST ONLY be active when the URL explicitly contains '?spectate'
+    // AND sessionStorage has spectator_active === 'true' AND valid admin credentials exist.
+    this.isReadOnlyMode = false;
+    this.spectatorUserId = null;
     try {
-      const isSpectator = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('spectator_active') === 'true') ||
-                          (typeof localStorage !== 'undefined' && localStorage.getItem('spectator_temp_save') !== null);
-      const isAdmin = (typeof localStorage !== 'undefined' && (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true'));
-      if (isSpectator && isAdmin) {
+      const searchParams = (typeof window !== 'undefined' && window.location) ? new URLSearchParams(window.location.search) : null;
+      const hasSpectateParam = Boolean(searchParams && (searchParams.has('spectate') || searchParams.get('mode') === 'spectate'));
+      const hasSpectateSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('spectator_active') === 'true';
+      const isAdmin = typeof localStorage !== 'undefined' && (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true');
+
+      if (hasSpectateParam && hasSpectateSession && isAdmin) {
         this.isReadOnlyMode = true;
-        let sUser = null;
-        if (typeof sessionStorage !== 'undefined') sUser = sessionStorage.getItem('spectator_user_id');
+        let sUser = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('spectator_user_id') : null;
         if (!sUser && typeof localStorage !== 'undefined') {
-          const t = JSON.parse(localStorage.getItem('spectator_temp_save') || '{}');
-          sUser = t && t.userId;
+          try {
+            const t = JSON.parse(localStorage.getItem('spectator_temp_save') || '{}');
+            sUser = t && t.userId;
+          } catch(e) {}
         }
         this.spectatorUserId = sUser || '유저';
+      } else {
+        // Normal game session: actively clear any residual spectator flags so saving is NEVER blocked
+        this.isReadOnlyMode = false;
+        this.spectatorUserId = null;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('spectator_active');
+          sessionStorage.removeItem('spectator_user_id');
+          sessionStorage.removeItem('spectator_save_data');
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('spectator_temp_save');
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      this.isReadOnlyMode = false;
+      this.spectatorUserId = null;
+    }
 
     this.cloudSession = this.loadCloudSession();
     this._cloudSyncTimer = null;
@@ -251,9 +273,18 @@ class GameState {
     let lastConnectLogTime = 0;
     const triggerAutoCloudPull = (reason = 'focus') => {
       if (this.isReadOnlyMode || this._accountDeleted) return;
+      // If there are unsaved local changes pending cloud sync, flush them immediately instead of pulling stale cloud data!
+      if (this._cloudSyncTimer !== null || this._isSyncingCloud) {
+        if (this._cloudSyncTimer !== null) {
+          clearTimeout(this._cloudSyncTimer);
+          this._cloudSyncTimer = null;
+        }
+        this.syncToCloud(true);
+        return;
+      }
       const now = Date.now();
-      // Throttle pulls to avoid flooding requests within 2.5 seconds
-      if (now - lastAutoPullTime < 2500) return;
+      // Throttle pulls to avoid flooding requests within 3 seconds
+      if (now - lastAutoPullTime < 3000) return;
       lastAutoPullTime = now;
       if (this.cloudSession && this.cloudSession.userId) {
         this.pullFromCloud(true, false, true);
@@ -1236,7 +1267,7 @@ class GameState {
     }
     this.data.player.gold -= cost;
     this.data.player.stats[statKey] += 1;
-    this.save();
+    this.save(true);
     this.logUserActivity('gold_change');
     return { success: true, newStat: this.data.player.stats[statKey], cost, statKey };
   }
@@ -1249,13 +1280,13 @@ class GameState {
   equipItem(item) {
     if (!item || !item.slot) return;
     this.data.player.equipment[item.slot] = item;
-    this.save();
+    this.save(true);
   }
 
   unequipItem(slot) {
     if (this.data.player.equipment[slot]) {
       this.data.player.equipment[slot] = null;
-      this.save();
+      this.save(true);
     }
   }
 
@@ -1263,7 +1294,7 @@ class GameState {
     const exists = this.data.player.inventory.some(i => i.id === item.id);
     if (!exists) {
       this.data.player.inventory.push(item);
-      this.save();
+      this.save(true);
     }
   }
 
@@ -1271,7 +1302,7 @@ class GameState {
     if (!titleName) return false;
     if (!this.data.player.unlockedTitles.includes(titleName)) {
       this.data.player.unlockedTitles.push(titleName);
-      this.save();
+      this.save(true);
       return true;
     }
     return false;
@@ -1310,7 +1341,7 @@ class GameState {
   setActiveTitle(titleName) {
     if (this.data.player.unlockedTitles.includes(titleName)) {
       this.data.player.activeTitle = titleName;
-      this.save();
+      this.save(true);
     }
   }
 
@@ -1382,7 +1413,7 @@ class GameState {
       this.addGrowthPoints(quest.growthPoints);
     }
 
-    this.save();
+    this.save(true);
     this.logUserActivity('quest_complete');
     return {
       quest,
@@ -1430,7 +1461,7 @@ class GameState {
     this.addToInventory(boss.rewards.item);
     this.unlockTitle(boss.rewards.title);
 
-    this.save();
+    this.save(true);
     this.logUserActivity('boss_defeat');
     return {
       boss,
@@ -1814,7 +1845,7 @@ class GameState {
     } else {
       this._cloudSyncTimer = setTimeout(() => {
         this.syncToCloud(false);
-      }, 1000);
+      }, 500);
     }
   }
 
@@ -1879,38 +1910,33 @@ class GameState {
       return JSON.parse(JSON.stringify(localData));
     }
 
-    const lpGold = (localData.player && localData.player.gold) || 0;
-    const cpGold = (cloudData.player && cloudData.player.gold) || 0;
+    const lp = localData.player || {};
+    const cp = cloudData.player || {};
 
-    let primary = cloudData;
-    let secondary = localData;
+    // Timestamp authority:
+    // If local was saved at the same time or more recently than cloud (active play on this device), localData is authoritative!
+    const isLocalNewerOrEqual = localTime >= cloudTime;
+    let primary = isLocalNewerOrEqual ? localData : cloudData;
+    let secondary = isLocalNewerOrEqual ? cloudData : localData;
 
-    if (localScore > cloudScore) {
-      primary = localData;
-      secondary = cloudData;
-    } else if (cloudScore > localScore) {
+    if (!isLocalNewerOrEqual && cloudTime > localTime && cloudScore > localScore) {
       primary = cloudData;
       secondary = localData;
-    } else {
-      // Tied scores: pick whichever has higher gold, or newer timestamp if gold equal
-      if (lpGold > cpGold) {
-        primary = localData;
-        secondary = cloudData;
-      } else if (cpGold > lpGold) {
-        primary = cloudData;
-        secondary = localData;
-      } else if (localTime > cloudTime) {
-        primary = localData;
-        secondary = cloudData;
-      } else {
-        primary = cloudData;
-        secondary = localData;
-      }
+    } else if (localScore > cloudScore) {
+      primary = localData;
+      secondary = cloudData;
     }
 
     const merged = JSON.parse(JSON.stringify(primary));
-    const lp = localData.player;
-    const cp = cloudData.player;
+
+    // Player Gold preservation:
+    // When playing on this device (isLocalNewerOrEqual), local gold MUST be preserved!
+    // Never Math.max because spending gold on stats/shop would be reverted!
+    if (isLocalNewerOrEqual) {
+      merged.player.gold = lp.gold !== undefined ? lp.gold : 500;
+    } else {
+      merged.player.gold = cp.gold !== undefined ? cp.gold : (lp.gold !== undefined ? lp.gold : 500);
+    }
 
     // Preserve highest level & exp
     if ((lp.level || 1) > (cp.level || 1)) {
@@ -1920,23 +1946,28 @@ class GameState {
       merged.player.level = cp.level;
       merged.player.exp = cp.exp;
     } else {
-      merged.player.exp = Math.max(lp.exp || 0, cp.exp || 0);
+      merged.player.level = isLocalNewerOrEqual ? (lp.level || 1) : (cp.level || 1);
+      merged.player.exp = isLocalNewerOrEqual ? (lp.exp || 0) : Math.max(lp.exp || 0, cp.exp || 0);
     }
 
     // Preserve highest growth points & stats
-    merged.player.growthPoints = Math.max(lp.growthPoints || 0, cp.growthPoints || 0);
-    ['str', 'int', 'end', 'gro'].forEach(k => {
-      merged.player.stats[k] = Math.max(
-        (lp.stats && lp.stats[k]) || 14,
-        (cp.stats && cp.stats[k]) || 14
-      );
-    });
-
-    // Always preserve the maximum gold earned across all devices
-    merged.player.gold = Math.max(
-      lp.gold !== undefined ? lp.gold : 500,
-      cp.gold !== undefined ? cp.gold : 500
-    );
+    if (isLocalNewerOrEqual) {
+      merged.player.growthPoints = lp.growthPoints !== undefined ? lp.growthPoints : (cp.growthPoints || 0);
+      merged.player.stats = {
+        str: Math.max((lp.stats && lp.stats.str) || 14, (cp.stats && cp.stats.str) || 14),
+        int: Math.max((lp.stats && lp.stats.int) || 12, (cp.stats && cp.stats.int) || 12),
+        end: Math.max((lp.stats && lp.stats.end) || 14, (cp.stats && cp.stats.end) || 14),
+        gro: Math.max((lp.stats && lp.stats.gro) || 15, (cp.stats && cp.stats.gro) || 15)
+      };
+    } else {
+      merged.player.growthPoints = Math.max(lp.growthPoints || 0, cp.growthPoints || 0);
+      ['str', 'int', 'end', 'gro'].forEach(k => {
+        merged.player.stats[k] = Math.max(
+          (lp.stats && lp.stats[k]) || 14,
+          (cp.stats && cp.stats[k]) || 14
+        );
+      });
+    }
 
     // Union of unlockedTitles
     const titleSet = new Set([
@@ -1946,12 +1977,20 @@ class GameState {
     merged.player.unlockedTitles = Array.from(titleSet);
 
     // Active title
-    if (!merged.player.activeTitle || !merged.player.unlockedTitles.includes(merged.player.activeTitle)) {
-      merged.player.activeTitle = cp.activeTitle || lp.activeTitle || "초보 수련자 (173cm)";
+    if (isLocalNewerOrEqual && lp.activeTitle && merged.player.unlockedTitles.includes(lp.activeTitle)) {
+      merged.player.activeTitle = lp.activeTitle;
+    } else if (cp.activeTitle && merged.player.unlockedTitles.includes(cp.activeTitle)) {
+      merged.player.activeTitle = cp.activeTitle;
+    } else {
+      merged.player.activeTitle = "초보 수련자 (173cm)";
     }
 
     // Player Hero Card
-    merged.player.cardId = (lp && lp.cardId) || (cp && cp.cardId) || 'card_default';
+    if (isLocalNewerOrEqual) {
+      merged.player.cardId = (lp && lp.cardId) || (cp && cp.cardId) || 'card_default';
+    } else {
+      merged.player.cardId = (cp && cp.cardId) || (lp && lp.cardId) || 'card_default';
+    }
     merged.player.avatar = this.getPlayerCard(merged.player.cardId).image;
 
     // Union of inventory items (by id, keeping higher enhance level)
@@ -1970,22 +2009,10 @@ class GameState {
     ['weapon', 'armor', 'shoes', 'ring', 'aura'].forEach(slot => {
       const le = lp.equipment && lp.equipment[slot];
       const ce = cp.equipment && cp.equipment[slot];
-      if (!le && !ce) {
-        merged.player.equipment[slot] = null;
-      } else if (!le) {
-        merged.player.equipment[slot] = ce;
-      } else if (!ce) {
-        merged.player.equipment[slot] = le;
+      if (isLocalNewerOrEqual) {
+        merged.player.equipment[slot] = le !== undefined ? le : ce;
       } else {
-        const lEnh = le.enhanceLevel || 0;
-        const cEnh = ce.enhanceLevel || 0;
-        if (cEnh > lEnh) {
-          merged.player.equipment[slot] = ce;
-        } else if (lEnh > cEnh) {
-          merged.player.equipment[slot] = le;
-        } else {
-          merged.player.equipment[slot] = primary.player.equipment[slot] || ce;
-        }
+        merged.player.equipment[slot] = ce !== undefined ? ce : le;
       }
     });
 
@@ -2571,6 +2598,14 @@ class GameState {
     if (this.isReadOnlyMode || this._accountDeleted) return { success: false, readOnly: true };
     if (!this.cloudSession || !this.cloudSession.userId) {
       return { success: false, message: '로그인된 클라우드 계정이 없습니다.' };
+    }
+    // If local unsaved changes are pending, flush them first rather than pulling stale cloud data
+    if (this._cloudSyncTimer !== null || this._isSyncingCloud) {
+      if (this._cloudSyncTimer !== null) {
+        clearTimeout(this._cloudSyncTimer);
+        this._cloudSyncTimer = null;
+      }
+      return await this.syncToCloud(true);
     }
 
     try {

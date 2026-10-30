@@ -26,11 +26,13 @@ class UIManager {
     this.setupEventListeners();
     this.setupCombatControls();
 
+    const banner = document.getElementById('spectatorBanner');
     if (state.isReadOnlyMode) {
-      const banner = document.getElementById('spectatorBanner');
       const badge = document.getElementById('spectatorUserBadge');
       if (banner) banner.style.display = 'flex';
       if (badge && state.spectatorUserId) badge.textContent = state.spectatorUserId;
+    } else if (banner) {
+      banner.style.display = 'none';
     }
   }
 
@@ -2382,6 +2384,10 @@ window.exitSpectatorMode = function() {
   }
   if (typeof localStorage !== 'undefined') {
     localStorage.removeItem('spectator_temp_save');
+  }
+  if (typeof state !== 'undefined') {
+    state.isReadOnlyMode = false;
+    state.spectatorUserId = null;
   }
   try {
     localStorage.setItem('isAdminLoggedIn', 'true');
