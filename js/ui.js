@@ -8,6 +8,7 @@ class UIManager {
     this.calendarViewMode = 'month';
     this.isUnownedTitlesExpanded = false;
     this.authGateMode = 'login';
+    this.isProtectionPickMode = false;
     this.particleCanvas = null;
     this.particleCtx = null;
     this.particles = [];
@@ -161,7 +162,11 @@ class UIManager {
 
     if (tabId === 'statusTab') this.updateHeaderAndStats();
     if (tabId === 'questTab') quests.renderCurrentView();
-    if (tabId === 'attendanceTab') this.renderAttendanceCalendar();
+    if (tabId === 'attendanceTab') {
+      this.renderAttendanceCalendar();
+    } else {
+      this.isProtectionPickMode = false;
+    }
     if (tabId === 'bossTab') this.renderBossStageCards();
     if (tabId === 'inventoryTab') this.renderInventory();
   }
@@ -538,18 +543,13 @@ class UIManager {
       ui.showToast(`🗓️ ${label} : 예정된 미래의 각성 수련일입니다.`);
     } else {
       if (count > 0) {
-        const isProtected = Array.isArray(questsData.streakProtectionUsedDates) && questsData.streakProtectionUsedDates.includes(dateStr);
-        if (isProtected) {
-          ui.showToast(`🛡️ ${label} : 출석 보호권이 적용되어 퀘스트 완료 처리된 날짜입니다.`, "success");
-        } else {
-          ui.showToast(`✔️ ${label} : 일일 퀘스트 ${count}개 완수 성공!`, "success");
-        }
+        ui.showToast(`✔️ ${label} : 일일 퀘스트 ${count}개 완수 성공!`, "success");
       } else {
         const remain = state.getStreakProtectionTickets ? state.getStreakProtectionTickets() : 0;
         if (remain > 0) {
-          const askUse = confirm(`❌ ${label} : 일일 퀘스트 미수행 날짜입니다.\n\n🛡️ [출석 보호권]을 사용하여 이 날짜의 퀘스트 완료(1개)를 인정하고 연속 출석을 복구하시겠습니까?\n(남은 보호권: ${remain}회 · 평생 재충전 불가)`);
+          const askUse = confirm(`❌ ${label} : 일일 퀘스트 미수행 날짜입니다.\n\n🛡️ [출석 보호권]을 사용하여 이 날짜를 퀘스트 1개 완료 처리하고 연속 출석을 복구하시겠습니까?\n(남은 보호권: ${remain}회 · 평생 재충전 불가)`);
           if (askUse) {
-            this.confirmUseStreakProtection(dateStr, false);
+            this.selectProtectionDate(dateStr, false);
             return;
           }
         }
@@ -638,28 +638,40 @@ class UIManager {
       } else {
         // Past day between startDate and yesterday
         if (count > 0) {
-          const isProtected = Array.isArray(questsData.streakProtectionUsedDates) && questsData.streakProtectionUsedDates.includes(dateStr);
-          cellClass += ' cell-success' + (isProtected ? ' cell-protected' : '');
+          cellClass += ' cell-success';
           cellBody = `
             <div class="cal-cell-top"><span class="cal-cell-num">${day}</span></div>
             <div class="cal-cell-body">
-              <span class="cal-mark-icon success">${isProtected ? '🛡️' : '✔️'}</span>
-              <span class="cal-count-badge success" style="${isProtected ? 'border-color:#f59e0b; color:#fde68a; background:rgba(245,158,11,0.18);' : ''}">${count}개 완료${isProtected ? ' (보호)' : ''}</span>
+              <span class="cal-mark-icon success">✔️</span>
+              <span class="cal-count-badge success">${count}개 완료</span>
             </div>
           `;
         } else {
           cellClass += ' cell-missed';
+          const isPickable = this.isProtectionPickMode;
+          if (isPickable) {
+            cellClass += ' cell-pickable-missed';
+          }
           cellBody = `
-            <div class="cal-cell-top"><span class="cal-cell-num">${day}</span></div>
+            <div class="cal-cell-top">
+              <span class="cal-cell-num">${day}</span>
+              ${isPickable ? '<span class="cal-today-pill" style="background:#f59e0b; color:#000; font-weight:900; animation:none; font-size:10px;">선택</span>' : ''}
+            </div>
             <div class="cal-cell-body">
               <span class="cal-mark-icon missed">❌</span>
-              <span class="cal-count-badge missed">미수행</span>
+              <span class="cal-count-badge missed">${isPickable ? '보호권 선택' : '미수행'}</span>
             </div>
           `;
         }
       }
 
-      html += `<div class="${cellClass}" id="calDayCell_${dateStr}" onclick="ui.showDayDetails('${dateStr}')">${cellBody}</div>`;
+      const clickHandler = this.isProtectionPickMode
+        ? (count === 0 && dateStr < todayStr && dateStr >= questsData.startDate
+            ? `ui.selectProtectionDate('${dateStr}')`
+            : `ui.showToast('⚠️ [❌ 미수행] 날짜만 선택할 수 있습니다!', 'warning')`)
+        : `ui.showDayDetails('${dateStr}')`;
+
+      html += `<div class="${cellClass}" id="calDayCell_${dateStr}" onclick="${clickHandler}">${cellBody}</div>`;
     }
 
     // Padding slots for remaining days of the week
@@ -680,6 +692,12 @@ class UIManager {
   renderAttendanceCalendar() {
     const stage = document.getElementById('calendarRenderStage');
     if (!stage) return;
+
+    if (this.isProtectionPickMode) {
+      stage.classList.add('protection-pick-active');
+    } else {
+      stage.classList.remove('protection-pick-active');
+    }
 
     const questsData = state.data.quests;
     const todayStr = getLocalDateString();
@@ -815,44 +833,57 @@ class UIManager {
     this.renderStreakProtectionUI();
   }
 
-  // --- Attendance Streak Protection Feature (달력 아래 보호권 쓰기) ---
+  // --- Attendance Streak Protection Feature (달력 아래 보호권 쓰기 & 달력 직접 선택) ---
 
   renderStreakProtectionUI() {
-    const btn = document.getElementById('btnUseStreakProtection');
-    const badge = document.getElementById('streakProtectionBadge');
-    if (!btn) return;
+    const container = document.getElementById('calProtectionSection');
+    if (!container) return;
 
     const tickets = state.getStreakProtectionTickets ? state.getStreakProtectionTickets() : 3;
 
-    if (badge) {
-      badge.textContent = `남은 횟수: ${tickets}회`;
-      badge.style.borderColor = tickets > 0 ? '#f59e0b' : '#64748b';
-      badge.style.color = tickets > 0 ? '#fde68a' : '#94a3b8';
-      badge.style.background = tickets > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)';
+    if (this.isProtectionPickMode) {
+      container.innerHTML = `
+        <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.28)); border: 2px solid #f59e0b; border-radius: 14px; padding: 16px 18px; box-shadow: 0 0 25px rgba(245, 158, 11, 0.55); text-align: center;">
+          <div style="font-size: 15px; font-weight: 900; color: #fbbf24; margin-bottom: 6px; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <span>🛡️</span> 달력에서 구제할 [❌ 미수행] 날짜를 직접 터치하세요!
+          </div>
+          <div style="font-size: 12px; color: #fde68a; margin-bottom: 12px; line-height: 1.5;">
+            달력에서 빛나며 깜빡이는 미수행 날짜를 누르면 즉시 1개 완료 처리됩니다. (남은 횟수: ${tickets}회)
+          </div>
+          <button type="button" class="btn btn-sm" onclick="ui.cancelProtectionPickMode()" style="background:#1e293b; border:1px solid #94a3b8; color:#e2e8f0; font-weight:800; padding:8px 24px; border-radius:8px; cursor:pointer;">
+            ✕ 선택 취소
+          </button>
+        </div>
+      `;
+      return;
     }
 
-    if (tickets > 0) {
-      btn.disabled = false;
-      btn.innerHTML = `🛡️ 보호권 쓰기 (${tickets}회 남음 · 재충전 불가)`;
-      btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-      btn.style.borderColor = '#fef08a';
-      btn.style.color = '#000';
-      btn.style.boxShadow = '0 0 16px rgba(245, 158, 11, 0.4)';
-      btn.style.cursor = 'pointer';
-      btn.style.opacity = '1';
-    } else {
-      btn.disabled = true;
-      btn.innerHTML = `🛡️ 보호권 소진 (0회 남음 · 재충전 불가)`;
-      btn.style.background = '#1e293b';
-      btn.style.borderColor = '#475569';
-      btn.style.color = '#94a3b8';
-      btn.style.boxShadow = 'none';
-      btn.style.cursor = 'not-allowed';
-      btn.style.opacity = '0.65';
-    }
+    container.innerHTML = `
+      <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 14px; padding: 16px 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.35);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div style="text-align:left;">
+            <div style="font-size:14px; font-weight:900; color:#fbbf24; display:flex; align-items:center; gap:6px;">
+              <span>🛡️</span> 일일 출석 스트릭 보호권
+            </div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:2px;">
+              놓쳐버린 과거 수련일을 1일 구제하여 끊어진 연속 출석(스트릭)을 다시 부활시킵니다.
+            </div>
+          </div>
+          <div id="streakProtectionBadge" style="font-size:12px; font-weight:800; padding:4px 12px; border-radius:20px; background:${tickets > 0 ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)'}; border:1px solid ${tickets > 0 ? '#f59e0b' : '#64748b'}; color:${tickets > 0 ? '#fde68a' : '#94a3b8'};">
+            남은 횟수: ${tickets}회
+          </div>
+        </div>
+        <button type="button" id="btnUseStreakProtection" class="btn" onclick="ui.enterProtectionPickMode()" style="width:100%; padding:14px; font-weight:900; font-size:15px; border-radius:10px; background:${tickets > 0 ? 'linear-gradient(135deg, #f59e0b, #d97706)' : '#1e293b'}; border:1px solid ${tickets > 0 ? '#fef08a' : '#475569'}; color:${tickets > 0 ? '#000' : '#94a3b8'}; box-shadow:${tickets > 0 ? '0 0 16px rgba(245,158,11,0.4)' : 'none'}; cursor:${tickets > 0 ? 'pointer' : 'not-allowed'}; transition:transform 0.15s ease;" ${tickets <= 0 ? 'disabled' : ''}>
+          ${tickets > 0 ? `🛡️ 보호권 쓰기 (${tickets}회 남음 · 재충전 불가)` : '🛡️ 보호권 소진 (0회 남음 · 재충전 불가)'}
+        </button>
+        <div style="font-size:11px; color:#64748b; margin-top:8px; text-align:center;">
+          ⚠️ 계정 평생 총 3회만 사용 가능하며 어떤 경우에도 절대 재충전되지 않습니다.
+        </div>
+      </div>
+    `;
   }
 
-  openStreakProtectionModal() {
+  enterProtectionPickMode() {
     sound.playClick();
     const tickets = state.getStreakProtectionTickets();
     if (tickets <= 0) {
@@ -861,58 +892,43 @@ class UIManager {
     }
 
     const missed = state.getMissedAttendanceDates();
-    const modal = document.getElementById('streakProtectionModal');
-    const countEl = document.getElementById('streakProtectionModalCount');
-    const missedCountEl = document.getElementById('streakProtectionMissedCount');
-    const listEl = document.getElementById('streakProtectionDateList');
-
-    if (countEl) countEl.textContent = `${tickets}회 남음`;
-    if (missedCountEl) missedCountEl.textContent = `미수행: ${missed.length}일`;
-
-    if (listEl) {
-      if (missed.length === 0) {
-        listEl.innerHTML = `
-          <div style="text-align:center; padding:28px 16px; color:#94a3b8; background:rgba(15,23,42,0.6); border-radius:8px; border:1px dashed #334155;">
-            <div style="font-size:32px; margin-bottom:8px;">✨</div>
-            <div style="font-size:14px; font-weight:800; color:#38bdf8;">모든 수련일 출석 완벽 달성!</div>
-            <div style="font-size:12px; margin-top:4px; color:#64748b;">현재 보호권을 사용할 미수행 날짜가 없습니다.</div>
-          </div>
-        `;
-      } else {
-        listEl.innerHTML = missed.map(dateStr => {
-          const [y, m, d] = dateStr.split('-');
-          const dow = ['일', '월', '화', '수', '목', '금', '토'][new Date(Number(y), Number(m)-1, Number(d)).getDay()];
-          return `
-            <div style="background:rgba(15,23,42,0.85); border:1px solid rgba(239,68,68,0.35); border-radius:8px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-              <div>
-                <div style="font-weight:800; font-size:13px; color:#f87171; display:flex; align-items:center; gap:5px;">
-                  <span>❌</span> ${y}년 ${m}월 ${d}일 (${dow})
-                </div>
-                <div style="font-size:11px; color:#94a3b8; margin-top:2px;">퀘스트 미수행 (0개) · 휴식</div>
-              </div>
-              <button type="button" class="btn btn-sm" onclick="ui.confirmUseStreakProtection('${dateStr}')" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#000; font-weight:900; border:1px solid #fef08a; padding:7px 12px; font-size:12px; border-radius:6px; cursor:pointer; box-shadow:0 0 10px rgba(245,158,11,0.3); white-space:nowrap;">
-                🛡️ 이 날짜에 적용
-              </button>
-            </div>
-          `;
-        }).join('');
-      }
+    if (missed.length === 0) {
+      this.showToast('✨ 현재 달력에 미수행된 날짜가 없습니다! 모든 수련일 출석이 완료되었습니다.', 'info');
+      return;
     }
 
-    if (modal) modal.classList.remove('hidden');
+    // Auto-navigate to the month of the most recent missed date if needed
+    const [latestY, latestM] = missed[0].split('-').map(Number);
+    if (this.currentCalYear !== latestY || this.currentCalMonth !== (latestM - 1)) {
+      this.currentCalYear = latestY;
+      this.currentCalMonth = latestM - 1;
+    }
+
+    this.isProtectionPickMode = true;
+    this.renderAttendanceCalendar();
+
+    // Scroll smoothly to calendar
+    const calEl = document.getElementById('calendarRenderStage');
+    if (calEl) {
+      calEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    this.showToast('🛡️ 달력에서 구제할 [❌ 미수행] 날짜를 직접 터치하세요!', 'warning');
   }
 
-  closeStreakProtectionModal() {
+  cancelProtectionPickMode() {
     sound.playClick();
-    const modal = document.getElementById('streakProtectionModal');
-    if (modal) modal.classList.add('hidden');
+    this.isProtectionPickMode = false;
+    this.renderAttendanceCalendar();
+    this.showToast('보호권 사용이 취소되었습니다.');
   }
 
-  confirmUseStreakProtection(dateStr, askConfirm = true) {
+  selectProtectionDate(dateStr, askConfirm = true) {
     sound.playClick();
     const remain = state.getStreakProtectionTickets();
     if (remain <= 0) {
-      this.showToast('⚠️ 보호권을 이미 모두 소진하였습니다. (재충전 불가)', 'error');
+      this.cancelProtectionPickMode();
+      this.showToast('⚠️ 출석 보호권을 이미 모두 소진하였습니다. (재충전 불가)', 'error');
       return;
     }
 
@@ -920,20 +936,21 @@ class UIManager {
     const dow = ['일', '월', '화', '수', '목', '금', '토'][new Date(Number(y), Number(m)-1, Number(d)).getDay()];
 
     if (askConfirm) {
-      const confirmMsg = `🛡️ [${y}년 ${m}월 ${d}일 (${dow})]에 출석 보호권을 사용하시겠습니까?\n\n• 해당 날짜에 퀘스트 1개 완료 인정\n• 끊어진 연속 출석(스트릭) 즉시 복구\n• 남은 보호권: ${remain}회 ➔ ${remain - 1}회 (평생 재충전 불가)\n\n정말 적용하시겠습니까?`;
+      const confirmMsg = `🛡️ [${y}년 ${m}월 ${d}일 (${dow})]에 출석 보호권을 사용하시겠습니까?\n\n• 해당 날짜 퀘스트 1개 완료 처리\n• 끊어진 연속 출석(스트릭) 즉시 복구\n• 남은 보호권: ${remain}회 ➔ ${remain - 1}회 (평생 재충전 불가)\n\n정말 적용하시겠습니까?`;
       if (!confirm(confirmMsg)) return;
     }
 
     const res = state.useStreakProtection(dateStr);
+    this.isProtectionPickMode = false;
+
     if (res && res.success) {
       sound.playVictory();
-      this.closeStreakProtectionModal();
       this.renderAttendanceCalendar();
-      this.renderStreakProtectionUI();
       this.renderAll();
-      this.showToast(`🎉 [${y}년 ${m}월 ${d}일] 출석 보호권 적용 완료! 연속 출석(${res.newStreak}일)이 복구되었습니다!`, 'success');
+      this.showToast(`🎉 [${y}년 ${m}월 ${d}일] 퀘스트 1개 완료 처리되었습니다! 연속 출석(${res.newStreak}일)이 복구되었습니다!`, 'success');
     } else {
       sound.playDefeat();
+      this.renderAttendanceCalendar();
       this.showToast((res && res.message) || '보호권 사용에 실패했습니다.', 'error');
     }
   }
