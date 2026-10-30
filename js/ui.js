@@ -13,6 +13,8 @@ class UIManager {
     this.particleCtx = null;
     this.particles = [];
     this.isReloading = false;
+    this.rewardModalQueue = [];
+    this.isRewardModalActive = false;
   }
 
   init() {
@@ -492,7 +494,20 @@ class UIManager {
       sound.startBGM('ambient');
     }
 
-    if (tabId === 'statusTab') this.updateHeaderAndStats();
+    if (tabId === 'statusTab') {
+      this.updateHeaderAndStats();
+      // If arriving at the main screen (statusTab) and rewards are queued, trigger them sequentially one by one!
+      if (this.rewardModalQueue && this.rewardModalQueue.length > 0 && !this.isRewardModalActive) {
+        const lvlModal = document.getElementById('levelUpModal');
+        const vicModal = document.getElementById('victoryModal');
+        const isOtherModalOpen = (lvlModal && !lvlModal.classList.contains('hidden')) || (vicModal && !vicModal.classList.contains('hidden'));
+        if (!isOtherModalOpen) {
+          setTimeout(() => {
+            this.showNextRewardModal();
+          }, 350);
+        }
+      }
+    }
     if (tabId === 'questTab') quests.renderCurrentView();
     if (tabId === 'attendanceTab') {
       this.renderAttendanceCalendar();
@@ -1928,14 +1943,12 @@ class UIManager {
   closeLevelUpModal() {
     const modal = document.getElementById('levelUpModal');
     if (modal) modal.classList.add('hidden');
+    this.isRewardModalActive = false;
     this.updateHeaderAndStats();
     if (this.rewardModalQueue && this.rewardModalQueue.length > 0) {
       setTimeout(() => {
         this.showNextRewardModal();
       }, 300);
-    } else if (this.isRewardModalActive) {
-      const rModal = document.getElementById('rewardAcquisitionModal');
-      if (rModal) rModal.classList.remove('hidden');
     }
   }
 
@@ -1982,48 +1995,58 @@ class UIManager {
       }
     }
 
-    if (dropItemEl && boss.rewards && boss.rewards.item) {
-      const item = boss.rewards.item;
-      const isEquippedItem = state.data.player.equipment[item.slot]?.id === item.id;
-      dropItemEl.innerHTML = `
-        <div class="drop-card rarity-${item.rarity}" style="position:relative; margin-top:10px; text-align:left; border-radius:10px; padding:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-            <div>
-              <div class="drop-name" style="font-size:15px; font-weight:800;">${item.name}</div>
-              <div class="drop-stats" style="color:#cbd5e1; font-size:12px; margin-top:3px;">${item.statsText}</div>
+    const isFirstClear = result ? result.isFirstClear !== false : true;
+    const hasItem = boss.rewards && boss.rewards.item;
+    const hasTitle = boss.rewards && boss.rewards.title;
+    const isNewItem = result ? result.isNewItem : isFirstClear;
+    const isNewTitle = result ? result.isNewTitle : isFirstClear;
+
+    if (dropTitleEl) {
+      if (hasTitle) {
+        dropTitleEl.innerHTML = `<span style="color:var(--gold-mythic); font-weight:800;">👑 [${boss.rewards.title}] ${isNewTitle ? '<span style="font-size:11px; color:#34d399; font-weight:normal;">(신규 해금)</span>' : '<span style="font-size:11px; color:#94a3b8; font-weight:normal;">(보유 중)</span>'}</span>`;
+      } else {
+        dropTitleEl.innerHTML = `<span style="color:#94a3b8;">없음</span>`;
+      }
+    }
+
+    if (dropItemEl) {
+      if (hasItem) {
+        const item = boss.rewards.item;
+        dropItemEl.innerHTML = `
+          <div style="margin-top:8px; background:rgba(0,0,0,0.35); border:1px solid rgba(0,229,255,0.25); border-radius:8px; padding:10px 12px; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:13px; color:#38bdf8; font-weight:800;">⚔️ 전리품: <strong>${item.name}</strong> ${isNewItem ? '<span style="font-size:11px; color:#34d399; font-weight:normal;">(신규 획득)</span>' : '<span style="font-size:11px; color:#94a3b8; font-weight:normal;">(보유 중)</span>'}</span>
+              <span class="badge" style="font-size:10px; background:rgba(56,189,248,0.2); border:1px solid #38bdf8; color:#38bdf8; padding:2px 6px; border-radius:4px;">${this.getSlotName(item.slot)}</span>
             </div>
-            <span class="badge" style="background:rgba(56,189,248,0.18); border:1px solid #38bdf8; color:#38bdf8; font-size:11px; white-space:nowrap; padding:3px 8px; border-radius:6px;">
-              ${this.getSlotName(item.slot)} 슬롯
-            </span>
+            <div style="font-size:11px; color:#94a3b8; margin-top:5px; line-height:1.4;">
+              🎁 메인화면 복귀 시 <strong>[장착 및 보관]</strong> 팝업이 1개씩 순차적으로 진행됩니다.
+            </div>
           </div>
-          <div style="margin-top:10px;">
-            <button type="button" id="btnVictoryEquipItem" class="btn btn-sm" onclick="ui.quickEquipBossItem()" style="width:100%; padding:10px 14px; font-weight:800; font-size:13px; border-radius:8px; ${isEquippedItem ? 'background:#10b981; border:1px solid #34d399; color:#fff;' : 'background:linear-gradient(135deg, #06b6d4, #3b82f6); border:1px solid #67e8f9; color:#fff; box-shadow:0 0 14px rgba(6,182,212,0.4);'} cursor:pointer; transition:all 0.2s ease;">
-              ${isEquippedItem ? '✅ 장비 장착 완료 (현재 장착 중)' : '⚡ 이 장비 지금 바로 장착하기'}
-            </button>
-          </div>
-        </div>
-      `;
+        `;
+      } else {
+        dropItemEl.innerHTML = '';
+      }
     }
 
-    if (dropTitleEl && boss.rewards && boss.rewards.title) {
-      const titleName = boss.rewards.title;
-      const isEquippedTitle = state.data.player.activeTitle === titleName;
-      const titleInfo = (typeof getTitleInfo === 'function') ? getTitleInfo(titleName) : null;
-      dropTitleEl.innerHTML = `
-        <div style="margin-top:4px; background:rgba(15,23,42,0.75); border:1px solid rgba(245,158,11,0.35); border-radius:8px; padding:10px 12px; text-align:left;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <span style="color:var(--gold-mythic); font-weight:800; font-size:14px;">👑 [${titleName}]</span>
-            <span style="font-size:11px; color:#34d399; font-weight:700;">${titleInfo?.bonusText ? titleInfo.bonusText.split('|')[0] : '칭호 버프 해금'}</span>
-          </div>
-          <div style="margin-top:8px;">
-            <button type="button" id="btnVictoryEquipTitle" class="btn btn-sm" onclick="ui.quickEquipBossTitle()" style="width:100%; padding:9px 14px; font-weight:800; font-size:12px; border-radius:8px; ${isEquippedTitle ? 'background:#10b981; border:1px solid #34d399; color:#fff;' : 'background:rgba(245,158,11,0.22); border:1px solid #f59e0b; color:#fde68a; box-shadow:0 0 12px rgba(245,158,11,0.3);'} cursor:pointer; transition:all 0.2s ease;">
-              ${isEquippedTitle ? '✅ 칭호 착용 완료 (현재 착용 중)' : '👑 이 칭호 지금 바로 착용하기'}
-            </button>
-          </div>
-        </div>
-      `;
+    // Queue Loot Item (전리품)
+    if (hasItem && (isNewItem || isFirstClear)) {
+      this.queueRewardModal({
+        type: 'item',
+        item: boss.rewards.item,
+        source: `🏆 Stage ${boss.stage} [${boss.name}] 격파 전리품`
+      });
     }
 
+    // Queue Title (호칭)
+    if (hasTitle && (isNewTitle || isFirstClear)) {
+      this.queueRewardModal({
+        type: 'title',
+        titleName: boss.rewards.title,
+        source: `👑 Stage ${boss.stage} [${boss.name}] 토벌 칭호`
+      });
+    }
+
+    // Queue Hero Card
     if (result && result.newlyUnlockedCards && result.newlyUnlockedCards.length > 0) {
       result.newlyUnlockedCards.forEach(card => {
         this.queueRewardModal({
@@ -2031,6 +2054,14 @@ class UIManager {
           card: card,
           source: boss.stage === 100 ? '👑 Stage 100 오메가 크로노스 격파' : '🏆 레이드 보스 격파 보상'
         });
+      });
+    }
+
+    // Queue Level Up
+    if (result && result.expResult && result.expResult.leveledUp) {
+      this.queueRewardModal({
+        type: 'levelup',
+        expResult: result.expResult
       });
     }
 
@@ -2081,12 +2112,13 @@ class UIManager {
   closeVictoryModal() {
     const modal = document.getElementById('victoryModal');
     if (modal) modal.classList.add('hidden');
-    this.switchTab('bossTab');
+    // Return to main screen (상태창 / 메인화면)
+    this.switchTab('statusTab');
     this.updateHeaderAndStats();
     if (this.rewardModalQueue && this.rewardModalQueue.length > 0) {
       setTimeout(() => {
         this.showNextRewardModal();
-      }, 300);
+      }, 350);
     }
   }
 
@@ -2096,14 +2128,23 @@ class UIManager {
     if (!this.rewardModalQueue) this.rewardModalQueue = [];
     this.rewardModalQueue.push(rewardData);
 
-    // If levelUpModal or victoryModal is currently open, let them close first
+    // If currently in battle arena or modals are open, do not pop up yet; wait until arriving at main screen!
+    if (this.currentTab === 'battleArena' || (typeof battle !== 'undefined' && battle.inBattle)) {
+      return;
+    }
+
     const lvlModal = document.getElementById('levelUpModal');
     const vicModal = document.getElementById('victoryModal');
     if ((lvlModal && !lvlModal.classList.contains('hidden')) || (vicModal && !vicModal.classList.contains('hidden'))) {
       return;
     }
 
-    if (!this.isRewardModalActive) {
+    if (this.isRewardModalActive) {
+      return;
+    }
+
+    // Auto-pop immediately if already on the main screen (statusTab)
+    if (this.currentTab === 'statusTab') {
       this.showNextRewardModal();
     }
   }
@@ -2117,6 +2158,15 @@ class UIManager {
     }
 
     const reward = this.rewardModalQueue.shift();
+
+    // If it's a level-up reward, show the level up modal seamlessly via queue
+    if (reward.type === 'levelup') {
+      this.isRewardModalActive = true;
+      this.currentRewardModalData = reward;
+      this.showLevelUpModal(reward.expResult);
+      return;
+    }
+
     this.isRewardModalActive = true;
     this.currentRewardModalData = reward;
 

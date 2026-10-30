@@ -1512,11 +1512,14 @@ class GameState {
   }
 
   addToInventory(item) {
+    if (!item) return false;
     const exists = this.data.player.inventory.some(i => i.id === item.id);
     if (!exists) {
       this.data.player.inventory.push(item);
       this.save(true);
+      return true;
     }
+    return false;
   }
 
   unlockTitle(titleName) {
@@ -1755,8 +1758,8 @@ class GameState {
     if (awardedGrowth > 0) {
       this.addGrowthPoints(awardedGrowth);
     }
-    this.addToInventory(boss.rewards.item);
-    this.unlockTitle(boss.rewards.title);
+    const isNewItem = this.addToInventory(boss.rewards.item);
+    const isNewTitle = this.unlockTitle(boss.rewards.title);
 
     // Check newly unlocked cards (e.g. Stage 100 Boss sovereign card)
     const newlyUnlockedCards = this.checkCardUnlocks(false);
@@ -1766,6 +1769,8 @@ class GameState {
     return {
       boss,
       isFirstClear,
+      isNewItem,
+      isNewTitle,
       expResult,
       goldResult,
       awardedGrowth,
