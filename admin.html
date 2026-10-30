@@ -1098,14 +1098,32 @@
 
     async function loadAllAccounts() {
       const listEl = document.getElementById('accountsList');
-      listEl.innerHTML = '<div class="loading-spinner">📡 여러 분산 서버에서 전체 유저 계정 목록을 통합 검색 중...</div>';
+
+      // 1. Instant Cache Fallback for instant UI rendering
+      let localCached = null;
+      try {
+        const stored = localStorage.getItem('admin_cached_registry_v1');
+        if (stored) {
+          localCached = JSON.parse(stored);
+          if (localCached && typeof localCached === 'object' && Object.keys(localCached).length > 0) {
+            rawAccountsRegistry = { ...localCached };
+            filterAccountsList();
+            calculateKpiStats();
+          }
+        }
+      } catch (e) {}
+
+      // If nothing cached yet, show loading spinner
+      if (Object.keys(rawAccountsRegistry).length === 0) {
+        listEl.innerHTML = '<div class="loading-spinner">📡 여러 분산 서버에서 전체 유저 계정 목록을 통합 검색 중...</div>';
+      }
 
       try {
         const results = await Promise.allSettled(REGISTRY_ENDPOINTS.map(url =>
-          fetch(url, { signal: AbortSignal.timeout(5000) }).then(r => r.text())
+          fetch(url, { signal: AbortSignal.timeout(6000) }).then(r => r.text())
         ));
 
-        let registry = {};
+        let registry = localCached ? { ...localCached } : {};
         let successCount = 0;
 
         for (const res of results) {
@@ -1143,82 +1161,107 @@
         }
 
         if (successCount === 0 && Object.keys(registry).length === 0) {
-          throw new Error('모든 클라우드 미러 서버와의 통신에 실패했습니다.');
+          throw new Error('클라우드 분산 서버에 일시적으로 접속할 수 없습니다. (인터넷 연결 또는 네트워크 상태 확인)');
         }
 
         rawAccountsRegistry = registry;
+        try {
+          localStorage.setItem('admin_cached_registry_v1', JSON.stringify(registry));
+        } catch (e) {}
+
         filterAccountsList();
 
         // Background preload saves for KPI calculation
         calculateKpiStats();
 
       } catch (err) {
-        listEl.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444;">계정 목록 로드 실패: ${err.message}</div>`;
+        console.error('loadAllAccounts error:', err);
+        if (Object.keys(rawAccountsRegistry).length === 0) {
+          listEl.innerHTML = `
+            <div style="text-align:center; padding:40px; color:#ef4444; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.25); border-radius:12px; margin:20px 0;">
+              <div style="font-size:1.2rem; font-weight:800; margin-bottom:8px;">⚠️ 유저 계정 목록 불러오기 실패</div>
+              <div style="font-size:0.92rem; color:#fca5a5; margin-bottom:16px;">${err.message || '네트워크 연결 오류'}</div>
+              <button class="btn-action btn-amber" onclick="loadAllAccounts()" style="padding:8px 20px; font-weight:700;">
+                🔄 다시 시도
+              </button>
+            </div>
+          `;
+        }
       }
     }
 
     async function calculateKpiStats() {
-      const userIds = Object.keys(rawAccountsRegistry);
-      const activeUserIds = userIds.filter(uid => !rawAccountsRegistry[uid]?.deleted);
-      document.getElementById('kpiTotalUsers').textContent = `${activeUserIds.length}명`;
+      try {
+        const userIds = Object.keys(rawAccountsRegistry);
+        const activeUserIds = userIds.filter(uid => !rawAccountsRegistry[uid]?.deleted);
+        const kpiUsersEl = document.getElementById('kpiTotalUsers');
+        if (kpiUsersEl) kpiUsersEl.textContent = `${activeUserIds.length}명`;
 
-      let totalGold = 0;
-      let maxLv = 1;
-      let lvSum = 0;
-      let lvCount = 0;
-      let maxStageCleared = 0;
+        let totalGold = 0;
+        let maxLv = 1;
+        let lvSum = 0;
+        let lvCount = 0;
+        let maxStageCleared = 0;
 
-      for (const uid of activeUserIds) {
-        const accInfo = rawAccountsRegistry[uid] || {};
-        if (accInfo.deleted) continue;
+        for (const uid of activeUserIds) {
+          const accInfo = rawAccountsRegistry[uid] || {};
+          if (accInfo.deleted) continue;
 
-        let save = cachedUserSaves[uid] || null;
-        if (!save && accInfo.bk) {
-          try {
-            const r = await fetch(`${BYTEBIN_URL}/${accInfo.bk}`);
-            if (r.ok) {
-              save = await r.json();
-              cachedUserSaves[uid] = save;
+          let save = cachedUserSaves[uid] || null;
+          if (!save && accInfo.bk) {
+            try {
+              const r = await fetch(`${BYTEBIN_URL}/${accInfo.bk}`, { signal: AbortSignal.timeout(4000) });
+              if (r.ok) {
+                save = await r.json();
+                cachedUserSaves[uid] = save;
+              }
+            } catch(e) {}
+          }
+          if (!save && accInfo.pk) {
+            try {
+              const r = await fetch(`${PASTES_URL}/${accInfo.pk}`, { signal: AbortSignal.timeout(4000) });
+              if (r.ok) {
+                save = await r.json();
+                cachedUserSaves[uid] = save;
+              }
+            } catch(e) {}
+          }
+
+          if (save) {
+            const hexId = userIdToHex(uid);
+            const activeValEl = document.getElementById(`lastActiveVal_${hexId}`);
+            if (activeValEl && save.lastSaved) {
+              const d = new Date(save.lastSaved);
+              const formatted = !isNaN(d.getTime()) ? formatKoreanDateTime(d) : save.lastSaved;
+              activeValEl.textContent = formatted;
             }
-          } catch(e) {}
-        }
-        if (!save && accInfo.pk) {
-          try {
-            const r = await fetch(`${PASTES_URL}/${accInfo.pk}`);
-            if (r.ok) {
-              save = await r.json();
-              cachedUserSaves[uid] = save;
-            }
-          } catch(e) {}
-        }
+          }
 
-        if (save) {
-          const hexId = userIdToHex(uid);
-          const activeValEl = document.getElementById(`lastActiveVal_${hexId}`);
-          if (activeValEl && save.lastSaved) {
-            const d = new Date(save.lastSaved);
-            const formatted = !isNaN(d.getTime()) ? formatKoreanDateTime(d) : save.lastSaved;
-            activeValEl.textContent = formatted;
+          if (save && save.player) {
+            const g = Number(save.player.gold) || 0;
+            const lv = Number(save.player.level) || 1;
+            const cleared = (save.raid && Array.isArray(save.raid.clearedStages)) ? save.raid.clearedStages : [];
+            const maxCleared = cleared.length > 0 ? Math.max(...cleared) : 0;
+            totalGold += g;
+            if (lv > maxLv) maxLv = lv;
+            if (maxCleared > maxStageCleared) maxStageCleared = maxCleared;
+            lvSum += lv;
+            lvCount++;
           }
         }
 
-        if (save && save.player) {
-          const g = Number(save.player.gold) || 0;
-          const lv = Number(save.player.level) || 1;
-          const cleared = (save.raid && Array.isArray(save.raid.clearedStages)) ? save.raid.clearedStages : [];
-          const maxCleared = cleared.length > 0 ? Math.max(...cleared) : 0;
-          totalGold += g;
-          if (lv > maxLv) maxLv = lv;
-          if (maxCleared > maxStageCleared) maxStageCleared = maxCleared;
-          lvSum += lv;
-          lvCount++;
-        }
-      }
+        const kpiGoldEl = document.getElementById('kpiTotalGold');
+        if (kpiGoldEl) kpiGoldEl.textContent = `${formatGold(totalGold)} G`;
 
-      document.getElementById('kpiTotalGold').textContent = `${formatGold(totalGold)} G`;
-      const avgLv = lvCount > 0 ? (lvSum / lvCount).toFixed(1) : 1;
-      document.getElementById('kpiLevelInfo').textContent = `Lv.${maxLv} (평균 Lv.${avgLv})`;
-      document.getElementById('kpiMaxStage').textContent = maxStageCleared > 0 ? `Stage ${maxStageCleared} 보스 처치함` : '-';
+        const avgLv = lvCount > 0 ? (lvSum / lvCount).toFixed(1) : 1;
+        const kpiLvEl = document.getElementById('kpiLevelInfo');
+        if (kpiLvEl) kpiLvEl.textContent = `Lv.${maxLv} (평균 Lv.${avgLv})`;
+
+        const kpiStageEl = document.getElementById('kpiMaxStage');
+        if (kpiStageEl) kpiStageEl.textContent = maxStageCleared > 0 ? `Stage ${maxStageCleared} 보스 처치함` : '-';
+      } catch (err) {
+        console.warn('calculateKpiStats non-fatal error:', err);
+      }
     }
 
     function filterAccountsList() {
@@ -1716,12 +1759,6 @@
               🔄 캐릭터 데이터 초기화 (Lv.1 리셋)
             </button>
             <button class="btn-action btn-rose" onclick="deleteUserAccount('${jsUserId}')">
-              🗑️ 계정 데이터 삭제 (재가입 허용)
-            </button>
-          </div>
-        </div>
-      `;
-            <button class="btn-action btn-rose" onclick="deleteUserAccount('${userId}')">
               🗑️ 계정 데이터 삭제 (재가입 허용)
             </button>
           </div>
