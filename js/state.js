@@ -335,12 +335,83 @@ class GameState {
       }
     };
 
+    // ⏱️ Auto-reload when returning after 3+ minutes away (specifically optimized for iPhone/iOS Safari lifecycle)
+    const AWAY_RELOAD_MS = 3 * 60 * 1000; // 3 minutes = 180,000ms
+    const LEAVE_SESSION_KEY = 'hunter_ios_leave_time';
+    const LEAVE_LOCAL_KEY = 'hunter_ios_last_background_time';
+    let lastActiveHeartbeat = Date.now();
+    let isReloadingAway = false;
+
+    // Purge any stale timestamps from previous sessions on initial boot
+    try {
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(LEAVE_SESSION_KEY);
+      if (typeof localStorage !== 'undefined') localStorage.removeItem(LEAVE_LOCAL_KEY);
+    } catch(e) {}
+
+    const recordLeaveTimestamp = () => {
+      const now = Date.now();
+      try { if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(LEAVE_SESSION_KEY, String(now)); } catch(e) {}
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem(LEAVE_LOCAL_KEY, String(now)); } catch(e) {}
+    };
+
+    const checkAwayAndReload = (source) => {
+      if (isReloadingAway) return true;
+      const now = Date.now();
+      let leaveTime = 0;
+      try {
+        const sTime = (typeof sessionStorage !== 'undefined') ? Number(sessionStorage.getItem(LEAVE_SESSION_KEY)) || 0 : 0;
+        const lTime = (typeof localStorage !== 'undefined') ? Number(localStorage.getItem(LEAVE_LOCAL_KEY)) || 0 : 0;
+        leaveTime = Math.max(sTime, lTime);
+      } catch(e) {}
+
+      // Calculate how long the device/tab was away
+      const awayTime = leaveTime > 0 ? (now - leaveTime) : (now - lastActiveHeartbeat);
+
+      if (awayTime >= AWAY_RELOAD_MS) {
+        isReloadingAway = true;
+        try {
+          if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(LEAVE_SESSION_KEY);
+          if (typeof localStorage !== 'undefined') localStorage.removeItem(LEAVE_LOCAL_KEY);
+        } catch(e) {}
+        console.log(`[iOS AutoReload] Away for ${Math.round(awayTime / 1000)}s (>= 180s, source: ${source}). Reloading page...`);
+        // Ensure state is saved prior to reloading
+        try {
+          if (!this.isReadOnlyMode && !this._accountDeleted) {
+            this.save(true);
+          }
+        } catch(e) {}
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.reload();
+        }
+        return true;
+      }
+
+      // Returned within 3 minutes -> safely clear leave timestamps and resume
+      try {
+        if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(LEAVE_SESSION_KEY);
+        if (typeof localStorage !== 'undefined') localStorage.removeItem(LEAVE_LOCAL_KEY);
+      } catch(e) {}
+      lastActiveHeartbeat = now;
+      return false;
+    };
+
+    // Keep active heartbeat running while screen is visible and active
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => {
+        if (typeof document !== 'undefined' && !document.hidden) {
+          lastActiveHeartbeat = Date.now();
+        }
+      }, 1000);
+    }
+
     // 1. Leaving page, switching tabs, or locking phone: save immediately to local storage and sync to cloud
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('beforeunload', () => {
+        recordLeaveTimestamp();
         if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
       });
       window.addEventListener('pagehide', () => {
+        recordLeaveTimestamp();
         if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
       });
     }
@@ -349,9 +420,11 @@ class GameState {
       document.addEventListener('visibilitychange', () => {
         if (this.isReadOnlyMode || this._accountDeleted) return;
         if (document.hidden) {
+          recordLeaveTimestamp();
           this.save(true);
         } else {
-          // Returning to tab / unlocked phone: pull latest cloud record automatically (detects admin deletion instantly)
+          // Returning to tab / unlocked phone:
+          if (checkAwayAndReload('visibilitychange')) return;
           triggerAutoCloudPull('visibilitychange');
         }
       });
@@ -359,16 +432,19 @@ class GameState {
 
     // 2. iOS Safari / Android Chrome BFCache restore & Window focus
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-      window.addEventListener('pageshow', () => {
+      window.addEventListener('pageshow', (event) => {
+        if (checkAwayAndReload('pageshow')) return;
         if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('pageshow');
       });
 
       window.addEventListener('focus', () => {
+        if (checkAwayAndReload('focus')) return;
         if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('focus');
       });
 
       // 3. Online event (reconnected to internet after device sleep or power on)
       window.addEventListener('online', () => {
+        if (checkAwayAndReload('online')) return;
         if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('online');
       });
     }
