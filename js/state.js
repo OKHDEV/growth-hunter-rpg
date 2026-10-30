@@ -234,25 +234,25 @@ class GameState {
       }
     ];
 
-    // 🔒 Hero Card Unlock Requirements
+    // 🔒 Hero Card Unlock Requirements (Balanced RPG progression)
     // card_default is unlocked by default.
-    // 13 cards are unlocked at cumulative quest completions (5, 10, 15, ..., 65).
+    // 13 cards are unlocked at cumulative quest completions (10, 25, 50, ..., 500).
     // card_sovereign is unlocked upon defeating the Stage 100 Boss (Omega Chronos).
     this.CARD_UNLOCK_REQUIREMENTS = {
       card_default: { type: 'default', req: 0, text: '기본 제공' },
-      card_shadow: { type: 'quests', req: 5, text: '일일 퀘스트 5개 완수' },
-      card_flame: { type: 'quests', req: 10, text: '일일 퀘스트 10개 완수' },
-      card_frost: { type: 'quests', req: 15, text: '일일 퀘스트 15개 완수' },
-      card_thunder: { type: 'quests', req: 20, text: '일일 퀘스트 20개 완수' },
-      card_radiant: { type: 'quests', req: 25, text: '일일 퀘스트 25개 완수' },
-      card_abyss: { type: 'quests', req: 30, text: '일일 퀘스트 30개 완수' },
-      card_dragon: { type: 'quests', req: 35, text: '일일 퀘스트 35개 완수' },
-      card_wind: { type: 'quests', req: 40, text: '일일 퀘스트 40개 완수' },
-      card_blood: { type: 'quests', req: 45, text: '일일 퀘스트 45개 완수' },
-      card_void: { type: 'quests', req: 50, text: '일일 퀘스트 50개 완수' },
-      card_cyber: { type: 'quests', req: 55, text: '일일 퀘스트 55개 완수' },
-      card_celestial: { type: 'quests', req: 60, text: '일일 퀘스트 60개 완수' },
-      card_phantom: { type: 'quests', req: 65, text: '일일 퀘스트 65개 완수' },
+      card_shadow: { type: 'quests', req: 10, text: '일일 퀘스트 10개 완수' },
+      card_flame: { type: 'quests', req: 25, text: '일일 퀘스트 25개 완수' },
+      card_frost: { type: 'quests', req: 50, text: '일일 퀘스트 50개 완수' },
+      card_thunder: { type: 'quests', req: 75, text: '일일 퀘스트 75개 완수' },
+      card_radiant: { type: 'quests', req: 100, text: '일일 퀘스트 100개 완수' },
+      card_abyss: { type: 'quests', req: 130, text: '일일 퀘스트 130개 완수' },
+      card_dragon: { type: 'quests', req: 160, text: '일일 퀘스트 160개 완수' },
+      card_wind: { type: 'quests', req: 200, text: '일일 퀘스트 200개 완수' },
+      card_blood: { type: 'quests', req: 250, text: '일일 퀘스트 250개 완수' },
+      card_void: { type: 'quests', req: 300, text: '일일 퀘스트 300개 완수' },
+      card_cyber: { type: 'quests', req: 360, text: '일일 퀘스트 360개 완수' },
+      card_celestial: { type: 'quests', req: 430, text: '일일 퀘스트 430개 완수' },
+      card_phantom: { type: 'quests', req: 500, text: '일일 퀘스트 500개 완수' },
       card_sovereign: { type: 'boss', req: 100, text: 'Stage 100 오메가 크로노스 격파' }
     };
 

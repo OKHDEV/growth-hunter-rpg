@@ -1273,6 +1273,11 @@ class UIManager {
       const isUnlocked = state.isCardUnlocked(c.id);
       const req = state.getCardRequirement(c.id);
       const reqText = req ? req.text : '';
+      let progressSubtitle = reqText;
+      if (!isUnlocked && req && req.type === 'quests') {
+        const cur = state.getTotalCompletedQuestsCount();
+        progressSubtitle = `${cur}/${req.req}개 (${Math.min(100, Math.round((cur / req.req) * 100))}%)`;
+      }
       const sName = typeof escapeHtml === 'function' ? escapeHtml(c.name) : c.name;
       const sTag = typeof escapeHtml === 'function' ? escapeHtml(c.tag) : c.tag;
       const sDesc = typeof escapeHtml === 'function' ? escapeHtml(c.desc) : c.desc;
@@ -1293,7 +1298,7 @@ class UIManager {
           <div class="card-picker-info">
             <div class="card-picker-name" style="${!isUnlocked ? 'color:#94a3b8;' : ''}">${sName}</div>
             <div class="card-picker-tag" style="color:${isUnlocked ? c.accentColor : '#ef4444'};">
-              ${isUnlocked ? sTag : `🔒 ${reqText}`}
+              ${isUnlocked ? sTag : `🔒 ${progressSubtitle}`}
             </div>
           </div>
         </div>
@@ -1307,7 +1312,14 @@ class UIManager {
       const card = state.getPlayerCard(cardId);
       if (sound.playDefeat) sound.playDefeat();
       else sound.playClick();
-      this.showToast(`🔒 [${card.name}] 카드는 잠겨 있습니다! (${req ? req.text : '해금 조건 미달성'})`, 'warning');
+      let progressInfo = req ? req.text : '해금 조건 미달성';
+      if (req && req.type === 'quests') {
+        const cur = state.getTotalCompletedQuestsCount();
+        progressInfo = `누적 퀘스트 ${cur} / ${req.req}개 완수 필요`;
+      } else if (req && req.type === 'boss') {
+        progressInfo = 'Stage 100 오메가 크로노스 토벌 필요';
+      }
+      this.showToast(`🔒 [${card.name}] 카드는 잠겨 있습니다! (${progressInfo})`, 'warning');
       return;
     }
     sound.playClick();
