@@ -789,7 +789,9 @@ class UIManager {
       }
     }
 
-    const rate = totalTrackedDays > 0 ? Math.round((doneDays / totalTrackedDays) * 100) : 0;
+    // Attendance success rate is based on evaluated days (done vs missed), excluding in-progress today if not completed yet
+    const evaluatedDays = doneDays + missedDays;
+    const rate = evaluatedDays > 0 ? Math.round((doneDays / evaluatedDays) * 100) : (doneDays > 0 ? 100 : 0);
 
     // Update UI Metric Elements
     const streak = state.getDailyStreak ? state.getDailyStreak() : questsData.dailyStreak;
