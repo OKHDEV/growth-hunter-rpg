@@ -2002,34 +2002,19 @@ class UIManager {
     const isNewTitle = result ? result.isNewTitle : isFirstClear;
 
     if (dropTitleEl) {
-      if (hasTitle) {
-        dropTitleEl.innerHTML = `<span style="color:var(--gold-mythic); font-weight:800;">👑 [${boss.rewards.title}] ${isNewTitle ? '<span style="font-size:11px; color:#34d399; font-weight:normal;">(신규 해금)</span>' : '<span style="font-size:11px; color:#94a3b8; font-weight:normal;">(보유 중)</span>'}</span>`;
-      } else {
-        dropTitleEl.innerHTML = `<span style="color:#94a3b8;">없음</span>`;
-      }
+      dropTitleEl.innerHTML = hasTitle
+        ? `<span style="color:var(--gold-mythic); font-weight:800;">👑 [${boss.rewards.title}]</span>`
+        : `<span style="color:#94a3b8;">없음</span>`;
     }
 
     if (dropItemEl) {
-      if (hasItem) {
-        const item = boss.rewards.item;
-        dropItemEl.innerHTML = `
-          <div style="margin-top:8px; background:rgba(0,0,0,0.35); border:1px solid rgba(0,229,255,0.25); border-radius:8px; padding:10px 12px; text-align:left;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:13px; color:#38bdf8; font-weight:800;">⚔️ 전리품: <strong>${item.name}</strong> ${isNewItem ? '<span style="font-size:11px; color:#34d399; font-weight:normal;">(신규 획득)</span>' : '<span style="font-size:11px; color:#94a3b8; font-weight:normal;">(보유 중)</span>'}</span>
-              <span class="badge" style="font-size:10px; background:rgba(56,189,248,0.2); border:1px solid #38bdf8; color:#38bdf8; padding:2px 6px; border-radius:4px;">${this.getSlotName(item.slot)}</span>
-            </div>
-            <div style="font-size:11px; color:#94a3b8; margin-top:5px; line-height:1.4;">
-              🎁 메인화면 복귀 시 <strong>[장착 및 보관]</strong> 팝업이 1개씩 순차적으로 진행됩니다.
-            </div>
-          </div>
-        `;
-      } else {
-        dropItemEl.innerHTML = '';
-      }
+      dropItemEl.innerHTML = hasItem
+        ? `<span style="color:var(--cyan-neon); font-weight:800;">⚔️ ${boss.rewards.item.name} (${this.getSlotName(boss.rewards.item.slot)})</span>`
+        : `<span style="color:#94a3b8;">없음</span>`;
     }
 
-    // Queue Loot Item (전리품)
-    if (hasItem && (isNewItem || isFirstClear)) {
+    // Queue Loot Item (전리품 안내 팝업)
+    if (hasItem) {
       this.queueRewardModal({
         type: 'item',
         item: boss.rewards.item,
@@ -2037,8 +2022,8 @@ class UIManager {
       });
     }
 
-    // Queue Title (호칭)
-    if (hasTitle && (isNewTitle || isFirstClear)) {
+    // Queue Title (호칭 안내 팝업)
+    if (hasTitle) {
       this.queueRewardModal({
         type: 'title',
         titleName: boss.rewards.title,
@@ -2046,7 +2031,7 @@ class UIManager {
       });
     }
 
-    // Queue Hero Card
+    // Queue Hero Card (카드 해금 팝업)
     if (result && result.newlyUnlockedCards && result.newlyUnlockedCards.length > 0) {
       result.newlyUnlockedCards.forEach(card => {
         this.queueRewardModal({
@@ -2057,7 +2042,7 @@ class UIManager {
       });
     }
 
-    // Queue Level Up
+    // Queue Level Up (레벨업 팝업)
     if (result && result.expResult && result.expResult.leveledUp) {
       this.queueRewardModal({
         type: 'levelup',
@@ -2112,13 +2097,13 @@ class UIManager {
   closeVictoryModal() {
     const modal = document.getElementById('victoryModal');
     if (modal) modal.classList.add('hidden');
-    // Return to main screen (상태창 / 메인화면)
-    this.switchTab('statusTab');
+    sound.playClick();
+    this.switchTab('bossTab');
     this.updateHeaderAndStats();
     if (this.rewardModalQueue && this.rewardModalQueue.length > 0) {
       setTimeout(() => {
         this.showNextRewardModal();
-      }, 350);
+      }, 200);
     }
   }
 
@@ -2128,14 +2113,14 @@ class UIManager {
     if (!this.rewardModalQueue) this.rewardModalQueue = [];
     this.rewardModalQueue.push(rewardData);
 
-    // If currently in battle arena or modals are open, do not pop up yet; wait until arriving at main screen!
-    if (this.currentTab === 'battleArena' || (typeof battle !== 'undefined' && battle.inBattle)) {
-      return;
-    }
-
+    // If currently in battle arena or modals are open, hold in queue until that modal closes!
     const lvlModal = document.getElementById('levelUpModal');
     const vicModal = document.getElementById('victoryModal');
     if ((lvlModal && !lvlModal.classList.contains('hidden')) || (vicModal && !vicModal.classList.contains('hidden'))) {
+      return;
+    }
+
+    if (this.currentTab === 'battleArena' || (typeof battle !== 'undefined' && battle.inBattle)) {
       return;
     }
 
@@ -2143,10 +2128,7 @@ class UIManager {
       return;
     }
 
-    // Auto-pop immediately if already on the main screen (statusTab)
-    if (this.currentTab === 'statusTab') {
-      this.showNextRewardModal();
-    }
+    this.showNextRewardModal();
   }
 
   showNextRewardModal() {
