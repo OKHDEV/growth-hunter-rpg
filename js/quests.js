@@ -18,6 +18,8 @@ class QuestManager {
     this._isExpUserEdited = false;
     this._isGoldUserEdited = false;
     this._isGrowthUserEdited = false;
+    this.manageMode = 'edit';
+    this.manageFilter = 'all';
   }
 
   init() {
@@ -232,25 +234,18 @@ class QuestManager {
     }
 
     const isCustom = quest.id && quest.id.startsWith('custom_');
-    const editBtnHtml = isCustom ? `
-      <button type="button" class="btn btn-xs btn-outline-cyan" style="font-size: 11px; padding: 2px 7px; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; background: rgba(56, 189, 248, 0.1); cursor:pointer;" onclick="quests.openEditCustomQuestModal('${quest.id}', event)" title="이 퀘스트 수정하기">
-        ✏️ 수정
-      </button>
-    ` : '';
-
     const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(quest.title) : quest.title;
     const safeDesc = typeof escapeHtml === 'function' ? escapeHtml(quest.description) : quest.description;
     const safeCat = typeof escapeHtml === 'function' ? escapeHtml(quest.categoryName || '도전과제') : (quest.categoryName || '도전과제');
 
     card.innerHTML = `
       <div class="quest-card-header">
-        <div class="quest-badge-wrap" style="display:flex; align-items:center; gap:6px;">
+        <div class="quest-badge-wrap">
           <span class="quest-tier-badge" style="background:${tierInfo.bg}; color:${tierInfo.color}; border: 1px solid ${tierInfo.border}">
             ${tierInfo.name}
           </span>
           <span class="quest-category-badge">${safeCat}</span>
-          ${isCustom ? `<span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.12); padding:1px 5px; border-radius:3px; border:1px solid rgba(56,189,248,0.3);">⭐ 나만의</span>` : ''}
-          ${editBtnHtml}
+          ${isCustom ? `<span class="quest-custom-badge">⭐ 나만의</span>` : ''}
         </div>
         <div class="quest-rewards-preview">
           <span class="reward-exp">+${quest.exp} EXP</span>
@@ -1177,6 +1172,7 @@ class QuestManager {
       event.stopPropagation();
     }
     sound.playClick();
+    this.closeDeleteQuestModal();
 
     const allQuests = this.getAllQuests();
     const quest = allQuests.find(q => q.id === questId);
@@ -1192,7 +1188,7 @@ class QuestManager {
     const submitBtn = document.getElementById('cqSubmitBtn');
     const editIdInput = document.getElementById('cqEditId');
 
-    if (titleEl) titleEl.textContent = '✏️ 나만의 현실 도전과제 수정';
+    if (titleEl) titleEl.textContent = '✏️ 도전과제 수정하기';
     if (submitBtn) submitBtn.textContent = '수정 완료';
     if (editIdInput) editIdInput.value = questId;
 
@@ -1260,74 +1256,212 @@ class QuestManager {
     ui.showToast(`✨ [${(updated && updated.title) || '퀘스트'}] 수정이 완료되었습니다!`, 'success');
   }
 
-  // --- Quest Deletion Modal ---
+  // --- Quest Management (Edit & Delete) Modal ---
 
-  openDeleteQuestModal() {
+  openManageModal(mode = 'edit') {
     sound.playClick();
+    this.manageMode = mode;
     this.selectedDeleteQuestId = null;
     const modal = document.getElementById('deleteQuestModal');
-    const select = document.getElementById('deleteQuestSelect');
-    const previewList = document.getElementById('deleteQuestListPreview');
-    const warningBox = document.getElementById('deleteQuestWarningBox');
-
     if (!modal) return;
+
+    this.switchManageTab(mode);
+    modal.classList.remove('hidden');
+  }
+
+  openDeleteQuestModal() {
+    this.openManageModal('delete');
+  }
+
+  openEditQuestListModal() {
+    this.openManageModal('edit');
+  }
+
+  switchManageTab(mode) {
+    this.manageMode = mode;
+    this.selectedDeleteQuestId = null;
+
+    const modalBox = document.getElementById('questManageModalBox');
+    const titleEl = document.getElementById('questManageModalTitle');
+    const tabEdit = document.getElementById('tabBtnManageEdit');
+    const tabDelete = document.getElementById('tabBtnManageDelete');
+    const instructionEl = document.getElementById('manageModeInstruction');
+    const warningBox = document.getElementById('deleteQuestWarningBox');
+    const btnExecuteDelete = document.getElementById('btnExecuteDeleteQuest');
+    const select = document.getElementById('deleteQuestSelect');
 
     if (warningBox) warningBox.classList.add('hidden');
 
-    const allQuests = this.getAllQuests();
+    if (mode === 'edit') {
+      if (modalBox) {
+        modalBox.style.borderColor = '#38bdf8';
+        modalBox.style.boxShadow = '0 0 35px rgba(56, 189, 248, 0.35)';
+      }
+      if (titleEl) {
+        titleEl.innerHTML = '⚙️ 퀘스트 수정 관리';
+        titleEl.style.color = '#38bdf8';
+      }
+      if (tabEdit) {
+        tabEdit.style.background = '#38bdf8';
+        tabEdit.style.color = '#0f172a';
+      }
+      if (tabDelete) {
+        tabDelete.style.background = 'transparent';
+        tabDelete.style.color = '#94a3b8';
+      }
+      if (instructionEl) {
+        instructionEl.textContent = '👉 수정할 퀘스트를 선택하세요 (난이도, 보상, 타이머/카운터 등 수정):';
+      }
+      if (select) {
+        select.style.borderColor = '#38bdf8';
+      }
+      if (btnExecuteDelete) btnExecuteDelete.classList.add('hidden');
+    } else {
+      if (modalBox) {
+        modalBox.style.borderColor = '#ef4444';
+        modalBox.style.boxShadow = '0 0 35px rgba(239, 68, 68, 0.45)';
+      }
+      if (titleEl) {
+        titleEl.innerHTML = '🗑️ 퀘스트 삭제 관리';
+        titleEl.style.color = '#ef4444';
+      }
+      if (tabEdit) {
+        tabEdit.style.background = 'transparent';
+        tabEdit.style.color = '#94a3b8';
+      }
+      if (tabDelete) {
+        tabDelete.style.background = '#ef4444';
+        tabDelete.style.color = '#fff';
+      }
+      if (instructionEl) {
+        instructionEl.textContent = '👉 지울 퀘스트를 선택해주세요:';
+      }
+      if (select) {
+        select.style.borderColor = '#ef4444';
+      }
+      if (btnExecuteDelete) btnExecuteDelete.classList.remove('hidden');
+    }
 
-    // Populate Select Box
+    this.renderManageModalContent();
+  }
+
+  setManageFilter(filter) {
+    sound.playClick();
+    this.manageFilter = filter;
+    ['filterManageAll', 'filterManageCustom', 'filterManageDefault'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.background = 'rgba(255,255,255,0.05)';
+        el.style.borderColor = '#334155';
+        el.style.color = '#94a3b8';
+      }
+    });
+
+    const activeId = filter === 'custom' ? 'filterManageCustom' : (filter === 'default' ? 'filterManageDefault' : 'filterManageAll');
+    const activeEl = document.getElementById(activeId);
+    if (activeEl) {
+      activeEl.style.background = this.manageMode === 'delete' ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.2)';
+      activeEl.style.borderColor = this.manageMode === 'delete' ? '#ef4444' : '#38bdf8';
+      activeEl.style.color = this.manageMode === 'delete' ? '#f87171' : '#38bdf8';
+    }
+
+    this.renderManageModalContent();
+  }
+
+  renderManageModalContent() {
+    const select = document.getElementById('deleteQuestSelect');
+    const previewList = document.getElementById('deleteQuestListPreview');
+    if (!previewList) return;
+
+    let quests = this.getAllQuests();
+    if (this.manageFilter === 'custom') {
+      quests = quests.filter(q => q.id.startsWith('custom_'));
+    } else if (this.manageFilter === 'default') {
+      quests = quests.filter(q => !q.id.startsWith('custom_'));
+    }
+
+    // Populate Select
     if (select) {
-      select.innerHTML = '<option value="">-- 삭제할 퀘스트를 선택하세요 --</option>';
-      allQuests.forEach(q => {
+      select.innerHTML = `<option value="">-- ${this.manageMode === 'edit' ? '수정할' : '삭제할'} 퀘스트를 선택하세요 (${quests.length}개) --</option>`;
+      quests.forEach(q => {
         const isCustom = q.id.startsWith('custom_');
         const opt = document.createElement('option');
         opt.value = q.id;
-        opt.textContent = `${isCustom ? '⭐ [나만의 퀘스트] ' : '[기본] '}${q.title} (${q.categoryName || q.category})`;
+        opt.textContent = `${isCustom ? '⭐ [나만의] ' : '[기본] '} ${q.title} (${q.categoryName || q.category})`;
         select.appendChild(opt);
       });
-    }
-
-    // Populate Quick Interactive Preview List
-    if (previewList) {
-      if (allQuests.length === 0) {
-        previewList.innerHTML = '<div style="color:#94a3b8; font-size:13px; text-align:center; padding:16px;">현재 등록된 퀘스트가 없습니다.</div>';
-      } else {
-        previewList.innerHTML = '';
-        allQuests.forEach(q => {
-          const isCustom = q.id.startsWith('custom_');
-          const item = document.createElement('div');
-          item.className = 'delete-quest-item';
-          item.id = `delItem_${q.id}`;
-          item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#0f172a; border:1px solid #334155; border-radius:6px; padding:10px 12px; cursor:pointer; transition:all 0.15s ease;';
-          item.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:3px; overflow:hidden;">
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:11px; font-weight:bold; color:${isCustom ? '#06b6d4' : '#94a3b8'};">
-                  ${isCustom ? '⭐ 나만의 퀘스트' : '기본'}
-                </span>
-                <span style="font-weight:700; color:#fff; font-size:13px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
-                  ${typeof escapeHtml === 'function' ? escapeHtml(q.title) : q.title}
-                </span>
-              </div>
-              <div style="font-size:11px; color:#94a3b8;">
-                보상: EXP +${q.exp} | 골드 +${q.gold} | 키 성장 +${q.growthPoints || 0}
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-              ${isCustom ? `<button type="button" class="btn btn-sm btn-outline-cyan" style="font-size:11px; padding:5px 8px;" onclick="event.stopPropagation(); quests.closeDeleteQuestModal(); quests.openEditCustomQuestModal('${q.id}', event);">✏️ 수정</button>` : ''}
-              <button type="button" class="btn btn-sm btn-outline-danger" style="border-color:#ef4444; color:#ef4444; font-size:11px; padding:5px 10px;">
-                선택
-              </button>
-            </div>
-          `;
-          item.onclick = () => this.onSelectQuestToDelete(q.id);
-          previewList.appendChild(item);
-        });
+      if (this.selectedDeleteQuestId) {
+        select.value = this.selectedDeleteQuestId;
       }
     }
 
-    modal.classList.remove('hidden');
+    // Populate List
+    if (quests.length === 0) {
+      previewList.innerHTML = '<div style="color:#94a3b8; font-size:13px; text-align:center; padding:20px;">조건에 맞는 퀘스트가 없습니다.</div>';
+      return;
+    }
+
+    previewList.innerHTML = '';
+    quests.forEach(q => {
+      const isCustom = q.id.startsWith('custom_');
+      const item = document.createElement('div');
+      item.className = 'delete-quest-item';
+      item.id = `delItem_${q.id}`;
+      item.style.cssText = `display:flex; justify-content:space-between; align-items:center; background:#0f172a; border:1px solid ${this.selectedDeleteQuestId === q.id ? '#ef4444' : '#334155'}; border-radius:8px; padding:10px 12px; gap:8px; transition:all 0.15s ease; cursor:pointer;`;
+
+      const typeLabel = q.type === 'timer' ? '⏱️ 타이머' : (q.type === 'counter' ? `🔢 카운터 (${q.targetCount}${q.unit || '회'})` : '✔️ 원클릭');
+      const tierBadge = `<span style="font-size:10px; font-weight:800; padding:1px 5px; border-radius:3px; background:rgba(255,255,255,0.1); color:#cbd5e1; white-space:nowrap;">${q.tier || 'B'}등급</span>`;
+      const customBadge = isCustom ? `<span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.15); padding:1px 5px; border-radius:3px; border:1px solid rgba(56,189,248,0.3); white-space:nowrap;">⭐ 나만의</span>` : `<span style="font-size:10px; color:#94a3b8; background:rgba(255,255,255,0.05); padding:1px 5px; border-radius:3px; white-space:nowrap;">기본</span>`;
+
+      const safeQTitle = typeof escapeHtml === 'function' ? escapeHtml(q.title) : q.title;
+
+      item.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:4px; overflow:hidden; flex:1; min-width:0;">
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow:hidden;">
+            ${tierBadge}
+            ${customBadge}
+            <span style="font-weight:700; color:#fff; font-size:13.5px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;" title="${safeQTitle}">
+              ${safeQTitle}
+            </span>
+          </div>
+          <div style="font-size:11px; color:#94a3b8; display:flex; gap:8px; flex-wrap:wrap;">
+            <span><strong style="color:#00e5ff;">+${q.exp}</strong> EXP</span>
+            <span><strong style="color:#ffd700;">+${q.gold}</strong> G</span>
+            ${q.growthPoints ? `<span><strong style="color:#10b981;">+${q.growthPoints}</strong> 성장치</span>` : ''}
+            <span style="color:#cbd5e1;">${typeLabel}</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="font-size:11.5px; font-weight:700; padding:6px 10px; border-color:#38bdf8; color:#38bdf8; background:rgba(56,189,248,0.08); border-radius:6px; cursor:pointer;" onclick="event.stopPropagation(); quests.closeDeleteQuestModal(); quests.openEditCustomQuestModal('${q.id}', event);" title="이 퀘스트 수정하기">
+            ✏️ 수정
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger" style="font-size:11.5px; font-weight:700; padding:6px 10px; border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,0.08); border-radius:6px; cursor:pointer;" onclick="event.stopPropagation(); quests.onSelectQuestToDelete('${q.id}');" title="이 퀘스트 삭제하기">
+            🗑️ 삭제
+          </button>
+        </div>
+      `;
+
+      item.onclick = () => {
+        if (this.manageMode === 'edit') {
+          this.closeDeleteQuestModal();
+          this.openEditCustomQuestModal(q.id);
+        } else {
+          this.onSelectQuestToDelete(q.id);
+        }
+      };
+
+      previewList.appendChild(item);
+    });
+  }
+
+  onSelectQuestInManageModal(questId) {
+    if (!questId) return;
+    if (this.manageMode === 'edit') {
+      this.closeDeleteQuestModal();
+      this.openEditCustomQuestModal(questId);
+    } else {
+      this.onSelectQuestToDelete(questId);
+    }
   }
 
   closeDeleteQuestModal() {
@@ -1351,6 +1485,11 @@ class QuestManager {
     const allQuests = this.getAllQuests();
     const quest = allQuests.find(q => q.id === questId);
     if (!quest) return;
+
+    // Ensure we are in delete mode if triggered from row
+    if (this.manageMode !== 'delete') {
+      this.switchManageTab('delete');
+    }
 
     // Sync select dropdown
     const select = document.getElementById('deleteQuestSelect');
@@ -1399,8 +1538,11 @@ class QuestManager {
     state.deleteQuest(quest.id);
 
     this.closeDeleteQuestModal();
-    this.renderQuestList();
+    this.renderCurrentView();
 
+    if (typeof ui !== 'undefined' && ui.renderAttendanceCalendar) {
+      ui.renderAttendanceCalendar();
+    }
     if (typeof ui !== 'undefined' && ui.showToast) {
       ui.showToast(`🗑️ [${quest.title}] 퀘스트가 삭제되었습니다!`, "info");
     }

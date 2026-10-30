@@ -1516,35 +1516,69 @@ class GameState {
   }
 
   updateCustomQuest(questId, updatedData) {
-    if (!questId || !this.data.quests || !this.data.quests.customQuests) return null;
-    const idx = this.data.quests.customQuests.findIndex(q => q.id === questId);
-    if (idx === -1) return null;
+    if (!questId || !this.data.quests) return null;
+    if (!this.data.quests.customQuests) this.data.quests.customQuests = [];
 
-    const existing = this.data.quests.customQuests[idx];
+    const idx = this.data.quests.customQuests.findIndex(q => q.id === questId);
     const parsedExp = parseInt(updatedData.exp);
     const parsedGold = parseInt(updatedData.gold);
     const parsedGrowth = parseInt(updatedData.growthPoints);
 
-    const updated = {
-      ...existing,
-      title: (updatedData.title !== undefined ? updatedData.title : existing.title).trim(),
-      description: (updatedData.description !== undefined ? updatedData.description : existing.description).trim(),
-      category: updatedData.category || existing.category,
-      categoryName: updatedData.categoryName || existing.categoryName,
-      tier: updatedData.tier || existing.tier,
-      exp: !isNaN(parsedExp) ? Math.min(2500, Math.max(1, parsedExp)) : (existing.exp || 300),
-      gold: !isNaN(parsedGold) ? Math.min(2500, Math.max(0, parsedGold)) : (existing.gold !== undefined ? existing.gold : 100),
-      growthPoints: !isNaN(parsedGrowth) ? Math.min(30, Math.max(1, parsedGrowth)) : (existing.growthPoints || 10),
-      type: updatedData.type || existing.type,
-      targetCount: updatedData.targetCount ? parseInt(updatedData.targetCount) : null,
-      targetSeconds: updatedData.targetSeconds ? parseInt(updatedData.targetSeconds) : null,
-      unit: updatedData.unit || existing.unit || "회",
-      icon: updatedData.icon || existing.icon || "star"
-    };
+    if (idx !== -1) {
+      const existing = this.data.quests.customQuests[idx];
+      const updated = {
+        ...existing,
+        title: (updatedData.title !== undefined ? updatedData.title : existing.title).trim(),
+        description: (updatedData.description !== undefined ? updatedData.description : existing.description).trim(),
+        category: updatedData.category || existing.category,
+        categoryName: updatedData.categoryName || existing.categoryName,
+        tier: updatedData.tier || existing.tier,
+        exp: !isNaN(parsedExp) ? Math.min(2500, Math.max(1, parsedExp)) : (existing.exp || 300),
+        gold: !isNaN(parsedGold) ? Math.min(2500, Math.max(0, parsedGold)) : (existing.gold !== undefined ? existing.gold : 100),
+        growthPoints: !isNaN(parsedGrowth) ? Math.min(30, Math.max(1, parsedGrowth)) : (existing.growthPoints || 10),
+        type: updatedData.type || existing.type,
+        targetCount: updatedData.targetCount ? parseInt(updatedData.targetCount) : null,
+        targetSeconds: updatedData.targetSeconds ? parseInt(updatedData.targetSeconds) : null,
+        unit: updatedData.unit || existing.unit || "회",
+        icon: updatedData.icon || existing.icon || "star"
+      };
 
-    this.data.quests.customQuests[idx] = updated;
-    this.save(true);
-    return updated;
+      this.data.quests.customQuests[idx] = updated;
+      this.save(true);
+      return updated;
+    } else {
+      // Customizing a default quest:
+      // Hide default quest in deletedQuestIds
+      if (!this.data.quests.deletedQuestIds) {
+        this.data.quests.deletedQuestIds = [];
+      }
+      if (!this.data.quests.deletedQuestIds.includes(questId)) {
+        this.data.quests.deletedQuestIds.push(questId);
+      }
+
+      // Add customized version into customQuests
+      const newCustom = {
+        id: 'custom_' + questId + '_' + Date.now(),
+        title: (updatedData.title !== undefined ? updatedData.title : questId).trim(),
+        description: (updatedData.description !== undefined ? updatedData.description : '').trim(),
+        category: updatedData.category || 'height',
+        categoryName: updatedData.categoryName || '신체 & 키 성장',
+        tier: updatedData.tier || 'B',
+        exp: !isNaN(parsedExp) ? Math.min(2500, Math.max(1, parsedExp)) : 300,
+        gold: !isNaN(parsedGold) ? Math.min(2500, Math.max(0, parsedGold)) : 100,
+        growthPoints: !isNaN(parsedGrowth) ? Math.min(30, Math.max(1, parsedGrowth)) : 10,
+        type: updatedData.type || 'check',
+        targetCount: updatedData.targetCount ? parseInt(updatedData.targetCount) : null,
+        targetSeconds: updatedData.targetSeconds ? parseInt(updatedData.targetSeconds) : null,
+        unit: updatedData.unit || "회",
+        icon: updatedData.icon || "star",
+        createdAt: new Date().toISOString()
+      };
+
+      this.data.quests.customQuests.push(newCustom);
+      this.save(true);
+      return newCustom;
+    }
   }
 
   deleteQuest(questId) {

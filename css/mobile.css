@@ -319,10 +319,39 @@ body.in-battle .app-container {
 
   .quest-footer-actions button {
     width: 100%;
-    font-size: 12px !important;
-    padding: 10px 12px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    padding: 12px 14px !important;
     text-align: center;
     justify-content: center;
+  }
+
+  .quest-card-header {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .quest-badge-wrap {
+    gap: 5px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .quest-tier-badge,
+  .quest-category-badge,
+  .quest-custom-badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    flex-shrink: 0;
+  }
+
+  .quest-rewards-preview {
+    font-size: 10.5px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    flex-shrink: 0;
   }
 
   .day-quest-items-grid {
