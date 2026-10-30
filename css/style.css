@@ -1319,6 +1319,13 @@ body {
   box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.12), 0 0 10px rgba(16, 185, 129, 0.18);
 }
 
+/* Protected Day (🛡️ 1개 완료 보호권 적용) */
+.cal-day-cell.cell-protected {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.14) !important;
+  box-shadow: inset 0 0 14px rgba(245, 158, 11, 0.22), 0 0 12px rgba(245, 158, 11, 0.3) !important;
+}
+
 /* Missed Day (❌ 미수행) */
 .cal-day-cell.cell-missed {
   border-color: #ef4444;

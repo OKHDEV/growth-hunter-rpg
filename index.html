@@ -445,6 +445,31 @@
       <div class="calendar-render-stage" id="calendarRenderStage">
         <!-- Rendered dynamically by ui.renderAttendanceCalendar() -->
       </div>
+
+      <!-- Attendance Streak Protection Section (달력 아래 보호권 쓰기) -->
+      <div class="cal-protection-section" id="calProtectionSection" style="margin-top: 18px;">
+        <div style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 14px; padding: 16px 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.35);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <div style="text-align:left;">
+              <div style="font-size:14px; font-weight:900; color:#fbbf24; display:flex; align-items:center; gap:6px;">
+                <span>🛡️</span> 일일 출석 스트릭 보호권
+              </div>
+              <div style="font-size:12px; color:#94a3b8; margin-top:2px;">
+                놓쳐버린 과거 수련일을 1일 구제하여 끊어진 연속 출석(스트릭)을 다시 부활시킵니다.
+              </div>
+            </div>
+            <div id="streakProtectionBadge" style="font-size:12px; font-weight:800; padding:4px 12px; border-radius:20px; background:rgba(245,158,11,0.15); border:1px solid #f59e0b; color:#fde68a;">
+              남은 횟수: 3회
+            </div>
+          </div>
+          <button type="button" id="btnUseStreakProtection" class="btn" onclick="ui.openStreakProtectionModal()" style="width:100%; padding:14px; font-weight:900; font-size:15px; border-radius:10px; background:linear-gradient(135deg, #f59e0b, #d97706); border:1px solid #fef08a; color:#000; box-shadow:0 0 16px rgba(245,158,11,0.4); cursor:pointer; transition:transform 0.15s ease;">
+            🛡️ 보호권 쓰기 (3회 남음 · 재충전 불가)
+          </button>
+          <div style="font-size:11px; color:#64748b; margin-top:8px; text-align:center;">
+            ⚠️ 계정 평생 총 3회만 사용 가능하며 어떤 경우에도 절대 재충전되지 않습니다.
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ==================== TAB 3: 50 BOSS STAGE SELECT ==================== -->
@@ -1312,6 +1337,38 @@
           🔒 비밀번호 변경 완료
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- 10. Streak Protection Modal (출석 보호권 사용) -->
+  <div id="streakProtectionModal" class="qte-modal-overlay hidden" onclick="if(event.target===this) ui.closeStreakProtectionModal()">
+    <div class="qte-modal-box" style="border-color: #f59e0b; max-width: 480px; width: 92%; box-shadow: 0 0 40px rgba(245, 158, 11, 0.45); text-align: left; padding: 22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 id="streakProtectionModalTitle" style="color:#fbbf24; font-size:18px; font-weight:900; margin:0; display:flex; align-items:center; gap:6px;">
+          <span>🛡️</span> 출석 보호권 사용
+        </h3>
+        <button type="button" onclick="ui.closeStreakProtectionModal()" style="background:transparent; border:none; color:#94a3b8; font-size:20px; cursor:pointer; line-height:1;">✕</button>
+      </div>
+
+      <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 12px; font-size: 12px; color: #fde68a; line-height: 1.55; margin-bottom: 16px;">
+        💡 <strong>보호권 사용 안내 (평생 3회 한정 · 재충전 불가)</strong><br>
+        • 수련을 놓쳐 <strong>[❌ 미수행]</strong> 처리된 과거 날짜 중 1일을 선택하세요.<br>
+        • 보호권을 적용하면 해당 날짜에 <strong>퀘스트 1개 완료</strong>가 즉시 소급 인정되어 끊어졌던 <strong>연속 출석(스트릭)</strong>이 다시 이어집니다!<br>
+        • 현재 남은 사용 기회: <strong id="streakProtectionModalCount" style="color:#fff; font-size:13px; text-decoration:underline;">3회</strong>
+      </div>
+
+      <div style="font-size:13px; font-weight:800; color:#e2e8f0; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span>구제할 미수행 날짜 선택</span>
+        <span id="streakProtectionMissedCount" style="font-size:12px; color:#94a3b8;">미수행: 0일</span>
+      </div>
+
+      <div id="streakProtectionDateList" style="max-height: 240px; overflow-y: auto; display:flex; flex-direction:column; gap:8px; margin-bottom:16px; padding-right:4px;">
+        <!-- Populated dynamically by ui.openStreakProtectionModal() -->
+      </div>
+
+      <button type="button" class="btn btn-outline-cyan" onclick="ui.closeStreakProtectionModal()" style="width:100%; padding:11px; font-weight:700;">
+        닫기
+      </button>
     </div>
   </div>
 

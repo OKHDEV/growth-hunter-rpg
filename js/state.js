@@ -178,6 +178,8 @@ class GameState {
         customQuests: [],
         deletedQuestIds: [],
         history: {},
+        streakProtectionTickets: 3,
+        streakProtectionUsedDates: [],
         folders: [
           {
             id: 'folder_growth',
@@ -303,6 +305,12 @@ class GameState {
         customQuests: (parsed.quests && parsed.quests.customQuests) || [],
         deletedQuestIds: (parsed.quests && parsed.quests.deletedQuestIds) || [],
         history: (parsed.quests && parsed.quests.history) || {},
+        streakProtectionUsedDates: (parsed.quests && Array.isArray(parsed.quests.streakProtectionUsedDates))
+          ? parsed.quests.streakProtectionUsedDates
+          : [],
+        streakProtectionTickets: (parsed.quests && parsed.quests.streakProtectionTickets !== undefined)
+          ? Math.max(0, Math.min(3, Number(parsed.quests.streakProtectionTickets)))
+          : ((parsed.quests && Array.isArray(parsed.quests.streakProtectionUsedDates)) ? Math.max(0, 3 - parsed.quests.streakProtectionUsedDates.length) : 3),
         folders: (parsed.quests && Array.isArray(parsed.quests.folders) && parsed.quests.folders.length > 0)
           ? parsed.quests.folders
           : def.quests.folders,
@@ -731,6 +739,94 @@ class GameState {
       streak = 1;
     }
     return streak;
+  }
+
+  // --- Attendance Streak Protection (평생 3회 한정, 재충전 불가) ---
+
+  getStreakProtectionTickets() {
+    if (!this.data.quests) return 3;
+    const used = Array.isArray(this.data.quests.streakProtectionUsedDates) ? this.data.quests.streakProtectionUsedDates.length : 0;
+    if (this.data.quests.streakProtectionTickets !== undefined) {
+      return Math.max(0, Math.min(this.data.quests.streakProtectionTickets, 3 - used));
+    }
+    return Math.max(0, 3 - used);
+  }
+
+  getMissedAttendanceDates() {
+    if (!this.data.quests) return [];
+    const startDateStr = this.data.quests.startDate || getLocalDateString();
+    const todayStr = getLocalDateString();
+    const history = this.data.quests.history || {};
+
+    const startObj = new Date(startDateStr + 'T00:00:00');
+    const todayObj = new Date(todayStr + 'T00:00:00');
+
+    if (isNaN(startObj.getTime()) || startObj >= todayObj) {
+      return [];
+    }
+
+    const missed = [];
+    const cur = new Date(startObj);
+    while (cur < todayObj) {
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth() + 1).padStart(2, '0');
+      const d = String(cur.getDate()).padStart(2, '0');
+      const dStr = `${y}-${m}-${d}`;
+      const cnt = Number(history[dStr]) || 0;
+      if (cnt === 0) {
+        missed.push(dStr);
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return missed.reverse(); // Most recent missed days first
+  }
+
+  useStreakProtection(dateStr) {
+    if (this.isReadOnlyMode) {
+      return { success: false, message: '관전 모드에서는 보호권을 사용할 수 없습니다.' };
+    }
+    if (!this.data.quests) {
+      return { success: false, message: '퀘스트 데이터가 초기화되지 않았습니다.' };
+    }
+
+    const remaining = this.getStreakProtectionTickets();
+    if (remaining <= 0) {
+      return { success: false, message: '출석 보호권을 이미 모두 소진하였습니다. (계정 평생 3회 한정, 재충전 불가)' };
+    }
+
+    const todayStr = getLocalDateString();
+    if (!dateStr || dateStr >= todayStr) {
+      return { success: false, message: '오늘 이전의 과거 날짜에만 보호권을 사용할 수 있습니다.' };
+    }
+
+    if (!this.data.quests.history) this.data.quests.history = {};
+    if (!this.data.quests.streakProtectionUsedDates) this.data.quests.streakProtectionUsedDates = [];
+
+    const currCount = Number(this.data.quests.history[dateStr]) || 0;
+    if (currCount > 0) {
+      return { success: false, message: '해당 날짜는 이미 퀘스트가 완료된 출석일입니다.' };
+    }
+
+    // Apply protection
+    if (!this.data.quests.streakProtectionUsedDates.includes(dateStr)) {
+      this.data.quests.streakProtectionUsedDates.push(dateStr);
+    }
+    this.data.quests.streakProtectionTickets = Math.max(0, 3 - this.data.quests.streakProtectionUsedDates.length);
+    this.data.quests.history[dateStr] = 1;
+
+    // Recalculate streak
+    this.data.quests.dailyStreak = this.getDailyStreak();
+
+    // Save and sync immediately to cloud
+    this.save(true);
+    this.logUserActivity('quest_complete');
+
+    return {
+      success: true,
+      dateStr,
+      remainingTickets: this.data.quests.streakProtectionTickets,
+      newStreak: this.data.quests.dailyStreak
+    };
   }
 
   // --- Calculations ---
@@ -1708,6 +1804,13 @@ class GameState {
       if (q && q.id) cqMap.set(q.id, q);
     });
     merged.quests.customQuests = Array.from(cqMap.values());
+
+    // Streak protection: lifetime 3 uses, union of used dates across all devices
+    const lUsed = (localData.quests && Array.isArray(localData.quests.streakProtectionUsedDates)) ? localData.quests.streakProtectionUsedDates : [];
+    const cUsed = (cloudData.quests && Array.isArray(cloudData.quests.streakProtectionUsedDates)) ? cloudData.quests.streakProtectionUsedDates : [];
+    const mergedUsed = Array.from(new Set([...lUsed, ...cUsed]));
+    merged.quests.streakProtectionUsedDates = mergedUsed;
+    merged.quests.streakProtectionTickets = Math.max(0, 3 - mergedUsed.length);
 
     // Raid progression union
     const lRaid = localData.raid || {};
