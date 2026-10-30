@@ -2524,6 +2524,54 @@ body.admin-authenticated #modalAdminLink {
   color: #fde047;
 }
 
+.card-picker-item.locked {
+  opacity: 0.65;
+  filter: grayscale(0.75);
+  border-color: #1e293b;
+  cursor: pointer;
+}
+
+.card-picker-item.locked:hover {
+  transform: translateY(-2px);
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+  opacity: 0.85;
+}
+
+.card-picker-lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 15, 30, 0.68);
+  backdrop-filter: blur(1.5px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px;
+  z-index: 2;
+}
+
+.card-picker-lock-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+
+.card-picker-lock-req {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #fca5a5;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  max-width: 95%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
 /* 15 Hero Card Visual Themes for .hunter-hero-card */
 .card-theme-default {
   box-shadow: 0 0 25px rgba(0, 229, 255, 0.35);

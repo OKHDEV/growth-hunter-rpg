@@ -847,6 +847,19 @@ class QuestManager {
       }
     }
 
+    if (result.newlyUnlockedCards && result.newlyUnlockedCards.length > 0) {
+      result.newlyUnlockedCards.forEach(card => {
+        ui.showToast(`🎴 히어로 카드 해금! [${card.name}]`, "gold");
+        if (typeof ui !== 'undefined' && typeof ui.queueRewardModal === 'function') {
+          ui.queueRewardModal({
+            type: 'card',
+            card: card,
+            source: '📜 누적 퀘스트 달성 보상'
+          });
+        }
+      });
+    }
+
     if (result.expResult && result.expResult.leveledUp) {
       sound.playLevelUp();
       ui.showLevelUpModal(result.expResult);

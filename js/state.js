@@ -219,6 +219,28 @@ class GameState {
       }
     ];
 
+    // 🔒 Hero Card Unlock Requirements
+    // card_default is unlocked by default.
+    // 13 cards are unlocked at cumulative quest completions (5, 10, 15, ..., 65).
+    // card_sovereign is unlocked upon defeating the Stage 100 Boss (Omega Chronos).
+    this.CARD_UNLOCK_REQUIREMENTS = {
+      card_default: { type: 'default', req: 0, text: '기본 제공' },
+      card_shadow: { type: 'quests', req: 5, text: '일일 퀘스트 5개 완수' },
+      card_flame: { type: 'quests', req: 10, text: '일일 퀘스트 10개 완수' },
+      card_frost: { type: 'quests', req: 15, text: '일일 퀘스트 15개 완수' },
+      card_thunder: { type: 'quests', req: 20, text: '일일 퀘스트 20개 완수' },
+      card_radiant: { type: 'quests', req: 25, text: '일일 퀘스트 25개 완수' },
+      card_abyss: { type: 'quests', req: 30, text: '일일 퀘스트 30개 완수' },
+      card_dragon: { type: 'quests', req: 35, text: '일일 퀘스트 35개 완수' },
+      card_wind: { type: 'quests', req: 40, text: '일일 퀘스트 40개 완수' },
+      card_blood: { type: 'quests', req: 45, text: '일일 퀘스트 45개 완수' },
+      card_void: { type: 'quests', req: 50, text: '일일 퀘스트 50개 완수' },
+      card_cyber: { type: 'quests', req: 55, text: '일일 퀘스트 55개 완수' },
+      card_celestial: { type: 'quests', req: 60, text: '일일 퀘스트 60개 완수' },
+      card_phantom: { type: 'quests', req: 65, text: '일일 퀘스트 65개 완수' },
+      card_sovereign: { type: 'boss', req: 100, text: 'Stage 100 오메가 크로노스 격파' }
+    };
+
     // Spectator / View-Only Mode Detection
     // Strict Guard: Spectator mode MUST ONLY be active when the URL explicitly contains '?spectate'
     // AND sessionStorage has spectator_active === 'true' AND valid admin credentials exist.
@@ -366,8 +388,87 @@ class GameState {
     return this.PLAYER_CARDS.find(c => c.id === id) || this.PLAYER_CARDS[0];
   }
 
+  getCardRequirement(cardId) {
+    return (this.CARD_UNLOCK_REQUIREMENTS && this.CARD_UNLOCK_REQUIREMENTS[cardId]) || null;
+  }
+
+  isCardUnlocked(cardId) {
+    if (!cardId || cardId === 'card_default') return true;
+    const unlocked = (this.data && this.data.player && Array.isArray(this.data.player.unlockedCards))
+      ? this.data.player.unlockedCards
+      : ['card_default'];
+    return unlocked.includes(cardId);
+  }
+
+  unlockCard(cardId) {
+    if (!cardId) return false;
+    if (!this.data.player) this.data.player = {};
+    if (!Array.isArray(this.data.player.unlockedCards)) {
+      this.data.player.unlockedCards = ['card_default'];
+    }
+    if (!this.data.player.unlockedCards.includes(cardId)) {
+      this.data.player.unlockedCards.push(cardId);
+      this.save(true);
+      return true;
+    }
+    return false;
+  }
+
+  getTotalCompletedQuestsCount() {
+    if (!this.data || !this.data.quests) return 0;
+    const quests = this.data.quests;
+    const countByQuests = Object.values(quests.completionCounts || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
+    const countByHistory = Object.values(quests.history || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
+    return Math.max(countByQuests, countByHistory);
+  }
+
+  checkCardUnlocks(saveAfter = true) {
+    if (!this.data || !this.data.player) return [];
+    if (!Array.isArray(this.data.player.unlockedCards)) {
+      this.data.player.unlockedCards = ['card_default'];
+    }
+    if (!this.data.player.unlockedCards.includes('card_default')) {
+      this.data.player.unlockedCards.unshift('card_default');
+    }
+
+    const newlyUnlockedCards = [];
+    const totalQuests = this.getTotalCompletedQuestsCount();
+    const clearedStages = (this.data.raid && this.data.raid.clearedStages) || [];
+    const hasClearedStage100 = clearedStages.includes(100);
+
+    for (const card of this.PLAYER_CARDS) {
+      if (this.data.player.unlockedCards.includes(card.id)) continue;
+      const req = this.getCardRequirement(card.id);
+      if (!req) continue;
+
+      let qualified = false;
+      if (req.type === 'default') {
+        qualified = true;
+      } else if (req.type === 'quests') {
+        if (totalQuests >= req.req) qualified = true;
+      } else if (req.type === 'boss') {
+        if (req.req === 100 && hasClearedStage100) qualified = true;
+      }
+
+      if (qualified) {
+        this.data.player.unlockedCards.push(card.id);
+        newlyUnlockedCards.push(card);
+      }
+    }
+
+    if (newlyUnlockedCards.length > 0 && saveAfter) {
+      this.save(true);
+    }
+    return newlyUnlockedCards;
+  }
+
   setPlayerCard(cardId) {
-    const card = this.getPlayerCard(cardId);
+    const id = cardId || 'card_default';
+    if (!this.isCardUnlocked(id)) {
+      console.warn(`Card ${id} is locked.`);
+      return null;
+    }
+    const card = this.getPlayerCard(id);
     if (!this.data.player) this.data.player = {};
     this.data.player.cardId = card.id;
     this.data.player.avatar = card.image;
@@ -385,6 +486,7 @@ class GameState {
         title: "초보 수련자",
         avatar: "assets/player/hunter.jpg",
         cardId: "card_default",
+        unlockedCards: ["card_default"],
         level: 1,
         exp: 0,
         gold: 500,
@@ -534,6 +636,9 @@ class GameState {
         ...def.player,
         ...(parsed.player || {}),
         cardId: (parsed.player && parsed.player.cardId) || 'card_default',
+        unlockedCards: (parsed.player && Array.isArray(parsed.player.unlockedCards) && parsed.player.unlockedCards.length > 0)
+          ? parsed.player.unlockedCards
+          : ['card_default'],
         avatar: (parsed.player && parsed.player.avatar) || (this.getPlayerCard((parsed.player && parsed.player.cardId) || 'card_default').image),
         stats: { ...def.player.stats, ...((parsed.player && parsed.player.stats) || {}) },
         equipment: { ...def.player.equipment, ...((parsed.player && parsed.player.equipment) || {}) },
@@ -595,6 +700,11 @@ class GameState {
     }
     this.data.quests.dailyStreak = this.getDailyStreak();
     this.checkRetroactiveUnlocks();
+    // Safety check: if active card is not unlocked, fallback to card_default
+    if (!this.isCardUnlocked(this.data.player.cardId)) {
+      this.data.player.cardId = 'card_default';
+      this.data.player.avatar = this.getPlayerCard('card_default').image;
+    }
     if (triggerSave) {
       this.save();
     }
@@ -1356,6 +1466,26 @@ class GameState {
     if (currentHeight >= 176.0) this.unlockTitle("불굴의 수험생 (176cm)");
     if (currentHeight >= 177.0) this.unlockTitle("골격 파괴의 거인 (177cm)");
     if (currentHeight >= 178.0) this.unlockTitle("한계 초월의 절대 각성자");
+
+    // Retroactive player cards unlock check (cumulative quests & stage 100 clear)
+    const newlyUnlockedCards = this.checkCardUnlocks(false);
+    if (newlyUnlockedCards && newlyUnlockedCards.length > 0) {
+      if (!this.pendingRetroactiveCards) this.pendingRetroactiveCards = [];
+      newlyUnlockedCards.forEach(card => {
+        if (!this.pendingRetroactiveCards.some(c => c.id === card.id)) {
+          this.pendingRetroactiveCards.push(card);
+        }
+      });
+      if (typeof ui !== 'undefined' && typeof ui.queueRewardModal === 'function') {
+        newlyUnlockedCards.forEach(card => {
+          ui.queueRewardModal({
+            type: 'card',
+            card: card,
+            source: card.id === 'card_sovereign' ? '👑 Stage 100 신화 거신 격파 달성' : '📜 누적 퀘스트 달성 보상'
+          });
+        });
+      }
+    }
   }
 
   setActiveTitle(titleName) {
@@ -1431,6 +1561,9 @@ class GameState {
     // Immediately recalculate streak on every quest completion
     this.data.quests.dailyStreak = this.getDailyStreak();
 
+    // Check newly unlocked player cards based on cumulative quests count
+    const newlyUnlockedCards = this.checkCardUnlocks(false);
+
     const expResult = this.addExp(quest.exp);
     const goldResult = this.addGold(quest.gold);
     if (quest.growthPoints) {
@@ -1451,6 +1584,7 @@ class GameState {
       gold: goldResult ? goldResult.goldAdded : quest.gold,
       growthPoints: quest.growthPoints || 0,
       newlyUnlockedTitles,
+      newlyUnlockedCards,
       titleMultipliers: this.getActiveTitleMultipliers()
     };
   }
@@ -1490,6 +1624,9 @@ class GameState {
     this.addToInventory(boss.rewards.item);
     this.unlockTitle(boss.rewards.title);
 
+    // Check newly unlocked cards (e.g. Stage 100 Boss sovereign card)
+    const newlyUnlockedCards = this.checkCardUnlocks(false);
+
     this.save(true);
     this.logUserActivity('boss_defeat');
     return {
@@ -1498,6 +1635,7 @@ class GameState {
       expResult,
       goldResult,
       awardedGrowth,
+      newlyUnlockedCards,
       rewards: {
         ...boss.rewards,
         exp: awardedExp,
@@ -2089,12 +2227,22 @@ class GameState {
       merged.player.activeTitle = "초보 수련자 (173cm)";
     }
 
+    // Union of unlockedCards
+    const cardSet = new Set([
+      ...(Array.isArray(cp.unlockedCards) ? cp.unlockedCards : ['card_default']),
+      ...(Array.isArray(lp.unlockedCards) ? lp.unlockedCards : ['card_default'])
+    ]);
+    if (!cardSet.has('card_default')) cardSet.add('card_default');
+    merged.player.unlockedCards = Array.from(cardSet);
+
     // Player Hero Card
-    if (isLocalNewerOrEqual) {
-      merged.player.cardId = (lp && lp.cardId) || (cp && cp.cardId) || 'card_default';
-    } else {
-      merged.player.cardId = (cp && cp.cardId) || (lp && lp.cardId) || 'card_default';
+    let chosenCard = isLocalNewerOrEqual
+      ? ((lp && lp.cardId) || (cp && cp.cardId) || 'card_default')
+      : ((cp && cp.cardId) || (lp && lp.cardId) || 'card_default');
+    if (!merged.player.unlockedCards.includes(chosenCard)) {
+      chosenCard = 'card_default';
     }
+    merged.player.cardId = chosenCard;
     merged.player.avatar = this.getPlayerCard(merged.player.cardId).image;
 
     // Union of inventory items (by id, keeping higher enhance level)
@@ -2286,6 +2434,8 @@ class GameState {
           : 0,
         (r.clearedStages || []).includes(100) ? 1 : 0
       ],
+      c: p.cardId || 'card_default',
+      uc: p.unlockedCards || ['card_default'],
       u: d.lastSaved || new Date().toISOString()
     };
   }
@@ -2374,6 +2524,10 @@ class GameState {
       }
       if (hasOmega) def.raid.clearedStages.push(100);
     }
+
+    if (packed.c) def.player.cardId = packed.c;
+    if (Array.isArray(packed.uc)) def.player.unlockedCards = packed.uc;
+    def.player.avatar = this.getPlayerCard(def.player.cardId).image;
 
     def.lastSaved = packed.u || new Date().toISOString();
     return def;

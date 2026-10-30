@@ -26,6 +26,18 @@ class UIManager {
     this.setupEventListeners();
     this.setupCombatControls();
 
+    // Check and queue any retroactive rewards (such as newly unlocked cards for returning users)
+    if (typeof state !== 'undefined' && state.pendingRetroactiveCards && state.pendingRetroactiveCards.length > 0) {
+      state.pendingRetroactiveCards.forEach(card => {
+        this.queueRewardModal({
+          type: 'card',
+          card: card,
+          source: card.id === 'card_sovereign' ? '👑 Stage 100 신화 거신 격파 달성' : '📜 누적 퀘스트 달성 보상'
+        });
+      });
+      state.pendingRetroactiveCards = [];
+    }
+
     const banner = document.getElementById('spectatorBanner');
     if (state.isReadOnlyMode) {
       const badge = document.getElementById('spectatorUserBadge');
@@ -1247,20 +1259,31 @@ class UIManager {
 
     grid.innerHTML = cards.map(c => {
       const isSelected = c.id === this._tempSelectedCardId;
+      const isUnlocked = state.isCardUnlocked(c.id);
+      const req = state.getCardRequirement(c.id);
+      const reqText = req ? req.text : '';
       const sName = typeof escapeHtml === 'function' ? escapeHtml(c.name) : c.name;
       const sTag = typeof escapeHtml === 'function' ? escapeHtml(c.tag) : c.tag;
       const sDesc = typeof escapeHtml === 'function' ? escapeHtml(c.desc) : c.desc;
+
       return `
-        <div class="card-picker-item ${isSelected ? 'selected' : ''}" 
+        <div class="card-picker-item ${isSelected ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}" 
              onclick="ui.selectCardInPicker('${c.id}')"
-             title="${sName} (${sTag}) - ${sDesc}">
+             title="${sName} (${sTag}) - ${isUnlocked ? sDesc : ('🔒 해금 조건: ' + reqText)}">
           <div class="card-picker-thumb-wrap">
             <img src="${c.image}" alt="${sName}" class="card-picker-thumb" loading="lazy" onerror="this.onerror=null; this.src='assets/player/hunter.jpg';">
-            <div class="card-picker-check">✓</div>
+            ${isUnlocked ? '<div class="card-picker-check">✓</div>' : `
+              <div class="card-picker-lock-overlay">
+                <div class="card-picker-lock-icon">🔒</div>
+                <div class="card-picker-lock-req">${reqText}</div>
+              </div>
+            `}
           </div>
           <div class="card-picker-info">
-            <div class="card-picker-name">${sName}</div>
-            <div class="card-picker-tag" style="color:${c.accentColor};">${sTag}</div>
+            <div class="card-picker-name" style="${!isUnlocked ? 'color:#94a3b8;' : ''}">${sName}</div>
+            <div class="card-picker-tag" style="color:${isUnlocked ? c.accentColor : '#ef4444'};">
+              ${isUnlocked ? sTag : `🔒 ${reqText}`}
+            </div>
           </div>
         </div>
       `;
@@ -1268,6 +1291,14 @@ class UIManager {
   }
 
   selectCardInPicker(cardId) {
+    if (!state.isCardUnlocked(cardId)) {
+      const req = state.getCardRequirement(cardId);
+      const card = state.getPlayerCard(cardId);
+      if (sound.playDefeat) sound.playDefeat();
+      else sound.playClick();
+      this.showToast(`🔒 [${card.name}] 카드는 잠겨 있습니다! (${req ? req.text : '해금 조건 미달성'})`, 'warning');
+      return;
+    }
     sound.playClick();
     this._tempSelectedCardId = cardId;
     this.renderPlayerCardPicker();
@@ -1294,9 +1325,9 @@ class UIManager {
       state.data.player.targetHeight = targetVal;
     }
 
-    // Apply & Save Selected Player Card
+    // Apply & Save Selected Player Card (guard against locked card)
     let cardChanged = false;
-    if (this._tempSelectedCardId) {
+    if (this._tempSelectedCardId && state.isCardUnlocked(this._tempSelectedCardId)) {
       if (state.data.player.cardId !== this._tempSelectedCardId) cardChanged = true;
       state.setPlayerCard(this._tempSelectedCardId);
     } else {
@@ -1677,6 +1708,16 @@ class UIManager {
       `;
     }
 
+    if (result && result.newlyUnlockedCards && result.newlyUnlockedCards.length > 0) {
+      result.newlyUnlockedCards.forEach(card => {
+        this.queueRewardModal({
+          type: 'card',
+          card: card,
+          source: boss.stage === 100 ? '👑 Stage 100 오메가 크로노스 격파' : '🏆 레이드 보스 격파 보상'
+        });
+      });
+    }
+
     modal.classList.remove('hidden');
   }
 
@@ -1771,6 +1812,14 @@ class UIManager {
     const contentBox = document.getElementById('rewardAcqContentBox');
     const equipBtn = document.getElementById('btnRewardAcqEquip');
     const closeBtn = document.getElementById('btnRewardAcqClose');
+    const emojiEl = document.getElementById('rewardAcqEmoji');
+
+    if (emojiEl) {
+      if (reward.type === 'title') emojiEl.textContent = '👑';
+      else if (reward.type === 'item') emojiEl.textContent = '⚔️';
+      else if (reward.type === 'card') emojiEl.textContent = '🎴';
+      else emojiEl.textContent = '🎁';
+    }
 
     if (sourceTag) sourceTag.textContent = reward.source || '🎉 신규 보상 획득';
 
@@ -1856,6 +1905,50 @@ class UIManager {
       if (closeBtn) {
         closeBtn.textContent = '🎒 인벤토리에 보관 (나중에 장착)';
       }
+    } else if (reward.type === 'card') {
+      const card = reward.card || state.getPlayerCard(reward.cardId);
+      const isAlreadyEquipped = state.data.player.cardId === card.id;
+
+      if (titleEl) titleEl.textContent = '🎴 새로운 플레이어 히어로 카드 획득!';
+      if (contentBox) {
+        contentBox.innerHTML = `
+          <div style="display:flex; gap:14px; align-items:center; margin-bottom:12px;">
+            <div style="position:relative; width:84px; height:112px; border-radius:8px; overflow:hidden; border:2px solid ${card.borderColor || '#00e5ff'}; box-shadow: 0 0 16px ${card.glowColor || 'rgba(0,229,255,0.4)'}; flex-shrink:0;">
+              <img src="${card.image}" alt="${card.name}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='assets/player/hunter.jpg';">
+            </div>
+            <div style="flex:1; min-width:0;">
+              <span class="badge" style="background:rgba(255,255,255,0.08); border:1px solid ${card.borderColor || '#38bdf8'}; color:${card.accentColor || '#38bdf8'}; font-size:11px; margin-bottom:4px; display:inline-block; padding:3px 8px; border-radius:6px; font-weight:700;">
+                ${card.tag}
+              </span>
+              <div style="font-size:17px; font-weight:900; color:${card.accentColor || '#00e5ff'}; text-shadow:0 0 10px ${card.glowColor || 'rgba(0,229,255,0.5)'}; margin-bottom:4px; line-height:1.3;">
+                ${card.name}
+              </div>
+              <div style="font-size:12px; color:#cbd5e1; line-height:1.4;">${card.desc}</div>
+            </div>
+          </div>
+          <div style="background:rgba(0,0,0,0.35); border:1px solid ${card.borderColor || 'rgba(0,229,255,0.3)'}; border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.5;">
+            <div style="color:${card.accentColor || '#67e8f9'}; font-weight:700; margin-bottom:2px;">✨ 카드 특징 및 전용 테마:</div>
+            <div style="color:#e2e8f0; font-size:12px;">착용 시 메인 프로필 비주얼, 오라 이펙트, 전용 카드 테마 스타일이 즉시 적용됩니다.</div>
+          </div>
+          <div style="margin-top:12px; font-size:12px; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
+            <span>현재 착용: <strong style="color:#cbd5e1;">${state.getPlayerCard().name}</strong></span>
+            <span style="color:${card.accentColor || '#38bdf8'}; font-weight:700;">${isAlreadyEquipped ? '✅ 착용 중' : '즉시 장착 가능'}</span>
+          </div>
+        `;
+      }
+      if (equipBtn) {
+        equipBtn.innerHTML = isAlreadyEquipped ? '✅ 이미 착용 중입니다' : '🎴 지금 바로 플레이어 카드 착용하기';
+        equipBtn.style.background = isAlreadyEquipped ? '#10b981' : `linear-gradient(135deg, ${card.borderColor || '#0284c7'}, ${card.accentColor || '#38bdf8'})`;
+        equipBtn.style.borderColor = isAlreadyEquipped ? '#34d399' : (card.accentColor || '#67e8f9');
+        equipBtn.style.color = '#fff';
+        equipBtn.disabled = isAlreadyEquipped;
+        equipBtn.onclick = () => {
+          ui.confirmEquipRewardCard(card.id);
+        };
+      }
+      if (closeBtn) {
+        closeBtn.textContent = '🎒 카드 보관함에 보관 (나중에 착용)';
+      }
     }
 
     modal.classList.remove('hidden');
@@ -1882,6 +1975,19 @@ class UIManager {
     this.showToast(`⚔️ [${item.name}]을(를) [${this.getSlotName(item.slot)}] 슬롯에 장착했습니다!`, 'success');
     this.updateHeaderAndStats();
     if (this.renderInventory) this.renderInventory();
+    this.closeRewardAcquisitionModal();
+  }
+
+  confirmEquipRewardCard(cardId) {
+    const card = state.setPlayerCard(cardId);
+    if (!card) return;
+    if (sound.playVictory) sound.playVictory();
+    else if (sound.playLevelUp) sound.playLevelUp();
+    this.createParticleBurst(window.innerWidth / 2, window.innerHeight / 2, 70);
+    this.showToast(`🎴 [${card.name}] 카드를 성공적으로 착용했습니다!`, 'gold');
+    this.renderPlayerCard();
+    this.updateHeaderAndStats();
+    if (this.renderAll) this.renderAll();
     this.closeRewardAcquisitionModal();
   }
 
