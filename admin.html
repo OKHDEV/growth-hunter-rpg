@@ -2447,7 +2447,23 @@
                 ts: item.ts,
                 data: {
                   act: item.act || 'play',
-                  d: cached,
+                  d: {
+                    ...cached,
+                    player: {
+                      ...(cached.player || {}),
+                      level: item.lv !== undefined ? item.lv : (cached.player?.level || 1),
+                      gold: item.gold !== undefined ? item.gold : (cached.player?.gold || 0)
+                    },
+                    raid: {
+                      ...(cached.raid || {}),
+                      clearedStages: Array.isArray(item.bossCleared) ? item.bossCleared : (cached.raid?.clearedStages || [])
+                    },
+                    quests: {
+                      ...cached.quests,
+                      lastActiveDate: item.date || cached.quests?.lastActiveDate,
+                      completedToday: item.questsDone !== undefined ? item.questsDone : cached.quests?.completedToday
+                    }
+                  },
                   ts: item.ts
                 }
               });
@@ -2630,7 +2646,10 @@
 
           const timeDiff = ev.ts - lastKept.ts;
           const isNewSession = timeDiff >= 15 * 60 * 1000; // 15분 이상 경과 후 재방문
-          const isExplicitAction = act === 'login' || act === 'register' || act === 'quest_complete' || act === 'boss_defeat' || act === 'level_up';
+          const isExplicitAction = act === 'login' || act === 'register' ||
+            (act === 'quest_complete' && questDiff > 0) ||
+            (act === 'boss_defeat' && newlyCleared.length > 0) ||
+            (act === 'level_up' && lvGained > 0);
           const hasProgressionChange = lvGained > 0 || goldDiff !== 0 || newlyCleared.length > 0 || questDiff > 0;
 
           // 의미 있는 활동(사이트 접속, 골드 변동, 레벨업, 퀘스트, 보스 격파)만 등록
@@ -2894,13 +2913,21 @@
           } else if (actionType === 'register') {
             actionBadge = '<span class="stat-chip" style="color:#ec4899; border-color:rgba(236,72,153,0.3); background:rgba(236,72,153,0.08);">✨ 신규 가입</span>';
           } else if (actionType === 'boss_defeat') {
-            actionBadge = '<span class="stat-chip" style="color:#ef4444; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">⚔️ 보스 격파</span>';
+            if (newlyCleared.length > 0 || !prevEv) {
+              actionBadge = '<span class="stat-chip" style="color:#ef4444; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">⚔️ 보스 격파</span>';
+            }
           } else if (actionType === 'level_up') {
-            actionBadge = '<span class="stat-chip" style="color:#facc15; border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08);">⭐ 레벨업</span>';
+            if (lvGained > 0 || !prevEv) {
+              actionBadge = '<span class="stat-chip" style="color:#facc15; border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08);">⭐ 레벨업</span>';
+            }
           } else if (actionType === 'quest_complete') {
-            actionBadge = '<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08);">📜 퀘스트 완료</span>';
+            if (questDiff > 0 || !prevEv) {
+              actionBadge = '<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08);">📜 퀘스트 완료</span>';
+            }
           } else if (actionType === 'gold_change') {
-            actionBadge = '<span class="stat-chip" style="color:#facc15; border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08);">💰 골드 변동</span>';
+            if (goldDiff !== 0) {
+              actionBadge = '<span class="stat-chip" style="color:#facc15; border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08);">💰 골드 변동</span>';
+            }
           } else if (actionType === 'active_play' || actionType === 'play') {
             actionBadge = '<span class="stat-chip" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">🎮 게임 플레이</span>';
           }
@@ -2934,10 +2961,10 @@
             dynamicChips.push(`<span class="stat-chip stage" style="color:#f87171; border-color:rgba(248,113,113,0.3); background:rgba(248,113,113,0.08);">🏆 Stage ${maxStage} 보스 처치함</span>`);
           }
 
-          // 4. Quests count: show when performed
+          // 4. Quests count: show ONLY when new quests are completed in this event, or on baseline (#1)
           if (questDiff > 0) {
             dynamicChips.push(`<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08); font-weight:700;">📜 퀘스트 ${currQuests}개 수행 (+${questDiff}개 완료)</span>`);
-          } else if (currQuests > 0) {
+          } else if (!prevEv && currQuests > 0) {
             dynamicChips.push(`<span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.08);">📜 퀘스트 ${currQuests}개 수행</span>`);
           }
 

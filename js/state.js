@@ -1822,7 +1822,9 @@ class GameState {
         (currentLog.gold !== lastEntry.gold) ||
         (currentLog.bossCleared.length !== lastEntry.bossCleared.length) ||
         (currentLog.questsDone !== lastEntry.questsDone) ||
-        (action === 'quest_complete' || action === 'boss_defeat' || action === 'level_up') ||
+        (action === 'quest_complete' && currentLog.questsDone > (lastEntry.questsDone || 0)) ||
+        (action === 'boss_defeat' && currentLog.bossCleared.length > (lastEntry.bossCleared?.length || 0)) ||
+        (action === 'level_up' && currentLog.lv > (lastEntry.lv || 1)) ||
         (action === 'connect' && (now - lastEntry.ts > 15 * 60 * 1000));
 
       if (hasProgress) {
