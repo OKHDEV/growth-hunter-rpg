@@ -1752,12 +1752,16 @@ class UIManager {
       document.body.classList.add('admin-authenticated');
     } else {
       document.body.classList.remove('admin-authenticated');
-      // If active user is NOT admin, purge any leftover admin keys in storage
-      if (typeof localStorage !== 'undefined' && (!state.cloudSession || String(state.cloudSession.userId).trim().toLowerCase() !== 'admin')) {
-        localStorage.removeItem('isAdminLoggedIn');
-      }
-      if (typeof sessionStorage !== 'undefined' && (!state.cloudSession || String(state.cloudSession.userId).trim().toLowerCase() !== 'admin')) {
-        sessionStorage.removeItem('isAdminLoggedIn');
+      // If active user is NOT admin AND NOT in spectator mode, purge any leftover admin keys in storage
+      if (!state.isReadOnlyMode) {
+        if (typeof localStorage !== 'undefined' && (!state.cloudSession || String(state.cloudSession.userId).trim().toLowerCase() !== 'admin')) {
+          localStorage.removeItem('isAdminLoggedIn');
+          localStorage.removeItem('admin_master_session');
+        }
+        if (typeof sessionStorage !== 'undefined' && (!state.cloudSession || String(state.cloudSession.userId).trim().toLowerCase() !== 'admin')) {
+          sessionStorage.removeItem('isAdminLoggedIn');
+          sessionStorage.removeItem('admin_master_session');
+        }
       }
     }
 
@@ -2100,6 +2104,8 @@ class UIManager {
       if (password === 'admin1234') {
         localStorage.setItem('isAdminLoggedIn', 'true');
         sessionStorage.setItem('isAdminLoggedIn', 'true');
+        localStorage.setItem('admin_master_session', 'true');
+        sessionStorage.setItem('admin_master_session', 'true');
 
         state.saveCloudSession({
           userId: 'admin',
@@ -2131,8 +2137,14 @@ class UIManager {
     }
 
     // For any regular user account, immediately purge any admin privilege tokens
-    if (typeof localStorage !== 'undefined') localStorage.removeItem('isAdminLoggedIn');
-    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('isAdminLoggedIn');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('isAdminLoggedIn');
+      localStorage.removeItem('admin_master_session');
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('isAdminLoggedIn');
+      sessionStorage.removeItem('admin_master_session');
+    }
     document.body.classList.remove('admin-authenticated');
 
     const origLoginText = btnLogin ? btnLogin.innerHTML : '🔑 로그인';
@@ -2273,5 +2285,16 @@ window.exitSpectatorMode = function() {
   if (typeof localStorage !== 'undefined') {
     localStorage.removeItem('spectator_temp_save');
   }
+  try {
+    localStorage.setItem('isAdminLoggedIn', 'true');
+    sessionStorage.setItem('isAdminLoggedIn', 'true');
+    localStorage.setItem('admin_master_session', 'true');
+    sessionStorage.setItem('admin_master_session', 'true');
+    localStorage.setItem('awakened_hunter_cloud_session_v1', JSON.stringify({
+      userId: 'admin',
+      password: 'admin1234',
+      lastSyncTime: new Date().toISOString()
+    }));
+  } catch (e) {}
   window.location.replace('admin.html');
 };

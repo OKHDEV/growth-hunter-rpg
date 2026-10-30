@@ -11,6 +11,24 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+  <!-- Admin Auto-Routing Guard: Seamlessly navigate authenticated admin to Admin Panel unless spectating or testing game -->
+  <script>
+    (function() {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const isSpectate = searchParams.has('spectate') || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('spectator_active') === 'true');
+        const isExplicitGame = searchParams.has('game') || searchParams.has('play');
+        const rawCloud = typeof localStorage !== 'undefined' ? (localStorage.getItem('awakened_hunter_cloud_session_v1') || '') : '';
+        const hasAdminAuth = typeof localStorage !== 'undefined' &&
+                             (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true') &&
+                             (rawCloud.toLowerCase().includes('"userid":"admin"') || localStorage.getItem('admin_master_session') === 'true');
+        if (hasAdminAuth && !isSpectate && !isExplicitGame) {
+          window.location.replace('admin.html');
+        }
+      } catch(e) {}
+    })();
+  </script>
+
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css?v=20261029_36">
   <link rel="stylesheet" href="css/battle.css?v=20261029_36">

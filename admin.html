@@ -7,12 +7,30 @@
   <script>
     (function() {
       try {
-        const isAuth = (typeof localStorage !== 'undefined') &&
-                       (localStorage.getItem('isAdminLoggedIn') === 'true') &&
-                       (localStorage.getItem('awakened_hunter_cloud_session_v1')?.toLowerCase().includes('"userid":"admin"'));
-        if (!isAuth) {
+        const hasAdminFlag = (typeof localStorage !== 'undefined' && (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true')) ||
+                             (typeof sessionStorage !== 'undefined' && (sessionStorage.getItem('isAdminLoggedIn') === 'true' || sessionStorage.getItem('admin_master_session') === 'true'));
+        const rawCloud = typeof localStorage !== 'undefined' ? (localStorage.getItem('awakened_hunter_cloud_session_v1') || '') : '';
+        const hasAdminCloud = rawCloud.toLowerCase().includes('"userid":"admin"');
+        const isMaster = typeof localStorage !== 'undefined' && localStorage.getItem('admin_master_session') === 'true';
+
+        if (!hasAdminFlag || (!hasAdminCloud && !isMaster)) {
           window.location.replace('index.html');
+          return;
         }
+
+        try {
+          localStorage.setItem('isAdminLoggedIn', 'true');
+          localStorage.setItem('admin_master_session', 'true');
+          sessionStorage.setItem('isAdminLoggedIn', 'true');
+          sessionStorage.setItem('admin_master_session', 'true');
+          if (!hasAdminCloud) {
+            localStorage.setItem('awakened_hunter_cloud_session_v1', JSON.stringify({
+              userId: 'admin',
+              password: 'admin1234',
+              lastSyncTime: new Date().toISOString()
+            }));
+          }
+        } catch(e) {}
       } catch (e) {
         window.location.replace('index.html');
       }
@@ -641,7 +659,7 @@
     <div class="admin-header">
       <div class="admin-header-top">
         <h1>👑 슈퍼 관리자(Admin) 통합 관제 콘솔</h1>
-        <a href="index.html" class="btn-return-game">
+        <a href="index.html?game=1" class="btn-return-game">
           🎮 메인 게임으로 돌아가기 ↗
         </a>
       </div>
@@ -651,7 +669,7 @@
       </p>
 
       <div class="btn-group" style="gap: 10px;">
-        <a href="index.html" class="btn-action btn-emerald" style="text-decoration:none;">
+        <a href="index.html?game=1" class="btn-action btn-emerald" style="text-decoration:none;">
           🎮 메인 게임으로 돌아가기
         </a>
         <button class="btn-action btn-amber" onclick="loadAllAccounts()">
@@ -710,7 +728,7 @@
   </div>
 
   <!-- 🎮 Floating Sticky "메인 게임으로 돌아가기" Button -->
-  <a href="index.html" class="floating-back-btn" title="메인 게임 플레이 화면으로 이동">
+  <a href="index.html?game=1" class="floating-back-btn" title="메인 게임 플레이 화면으로 이동">
     🎮 메인 게임으로 돌아가기
   </a>
 
@@ -900,11 +918,40 @@
     let cachedUserSaves = {}; // userId -> saveJson
 
     function checkAdminAuth() {
-      const isAuth = (typeof localStorage !== 'undefined') &&
-                     (localStorage.getItem('isAdminLoggedIn') === 'true') &&
-                     (localStorage.getItem('awakened_hunter_cloud_session_v1')?.toLowerCase().includes('"userid":"admin"'));
+      try {
+        const hasAdminFlag = (typeof localStorage !== 'undefined' && (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true')) ||
+                             (typeof sessionStorage !== 'undefined' && (sessionStorage.getItem('isAdminLoggedIn') === 'true' || sessionStorage.getItem('admin_master_session') === 'true'));
+        const rawCloud = typeof localStorage !== 'undefined' ? (localStorage.getItem('awakened_hunter_cloud_session_v1') || '') : '';
+        const hasAdminCloud = rawCloud.toLowerCase().includes('"userid":"admin"');
+        const isMaster = typeof localStorage !== 'undefined' && localStorage.getItem('admin_master_session') === 'true';
 
-      if (!isAuth) {
+        if (!hasAdminFlag || (!hasAdminCloud && !isMaster)) {
+          window.location.replace('index.html');
+          return;
+        }
+
+        // Clean spectator flags since we are safely back in the admin console
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('spectator_active');
+          sessionStorage.removeItem('spectator_user_id');
+          sessionStorage.removeItem('spectator_save_data');
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('spectator_temp_save');
+        }
+
+        localStorage.setItem('isAdminLoggedIn', 'true');
+        localStorage.setItem('admin_master_session', 'true');
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
+        sessionStorage.setItem('admin_master_session', 'true');
+        if (!hasAdminCloud) {
+          localStorage.setItem('awakened_hunter_cloud_session_v1', JSON.stringify({
+            userId: 'admin',
+            password: 'admin1234',
+            lastSyncTime: new Date().toISOString()
+          }));
+        }
+      } catch (e) {
         window.location.replace('index.html');
         return;
       }
@@ -912,15 +959,44 @@
       loadAllAccounts();
     }
 
-    function logoutAdmin() {
-      if (confirm('관리자 세션을 로그아웃하고 메인 게임 화면으로 이동하시겠습니까?')) {
-        try {
-          localStorage.removeItem('isAdminLoggedIn');
-          sessionStorage.removeItem('isAdminLoggedIn');
-          localStorage.removeItem('awakened_hunter_cloud_session_v1');
-        } catch (e) {}
-        window.location.replace('index.html');
+    async function logoutAdmin() {
+      if (!confirm('관리자 세션을 로그아웃하고 메인 게임 화면으로 이동하시겠습니까?')) {
+        return;
       }
+      try {
+        localStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('isAdminLoggedIn');
+        localStorage.removeItem('admin_master_session');
+        sessionStorage.removeItem('admin_master_session');
+        localStorage.removeItem('awakened_hunter_cloud_session_v1');
+        sessionStorage.removeItem('awakened_hunter_cloud_session_v1');
+        localStorage.removeItem('spectator_temp_save');
+        sessionStorage.removeItem('spectator_active');
+        sessionStorage.removeItem('spectator_user_id');
+        sessionStorage.removeItem('spectator_save_data');
+      } catch (e) {}
+
+      // Thoroughly delete admin cloud session from IndexedDB so auto-recovery cannot resurrect admin
+      await new Promise(resolve => {
+        try {
+          if (typeof indexedDB === 'undefined') return resolve();
+          const req = indexedDB.open('AwakenedHunterDB', 1);
+          req.onerror = () => resolve();
+          req.onsuccess = (e) => {
+            try {
+              const db = e.target.result;
+              if (!db.objectStoreNames.contains('saves')) return resolve();
+              const tx = db.transaction('saves', 'readwrite');
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => resolve();
+              const store = tx.objectStore('saves');
+              store.delete('awakened_hunter_cloud_session_v1');
+            } catch(err) { resolve(); }
+          };
+        } catch(err) { resolve(); }
+      });
+
+      window.location.replace('index.html');
     }
 
     function userIdToHex(userId) {
@@ -1345,6 +1421,10 @@
       sessionStorage.setItem('spectator_user_id', userId);
       sessionStorage.setItem('spectator_save_data', JSON.stringify(save));
       localStorage.setItem('spectator_temp_save', JSON.stringify({ userId, save, time: Date.now() }));
+      localStorage.setItem('isAdminLoggedIn', 'true');
+      sessionStorage.setItem('isAdminLoggedIn', 'true');
+      localStorage.setItem('admin_master_session', 'true');
+      sessionStorage.setItem('admin_master_session', 'true');
 
       // Navigate to game view in safe spectator mode
       window.location.href = 'index.html?spectate=1';

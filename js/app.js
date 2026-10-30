@@ -1,5 +1,20 @@
 // Application Entry Point & Global Bootstrap
 document.addEventListener('DOMContentLoaded', () => {
+  // Admin Auto-Routing Guard: Route logged-in Admin directly to admin.html unless spectating or explicit game param
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const isSpectate = searchParams.has('spectate') || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('spectator_active') === 'true');
+    const isExplicitGame = searchParams.has('game') || searchParams.has('play');
+    const rawCloud = typeof localStorage !== 'undefined' ? (localStorage.getItem('awakened_hunter_cloud_session_v1') || '') : '';
+    const hasAdminAuth = typeof localStorage !== 'undefined' &&
+                         (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true') &&
+                         (rawCloud.toLowerCase().includes('"userid":"admin"') || localStorage.getItem('admin_master_session') === 'true');
+    if (hasAdminAuth && !isSpectate && !isExplicitGame) {
+      window.location.replace('admin.html');
+      return;
+    }
+  } catch(e) {}
+
   // Initialize state, audio, quests, ui
   ui.init();
   quests.init();

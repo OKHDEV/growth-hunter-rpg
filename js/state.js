@@ -37,7 +37,7 @@ class GameState {
     try {
       const isSpectator = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('spectator_active') === 'true') ||
                           (typeof localStorage !== 'undefined' && localStorage.getItem('spectator_temp_save') !== null);
-      const isAdmin = (typeof localStorage !== 'undefined' && localStorage.getItem('isAdminLoggedIn') === 'true');
+      const isAdmin = (typeof localStorage !== 'undefined' && (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true'));
       if (isSpectator && isAdmin) {
         this.isReadOnlyMode = true;
         let sUser = null;
@@ -1576,6 +1576,17 @@ class GameState {
               try {
                 const sess = JSON.parse(getSess.result);
                 if (sess && sess.userId) {
+                  // Admin guard: Never auto-resurrect admin session if admin logged-in flag is not explicitly active
+                  if (String(sess.userId).trim().toLowerCase() === 'admin') {
+                    const isAdmin = (typeof localStorage !== 'undefined' && (localStorage.getItem('isAdminLoggedIn') === 'true' || localStorage.getItem('admin_master_session') === 'true'));
+                    if (!isAdmin) {
+                      try {
+                        const delTx = db.transaction('saves', 'readwrite');
+                        delTx.objectStore('saves').delete(this.CLOUD_SESSION_KEY);
+                      } catch(e) {}
+                      return;
+                    }
+                  }
                   this.saveCloudSession(sess);
                   this.pullFromCloud(true, false, true);
                 }
@@ -2461,12 +2472,14 @@ class GameState {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('isAdminLoggedIn');
+        localStorage.removeItem('admin_master_session');
         localStorage.removeItem(this.STORAGE_KEY);
         localStorage.removeItem(this.MIRROR_KEY);
         localStorage.removeItem('antigravity_cloud_session');
       }
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('admin_master_session');
         sessionStorage.removeItem('antigravity_cloud_session');
       }
       await this.clearIndexedDB();
@@ -2505,12 +2518,14 @@ class GameState {
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem('isAdminLoggedIn');
+        localStorage.removeItem('admin_master_session');
         localStorage.removeItem(this.STORAGE_KEY);
         localStorage.removeItem(this.MIRROR_KEY);
         localStorage.removeItem('antigravity_cloud_session');
       }
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('admin_master_session');
         sessionStorage.removeItem('antigravity_cloud_session');
       }
       await this.clearIndexedDB();
@@ -2555,7 +2570,11 @@ class GameState {
 
     if (typeof localStorage !== 'undefined' && userId.toLowerCase() !== 'admin') {
       localStorage.removeItem('isAdminLoggedIn');
-      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('isAdminLoggedIn');
+      localStorage.removeItem('admin_master_session');
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('admin_master_session');
+      }
     }
 
     try {
@@ -2925,8 +2944,14 @@ class GameState {
   async logoutCloud() {
     this.saveCloudSession(null);
     try {
-      if (typeof localStorage !== 'undefined') localStorage.removeItem('isAdminLoggedIn');
-      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('isAdminLoggedIn');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('isAdminLoggedIn');
+        localStorage.removeItem('admin_master_session');
+      }
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('admin_master_session');
+      }
     } catch (e) {}
     this.data = this.getDefaultState();
     this.data.resetTimestamp = Date.now();
