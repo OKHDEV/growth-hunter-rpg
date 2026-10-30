@@ -2683,6 +2683,10 @@
             actionBadge = '<span class="stat-chip" style="color:#facc15; border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08);">⭐ 레벨업</span>';
           } else if (actionType === 'quest_complete') {
             actionBadge = '<span class="stat-chip" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08);">📜 퀘스트 완료</span>';
+          } else if (actionType === 'gold_change') {
+            actionBadge = '<span class="stat-chip" style="color:#facc15; border-color:rgba(250,204,21,0.3); background:rgba(250,204,21,0.08);">💰 골드 변동</span>';
+          } else if (actionType === 'active_play' || actionType === 'play') {
+            actionBadge = '<span class="stat-chip" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">🎮 게임 플레이</span>';
           }
 
           // Build dynamic chips
@@ -2721,6 +2725,10 @@
             dynamicChips.push(`<span class="stat-chip" style="color:#34d399; border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.08);">📜 퀘스트 ${currQuests}개 수행</span>`);
           }
 
+          if (dynamicChips.length === 0) {
+            dynamicChips.push('<span class="stat-chip" style="color:#94a3b8; border-color:rgba(148,163,184,0.3); background:rgba(148,163,184,0.08);">🟢 접속만 함</span>');
+          }
+
           const stats = player.stats ? `STR ${player.stats.str || 14} · INT ${player.stats.int || 12} · END ${player.stats.end || 14} · GRO ${player.stats.gro || 15}` : '';
           const bossStatus = currCleared.length > 0 ? ` · Stage ${Math.max(...currCleared)} 보스 처치함` : '';
           const currentStatusText = `현재 상태: Lv.${currLv} · ${formatGold(currGold)} G${bossStatus}`;
@@ -2734,7 +2742,7 @@
               ${dynamicChips.join('\n              ')}
             </div>
             <div style="font-size:0.75rem; color:#64748b; font-family:Consolas, monospace; margin-top:4px;">
-              ${prevEv && !hasProgressionChange ? `${currentStatusText} · 스탯: ${stats}` : `스탯: ${stats} (${currentStatusText})`}
+              스탯: ${stats} (${currentStatusText})
             </div>
           `;
         }

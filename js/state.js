@@ -643,7 +643,7 @@ class GameState {
       const prevDate = this.data.quests.lastActiveDate;
       const completedCount = Object.keys(this.data.quests.completedToday || {}).length;
       if (!this.data.quests.history) this.data.quests.history = {};
-      this.data.quests.history[prevDate] = completedCount;
+      this.data.quests.history[prevDate] = Math.max(this.data.quests.history[prevDate] || 0, completedCount);
 
       if (diffDays > 1) {
         // Fill skipped days with 0 in history
@@ -660,7 +660,8 @@ class GameState {
         }
         this.data.quests.dailyStreak = 0;
       } else if (diffDays === 1) {
-        if (completedCount > 0) {
+        const effectiveCount = Math.max(completedCount, this.data.quests.history[prevDate] || 0);
+        if (effectiveCount > 0) {
           this.data.quests.dailyStreak += 1;
         } else {
           this.data.quests.dailyStreak = 0;
