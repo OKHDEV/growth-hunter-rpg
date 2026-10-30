@@ -14,6 +14,7 @@ class QuestManager {
     this.pendingQuestId = null;
     this.selectedDeleteQuestId = null;
     this.editingQuestId = null;
+    this.timerTargetTimestamp = null;
     this._isExpUserEdited = false;
     this._isGoldUserEdited = false;
     this._isGrowthUserEdited = false;
@@ -24,6 +25,27 @@ class QuestManager {
     this.renderCurrentView();
     this.startDailyResetCountdown();
     this.setupCustomQuestInputWatchers();
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.activeTimer && this.timerTargetTimestamp) {
+          const clock = document.getElementById('timerModalClock');
+          this.timerSecondsLeft = Math.max(0, Math.round((this.timerTargetTimestamp - Date.now()) / 1000));
+          this.updateTimerDisplay(clock, this.timerSecondsLeft);
+          if (this.timerSecondsLeft <= 0) {
+            clearInterval(this.activeTimer);
+            this.activeTimer = null;
+            this.timerTargetTimestamp = null;
+            sound.playLevelUp();
+            ui.showToast("⏰ 타이머 종료! 목표 시간을 완수하였습니다!");
+            const startBtn = document.getElementById('timerStartBtn');
+            const pauseBtn = document.getElementById('timerPauseBtn');
+            if (startBtn) startBtn.classList.remove('hidden');
+            if (pauseBtn) pauseBtn.classList.add('hidden');
+          }
+        }
+      });
+    }
   }
 
   startDailyResetCountdown() {
@@ -216,13 +238,17 @@ class QuestManager {
       </button>
     ` : '';
 
+    const safeTitle = typeof escapeHtml === 'function' ? escapeHtml(quest.title) : quest.title;
+    const safeDesc = typeof escapeHtml === 'function' ? escapeHtml(quest.description) : quest.description;
+    const safeCat = typeof escapeHtml === 'function' ? escapeHtml(quest.categoryName || '도전과제') : (quest.categoryName || '도전과제');
+
     card.innerHTML = `
       <div class="quest-card-header">
         <div class="quest-badge-wrap" style="display:flex; align-items:center; gap:6px;">
           <span class="quest-tier-badge" style="background:${tierInfo.bg}; color:${tierInfo.color}; border: 1px solid ${tierInfo.border}">
             ${tierInfo.name}
           </span>
-          <span class="quest-category-badge">${quest.categoryName || '도전과제'}</span>
+          <span class="quest-category-badge">${safeCat}</span>
           ${isCustom ? `<span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.12); padding:1px 5px; border-radius:3px; border:1px solid rgba(56,189,248,0.3);">⭐ 나만의</span>` : ''}
           ${editBtnHtml}
         </div>
@@ -233,8 +259,8 @@ class QuestManager {
         </div>
       </div>
       <div class="quest-card-body">
-        <h4 class="quest-title">${quest.title}</h4>
-        <p class="quest-desc">${quest.description}</p>
+        <h4 class="quest-title">${safeTitle}</h4>
+        <p class="quest-desc">${safeDesc}</p>
       </div>
       <div class="quest-card-footer">
         ${actionHtml}
@@ -294,7 +320,8 @@ class QuestManager {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `btn-folder-pill ${f.id === this.activeFolderId ? 'active' : ''}`;
-      btn.innerHTML = `<span>${f.name}</span> <span class="folder-badge-count">${qCount}</span>`;
+      const safeFolderName = typeof escapeHtml === 'function' ? escapeHtml(f.name) : f.name;
+      btn.innerHTML = `<span>${safeFolderName}</span> <span class="folder-badge-count">${qCount}</span>`;
       btn.onclick = () => this.selectFolder(f.id);
       navRow.appendChild(btn);
     });
@@ -330,9 +357,10 @@ class QuestManager {
       .map(id => allQuests.find(q => q.id === id))
       .filter(Boolean);
 
+    const safeActiveFolderName = typeof escapeHtml === 'function' ? escapeHtml(activeFolder.name) : activeFolder.name;
     headerCard.innerHTML = `
       <div class="folder-title-left">
-        <strong style="font-size: 16px; color: #fff;">📁 ${activeFolder.name}</strong>
+        <strong style="font-size: 16px; color: #fff;">📁 ${safeActiveFolderName}</strong>
         <span style="font-size: 12px; color: #94a3b8;">(${questsInFolder.length}개 퀘스트 등록됨)</span>
       </div>
       <div class="folder-actions-right">
@@ -485,6 +513,9 @@ class QuestManager {
             <button type="button" style="background:none; border:none; color:#38bdf8; font-size:12px; cursor:pointer; padding:0 3px;" title="퀘스트 수정" onclick="quests.openEditCustomQuestModal('${quest.id}', event)">✏️</button>
           ` : '';
 
+          const safeDayTitle = typeof escapeHtml === 'function' ? escapeHtml(quest.title) : quest.title;
+          const safeDayDesc = typeof escapeHtml === 'function' ? escapeHtml(quest.description) : quest.description;
+
           return `
             <div class="day-quest-item ${isCompleted ? 'completed' : ''}">
               <div class="day-quest-item-top">
@@ -492,8 +523,8 @@ class QuestManager {
                   <span class="quest-tier-badge" style="background: ${tierInfo.bg}; color: ${tierInfo.color}; border: 1px solid ${tierInfo.border}; font-size: 10px; padding: 1px 5px; flex-shrink: 0;">
                     ${tierInfo.name}
                   </span>
-                  <strong style="color: #fff; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${quest.title}">
-                    ${quest.title}
+                  <strong style="color: #fff; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${safeDayTitle}">
+                    ${safeDayTitle}
                   </strong>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
@@ -502,7 +533,7 @@ class QuestManager {
                 </div>
               </div>
               <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                ${quest.description}
+                ${safeDayDesc}
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 6px;">
                 <span style="font-size: 10.5px; color: #38bdf8; font-weight: 700; flex-shrink: 0;">+${quest.exp} EXP · +${quest.gold} G</span>
@@ -619,14 +650,17 @@ class QuestManager {
         const isChecked = (folder.questIds || []).includes(q.id);
         const item = document.createElement('label');
         item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:8px; cursor:pointer;';
+        const sCat = typeof escapeHtml === 'function' ? escapeHtml(q.categoryName || '도전과제') : (q.categoryName || '도전과제');
+        const sTitle = typeof escapeHtml === 'function' ? escapeHtml(q.title) : q.title;
+        const sDesc = typeof escapeHtml === 'function' ? escapeHtml(q.description) : q.description;
         item.innerHTML = `
           <input type="checkbox" value="${q.id}" ${isChecked ? 'checked' : ''} style="width:18px; height:18px; accent-color:#38bdf8; cursor:pointer;">
           <div style="flex:1; min-width:0;">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-              <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:#1e293b; color:#38bdf8;">${q.categoryName || '도전과제'}</span>
-              <strong style="color:#fff; font-size:13px;">${q.title}</strong>
+              <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:#1e293b; color:#38bdf8;">${sCat}</span>
+              <strong style="color:#fff; font-size:13px;">${sTitle}</strong>
             </div>
-            <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${q.description}</div>
+            <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sDesc}</div>
           </div>
         `;
         list.appendChild(item);
@@ -683,14 +717,17 @@ class QuestManager {
         const isChecked = assignedIds.includes(q.id);
         const item = document.createElement('label');
         item.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:8px; cursor:pointer;';
+        const sCat = typeof escapeHtml === 'function' ? escapeHtml(q.categoryName || '도전과제') : (q.categoryName || '도전과제');
+        const sTitle = typeof escapeHtml === 'function' ? escapeHtml(q.title) : q.title;
+        const sDesc = typeof escapeHtml === 'function' ? escapeHtml(q.description) : q.description;
         item.innerHTML = `
           <input type="checkbox" value="${q.id}" ${isChecked ? 'checked' : ''} style="width:18px; height:18px; accent-color:#a855f7; cursor:pointer;">
           <div style="flex:1; min-width:0;">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-              <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:#1e293b; color:#c084fc;">${q.categoryName || '도전과제'}</span>
-              <strong style="color:#fff; font-size:13px;">${q.title}</strong>
+              <span style="font-size:10px; padding:1px 5px; border-radius:3px; background:#1e293b; color:#c084fc;">${sCat}</span>
+              <strong style="color:#fff; font-size:13px;">${sTitle}</strong>
             </div>
-            <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${q.description}</div>
+            <div style="font-size:11px; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${sDesc}</div>
           </div>
         `;
         list.appendChild(item);
@@ -877,13 +914,15 @@ class QuestManager {
   finishCounter() {
     if (!this.activeCounterQuestId) return;
     const questId = this.activeCounterQuestId;
-    document.getElementById('questCounterModal').classList.add('hidden');
+    const modal = document.getElementById('questCounterModal');
+    if (modal) modal.classList.add('hidden');
     this.activeCounterQuestId = null;
     this.promptConfirmClaim(questId);
   }
 
   closeCounterModal() {
-    document.getElementById('questCounterModal').classList.add('hidden');
+    const modal = document.getElementById('questCounterModal');
+    if (modal) modal.classList.add('hidden');
     this.activeCounterQuestId = null;
   }
 
@@ -897,6 +936,7 @@ class QuestManager {
 
     this.timerQuestId = questId;
     this.timerSecondsLeft = quest.targetSeconds || 1200;
+    this.timerTargetTimestamp = null;
 
     const modal = document.getElementById('questTimerModal');
     const title = document.getElementById('timerModalTitle');
@@ -905,7 +945,7 @@ class QuestManager {
     if (title) title.textContent = quest.title;
     this.updateTimerDisplay(clock, this.timerSecondsLeft);
 
-    modal.classList.remove('hidden');
+    if (modal) modal.classList.remove('hidden');
   }
 
   startTimer() {
@@ -919,19 +959,25 @@ class QuestManager {
     if (startBtn) startBtn.classList.add('hidden');
     if (pauseBtn) pauseBtn.classList.remove('hidden');
 
-    this.activeTimer = setInterval(() => {
-      this.timerSecondsLeft--;
+    this.timerTargetTimestamp = Date.now() + (this.timerSecondsLeft * 1000);
+
+    const tick = () => {
+      const now = Date.now();
+      this.timerSecondsLeft = Math.max(0, Math.round((this.timerTargetTimestamp - now) / 1000));
       this.updateTimerDisplay(clock, this.timerSecondsLeft);
 
       if (this.timerSecondsLeft <= 0) {
         clearInterval(this.activeTimer);
         this.activeTimer = null;
+        this.timerTargetTimestamp = null;
         sound.playLevelUp();
         ui.showToast("⏰ 타이머 종료! 목표 시간을 완수하였습니다!");
         if (startBtn) startBtn.classList.remove('hidden');
         if (pauseBtn) pauseBtn.classList.add('hidden');
       }
-    }, 1000);
+    };
+
+    this.activeTimer = setInterval(tick, 1000);
   }
 
   pauseTimer() {
@@ -939,6 +985,12 @@ class QuestManager {
       clearInterval(this.activeTimer);
       this.activeTimer = null;
     }
+    if (this.timerTargetTimestamp) {
+      this.timerSecondsLeft = Math.max(0, Math.round((this.timerTargetTimestamp - Date.now()) / 1000));
+      this.timerTargetTimestamp = null;
+    }
+    const clock = document.getElementById('timerModalClock');
+    this.updateTimerDisplay(clock, this.timerSecondsLeft);
     const startBtn = document.getElementById('timerStartBtn');
     const pauseBtn = document.getElementById('timerPauseBtn');
     if (startBtn) startBtn.classList.remove('hidden');
@@ -951,8 +1003,10 @@ class QuestManager {
       clearInterval(this.activeTimer);
       this.activeTimer = null;
     }
+    this.timerTargetTimestamp = null;
     const questId = this.timerQuestId;
-    document.getElementById('questTimerModal').classList.add('hidden');
+    const modal = document.getElementById('questTimerModal');
+    if (modal) modal.classList.add('hidden');
     this.timerQuestId = null;
     if (questId) {
       this.promptConfirmClaim(questId);
@@ -964,7 +1018,9 @@ class QuestManager {
       clearInterval(this.activeTimer);
       this.activeTimer = null;
     }
-    document.getElementById('questTimerModal').classList.add('hidden');
+    this.timerTargetTimestamp = null;
+    const modal = document.getElementById('questTimerModal');
+    if (modal) modal.classList.add('hidden');
     this.timerQuestId = null;
   }
 
@@ -1251,7 +1307,7 @@ class QuestManager {
                   ${isCustom ? '⭐ 나만의 퀘스트' : '기본'}
                 </span>
                 <span style="font-weight:700; color:#fff; font-size:13px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">
-                  ${q.title}
+                  ${typeof escapeHtml === 'function' ? escapeHtml(q.title) : q.title}
                 </span>
               </div>
               <div style="font-size:11px; color:#94a3b8;">

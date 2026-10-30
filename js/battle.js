@@ -500,7 +500,8 @@ class BattleEngine {
     this.battleLog.forEach(item => {
       const p = document.createElement('div');
       p.className = `log-line log-${item.type}`;
-      p.innerHTML = `<span class="log-time">[${item.time}]</span> ${item.msg}`;
+      const safeMsg = typeof escapeHtml === 'function' ? escapeHtml(item.msg) : item.msg;
+      p.innerHTML = `<span class="log-time">[${item.time}]</span> ${safeMsg}`;
       logContainer.appendChild(p);
     });
   }

@@ -382,9 +382,12 @@ body.in-battle .app-container {
 
   /* Modals */
   .qte-modal-box,
-  .result-card {
+  .result-card,
+  .modal-box {
     padding: 24px 18px;
     width: 95%;
+    max-height: calc(85dvh - env(safe-area-inset-bottom, 0px)) !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   .ultimate-cutscene-text {

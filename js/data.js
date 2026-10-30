@@ -1,3 +1,16 @@
+// Global XSS Sanitizer for safe template literal innerHTML rendering
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+if (typeof window !== 'undefined') window.escapeHtml = escapeHtml;
+if (typeof global !== 'undefined') global.escapeHtml = escapeHtml;
+
 // Game Data Definitions: High School 2nd Grade (173cm -> 178cm Realistic Growth) & 50 Epic Bosses
 
 // Quests tailored for High School Sophomore (Study, Height Growth, Dopamine Detox, Fitness)
@@ -900,3 +913,18 @@ function registerAll50BossTitles() {
   });
 }
 registerAll50BossTitles();
+
+if (typeof window !== 'undefined') {
+  window.TITLES_DATA = TITLES_DATA;
+  window.BOSS_NAMES_DATA = BOSS_NAMES_DATA;
+  window.BOSSES_DATA = BOSSES_DATA;
+  window.INITIAL_QUESTS = INITIAL_QUESTS;
+  window.getTitleMetadata = getTitleMetadata;
+}
+if (typeof global !== 'undefined') {
+  global.TITLES_DATA = TITLES_DATA;
+  global.BOSS_NAMES_DATA = BOSS_NAMES_DATA;
+  global.BOSSES_DATA = BOSSES_DATA;
+  global.INITIAL_QUESTS = INITIAL_QUESTS;
+  global.getTitleMetadata = getTitleMetadata;
+}

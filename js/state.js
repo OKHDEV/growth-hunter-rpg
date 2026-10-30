@@ -6,6 +6,8 @@ function getLocalDateString(d = new Date()) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+if (typeof window !== 'undefined') window.getLocalDateString = getLocalDateString;
+if (typeof global !== 'undefined') global.getLocalDateString = getLocalDateString;
 
 class GameState {
   constructor() {
@@ -297,12 +299,14 @@ class GameState {
     };
 
     // 1. Leaving page, switching tabs, or locking phone: save immediately to local storage and sync to cloud
-    window.addEventListener('beforeunload', () => {
-      if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
-    });
-    window.addEventListener('pagehide', () => {
-      if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
-    });
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('beforeunload', () => {
+        if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
+      });
+      window.addEventListener('pagehide', () => {
+        if (!this.isReadOnlyMode && !this._accountDeleted) this.save(true);
+      });
+    }
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
@@ -317,18 +321,20 @@ class GameState {
     }
 
     // 2. iOS Safari / Android Chrome BFCache restore & Window focus
-    window.addEventListener('pageshow', () => {
-      if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('pageshow');
-    });
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('pageshow', () => {
+        if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('pageshow');
+      });
 
-    window.addEventListener('focus', () => {
-      if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('focus');
-    });
+      window.addEventListener('focus', () => {
+        if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('focus');
+      });
 
-    // 3. Online event (reconnected to internet after device sleep or power on)
-    window.addEventListener('online', () => {
-      if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('online');
-    });
+      // 3. Online event (reconnected to internet after device sleep or power on)
+      window.addEventListener('online', () => {
+        if (!this.isReadOnlyMode && !this._accountDeleted) triggerAutoCloudPull('online');
+      });
+    }
 
     // 4. In-game periodic heartbeat (every 15s) while screen active: detects remote admin deletion and kicks out in real-time
     if (typeof setInterval !== 'undefined') {
@@ -850,8 +856,10 @@ class GameState {
 
     // 3. Clear and re-save fresh state to localStorage & IndexedDB
     const serialized = JSON.stringify(this.data);
-    localStorage.setItem(this.STORAGE_KEY, serialized);
-    localStorage.setItem(this.MIRROR_KEY, serialized);
+    try {
+      localStorage.setItem(this.STORAGE_KEY, serialized);
+      localStorage.setItem(this.MIRROR_KEY, serialized);
+    } catch (e) {}
     this.saveToIndexedDB(serialized);
 
     // 4. If logged into cloud:
@@ -1480,6 +1488,10 @@ class GameState {
   }
 
   addCustomQuest(questData) {
+    const parsedExp = parseInt(questData.exp);
+    const parsedGold = parseInt(questData.gold);
+    const parsedGrowth = parseInt(questData.growthPoints);
+
     const newQuest = {
       id: "custom_" + Date.now(),
       title: (questData.title || '').trim(),
@@ -1487,9 +1499,9 @@ class GameState {
       category: questData.category || "height",
       categoryName: questData.categoryName || "신체 & 키 성장",
       tier: questData.tier || "B",
-      exp: Math.min(2500, Math.max(1, parseInt(questData.exp) || 300)),
-      gold: Math.min(2500, Math.max(0, parseInt(questData.gold) !== undefined ? parseInt(questData.gold) : 100)),
-      growthPoints: Math.min(30, Math.max(1, parseInt(questData.growthPoints) || 10)),
+      exp: !isNaN(parsedExp) ? Math.min(2500, Math.max(1, parsedExp)) : 300,
+      gold: !isNaN(parsedGold) ? Math.min(2500, Math.max(0, parsedGold)) : 100,
+      growthPoints: !isNaN(parsedGrowth) ? Math.min(30, Math.max(1, parsedGrowth)) : 10,
       type: questData.type || "check",
       targetCount: questData.targetCount ? parseInt(questData.targetCount) : null,
       targetSeconds: questData.targetSeconds ? parseInt(questData.targetSeconds) : null,
@@ -1509,6 +1521,10 @@ class GameState {
     if (idx === -1) return null;
 
     const existing = this.data.quests.customQuests[idx];
+    const parsedExp = parseInt(updatedData.exp);
+    const parsedGold = parseInt(updatedData.gold);
+    const parsedGrowth = parseInt(updatedData.growthPoints);
+
     const updated = {
       ...existing,
       title: (updatedData.title !== undefined ? updatedData.title : existing.title).trim(),
@@ -1516,9 +1532,9 @@ class GameState {
       category: updatedData.category || existing.category,
       categoryName: updatedData.categoryName || existing.categoryName,
       tier: updatedData.tier || existing.tier,
-      exp: Math.min(2500, Math.max(1, parseInt(updatedData.exp) || existing.exp || 300)),
-      gold: Math.min(2500, Math.max(0, parseInt(updatedData.gold) !== undefined ? parseInt(updatedData.gold) : (existing.gold !== undefined ? existing.gold : 100))),
-      growthPoints: Math.min(30, Math.max(1, parseInt(updatedData.growthPoints) || existing.growthPoints || 10)),
+      exp: !isNaN(parsedExp) ? Math.min(2500, Math.max(1, parsedExp)) : (existing.exp || 300),
+      gold: !isNaN(parsedGold) ? Math.min(2500, Math.max(0, parsedGold)) : (existing.gold !== undefined ? existing.gold : 100),
+      growthPoints: !isNaN(parsedGrowth) ? Math.min(30, Math.max(1, parsedGrowth)) : (existing.growthPoints || 10),
       type: updatedData.type || existing.type,
       targetCount: updatedData.targetCount ? parseInt(updatedData.targetCount) : null,
       targetSeconds: updatedData.targetSeconds ? parseInt(updatedData.targetSeconds) : null,
@@ -3230,8 +3246,10 @@ class GameState {
     this.data.resetTimestamp = Date.now();
     await this.clearIndexedDB();
     const serialized = JSON.stringify(this.data);
-    localStorage.setItem(this.STORAGE_KEY, serialized);
-    localStorage.setItem(this.MIRROR_KEY, serialized);
+    try {
+      localStorage.setItem(this.STORAGE_KEY, serialized);
+      localStorage.setItem(this.MIRROR_KEY, serialized);
+    } catch (e) {}
     this.saveToIndexedDB(serialized);
     this.updateSaveIndicator();
     if (typeof ui !== 'undefined') {
@@ -3244,3 +3262,11 @@ class GameState {
 
 // Global state instance
 const state = new GameState();
+if (typeof window !== 'undefined') {
+  window.GameState = GameState;
+  window.state = state;
+}
+if (typeof global !== 'undefined') {
+  global.GameState = GameState;
+  global.state = state;
+}

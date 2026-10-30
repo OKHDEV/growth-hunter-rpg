@@ -71,8 +71,24 @@ class UIManager {
   }
 
   startParticleLoop() {
+    let canvasDirty = false;
     const loop = () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        requestAnimationFrame(loop);
+        return;
+      }
+
       if (this.particleCtx && this.particleCanvas) {
+        if (this.particles.length === 0) {
+          if (canvasDirty) {
+            this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
+            canvasDirty = false;
+          }
+          requestAnimationFrame(loop);
+          return;
+        }
+
+        canvasDirty = true;
         this.particleCtx.clearRect(0, 0, this.particleCanvas.width, this.particleCanvas.height);
 
         for (let i = this.particles.length - 1; i >= 0; i--) {
@@ -265,7 +281,8 @@ class UIManager {
         ? `<span style="font-size: 11px; color: #facc15; font-weight: 800; margin-left: 6px; background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.45); padding: 2px 7px; border-radius: 4px;">EXP +${Math.round((activeMults.expMultiplier - 1) * 100)}% / 골드 +${Math.round((activeMults.goldMultiplier - 1) * 100)}%</span>`
         : '';
 
-      statTitle.innerHTML = `<div>${p.activeTitle} ${multBadgeHtml}</div>${statLineHtml}`;
+      const safeActiveTitle = typeof escapeHtml === 'function' ? escapeHtml(p.activeTitle) : p.activeTitle;
+      statTitle.innerHTML = `<div>${safeActiveTitle} ${multBadgeHtml}</div>${statLineHtml}`;
     }
     if (statLevel) statLevel.textContent = `LEVEL ${p.level}`;
     if (statRank) {
@@ -1049,7 +1066,7 @@ class UIManager {
 
       card.innerHTML = `
         <div class="boss-img-wrap">
-          <img src="${boss.image}" alt="${boss.name}" class="boss-card-img" style="${imgStyle}" />
+          <img src="${boss.image}" alt="${boss.name}" class="boss-card-img" style="${imgStyle}" loading="lazy" onerror="this.onerror=null; this.src='assets/bosses/stage_50_omega.jpg';" />
           ${auraOverlayHtml}
           <div class="boss-stage-badge" style="${boss.isSecretFinal ? 'background:linear-gradient(135deg, #f59e0b, #ef4444); border-color:#f59e0b; color:#fff; font-weight:900;' : (v ? `border-color:${v.color}; color:#fff; background:linear-gradient(135deg, rgba(0,0,0,0.88), ${v.color}66); box-shadow:0 0 12px ${v.color}88;` : '')}">
             ${boss.isSecretFinal ? '👑 100단계 [100레벨 보스]' : `STAGE ${boss.stage}`}
@@ -1164,6 +1181,7 @@ class UIManager {
     // 1. Update Hunter Main Avatar
     const avatarImg = document.getElementById('hunterMainAvatar');
     if (avatarImg) {
+      avatarImg.onerror = function() { this.onerror = null; this.src = 'assets/player/hunter.jpg'; };
       avatarImg.src = card.image;
       avatarImg.alt = card.name;
     }
@@ -1171,6 +1189,7 @@ class UIManager {
     // 2. Update Battle Arena Player Avatar
     const battleAvatar = document.getElementById('battlePlayerAvatar');
     if (battleAvatar) {
+      battleAvatar.onerror = function() { this.onerror = null; this.src = 'assets/player/hunter.jpg'; };
       battleAvatar.src = card.image;
     }
 
@@ -1198,9 +1217,12 @@ class UIManager {
     sound.playClick();
     const modal = document.getElementById('profileEditModal');
     if (!modal) return;
-    document.getElementById('editNameInput').value = state.data.player.name;
-    document.getElementById('editHeightInput').value = state.data.player.baseHeight;
-    document.getElementById('editTargetHeightInput').value = state.data.player.targetHeight || 178.0;
+    const nameEl = document.getElementById('editNameInput');
+    const heightEl = document.getElementById('editHeightInput');
+    const targetHeightEl = document.getElementById('editTargetHeightInput');
+    if (nameEl) nameEl.value = state.data.player.name;
+    if (heightEl) heightEl.value = state.data.player.baseHeight;
+    if (targetHeightEl) targetHeightEl.value = state.data.player.targetHeight || 178.0;
 
     // Initialize temporary selection with current active card
     this._tempSelectedCardId = (state.data.player && state.data.player.cardId) || 'card_default';
@@ -1223,17 +1245,20 @@ class UIManager {
 
     grid.innerHTML = cards.map(c => {
       const isSelected = c.id === this._tempSelectedCardId;
+      const sName = typeof escapeHtml === 'function' ? escapeHtml(c.name) : c.name;
+      const sTag = typeof escapeHtml === 'function' ? escapeHtml(c.tag) : c.tag;
+      const sDesc = typeof escapeHtml === 'function' ? escapeHtml(c.desc) : c.desc;
       return `
         <div class="card-picker-item ${isSelected ? 'selected' : ''}" 
              onclick="ui.selectCardInPicker('${c.id}')"
-             title="${c.name} (${c.tag}) - ${c.desc}">
+             title="${sName} (${sTag}) - ${sDesc}">
           <div class="card-picker-thumb-wrap">
-            <img src="${c.image}" alt="${c.name}" class="card-picker-thumb" loading="lazy">
+            <img src="${c.image}" alt="${sName}" class="card-picker-thumb" loading="lazy" onerror="this.onerror=null; this.src='assets/player/hunter.jpg';">
             <div class="card-picker-check">✓</div>
           </div>
           <div class="card-picker-info">
-            <div class="card-picker-name">${c.name}</div>
-            <div class="card-picker-tag" style="color:${c.accentColor};">${c.tag}</div>
+            <div class="card-picker-name">${sName}</div>
+            <div class="card-picker-tag" style="color:${c.accentColor};">${sTag}</div>
           </div>
         </div>
       `;
@@ -1252,9 +1277,12 @@ class UIManager {
   }
 
   saveProfile() {
-    const nameVal = document.getElementById('editNameInput').value.trim();
-    const heightVal = parseFloat(document.getElementById('editHeightInput').value);
-    const targetVal = parseFloat(document.getElementById('editTargetHeightInput').value);
+    const nameInput = document.getElementById('editNameInput');
+    const heightInput = document.getElementById('editHeightInput');
+    const targetInput = document.getElementById('editTargetHeightInput');
+    const nameVal = nameInput ? nameInput.value.trim() : '';
+    const heightVal = heightInput ? parseFloat(heightInput.value) : NaN;
+    const targetVal = targetInput ? parseFloat(targetInput.value) : NaN;
 
     if (nameVal) state.data.player.name = nameVal;
     if (!isNaN(heightVal) && heightVal >= 130 && heightVal <= 210) {
@@ -1303,10 +1331,12 @@ class UIManager {
         slotEl.className = `equip-slot-card ${item ? 'filled rarity-' + item.rarity : 'empty'}`;
 
         if (item) {
+          const sName = typeof escapeHtml === 'function' ? escapeHtml(item.name) : item.name;
+          const sStats = typeof escapeHtml === 'function' ? escapeHtml(item.statsText) : item.statsText;
           slotEl.innerHTML = `
             <div class="slot-type">${slotNames[slot]}</div>
-            <div class="item-name">${item.name}</div>
-            <div class="item-stats">${item.statsText}</div>
+            <div class="item-name">${sName}</div>
+            <div class="item-stats">${sStats}</div>
             <button class="btn btn-xs btn-outline-danger" onclick="state.unequipItem('${slot}'); ui.renderInventory(); ui.updateHeaderAndStats();">해제</button>
           `;
         } else {
@@ -1454,7 +1484,7 @@ class UIManager {
             <span class="title-req-badge">REQ Lv.${reqLevel}</span>
           </div>
           <div class="title-name-wrap">
-            <span class="title-name-text">${tInfo.name}</span>
+            <span class="title-name-text">${typeof escapeHtml === 'function' ? escapeHtml(tInfo.name) : tInfo.name}</span>
             ${isActive ? '<span class="title-equipped-dot">착용</span>' : ''}
           </div>
           <div class="title-desc-text">${tInfo.desc}</div>
@@ -1796,15 +1826,23 @@ class UIManager {
             unitVal = '회';
           }
 
+          const rawExp = parseInt(expInput ? expInput.value : 500);
+          const rawGold = parseInt(goldInput ? goldInput.value : 160);
+          const rawGrowth = parseInt(growthInput ? growthInput.value : 15);
+
+          const safeExp = isNaN(rawExp) ? 500 : Math.min(2500, Math.max(1, rawExp));
+          const safeGold = isNaN(rawGold) ? 160 : Math.min(2500, Math.max(0, rawGold));
+          const safeGrowth = isNaN(rawGrowth) ? 15 : Math.min(30, Math.max(1, rawGrowth));
+
           const data = {
             title: title,
             description: (descInput && descInput.value.trim()) || '나만의 현실 수련 도전과제',
             category: catSelect ? catSelect.value : 'height',
             categoryName: catSelect ? catSelect.selectedOptions[0].text : '신체 & 키 성장',
             tier: tierSelect ? tierSelect.value : 'B',
-            exp: Math.min(2500, Math.max(1, parseInt(expInput ? expInput.value : 500) || 500)),
-            gold: Math.min(2500, Math.max(0, parseInt(goldInput ? goldInput.value : 160) || 160)),
-            growthPoints: Math.min(30, Math.max(1, parseInt(growthInput ? growthInput.value : 15) || 15)),
+            exp: safeExp,
+            gold: safeGold,
+            growthPoints: safeGrowth,
             type: qType,
             targetCount: targetCountVal,
             targetSeconds: targetSecondsVal,

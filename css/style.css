@@ -228,7 +228,9 @@ body {
   max-width: 480px;
   width: 90%;
   max-height: 90vh;
+  max-height: calc(90dvh - env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.95);
   animation: scaleBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -2632,4 +2634,32 @@ body.admin-authenticated #modalAdminLink {
 .card-theme-sovereign .hunter-avatar-wrap {
   border-color: #facc15 !important;
   box-shadow: 0 0 35px rgba(250, 204, 21, 0.8), 0 0 15px rgba(168, 85, 247, 0.6) !important;
+}
+
+/* --- Mobile / iOS Safari Tap & Form Normalization --- */
+button, input, select, textarea, a, .btn, .btn-action, .cat-tab-btn, .btn-day-quick-pill, .cal-day-cell {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS Select & Input Normalize */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
+  padding-right: 32px !important;
+}
+
+/* Safe Area Inset Support on Fixed Elements */
+@supports (padding: max(0px)) {
+  .modal-overlay, .qte-modal-overlay, .result-modal-overlay {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
 }
