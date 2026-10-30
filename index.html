@@ -844,13 +844,14 @@
     </div>
   </div>
 
-  <!-- 3. Custom Quest Creator Modal -->
+  <!-- 3. Custom Quest Creator / Editor Modal -->
   <div id="customQuestModal" class="qte-modal-overlay hidden">
     <div class="qte-modal-box" style="border-color: var(--purple-arcane); max-width: 500px; text-align: left;">
-      <h3 style="color:var(--purple-arcane); font-size: 20px; font-weight: 800; text-align: center;">
+      <h3 id="customQuestModalTitle" style="color:var(--purple-arcane); font-size: 20px; font-weight: 800; text-align: center;">
         + 나만의 현실 도전과제 생성
       </h3>
       <form id="customQuestForm" style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+        <input type="hidden" id="cqEditId" value="">
         <div>
           <label style="font-size:12px; color:var(--text-muted);">퀘스트 제목</label>
           <input type="text" id="cqTitle" required placeholder="예: 영어 단어 50개 암기, 서전트 점프 100회" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; font-family:inherit;">
@@ -871,7 +872,7 @@
           </div>
           <div>
             <label style="font-size:12px; color:var(--text-muted);">난이도 등급</label>
-            <select id="cqTier" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; font-family:inherit;">
+            <select id="cqTier" onchange="quests.onCustomQuestTierChange(this.value)" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff; font-family:inherit;">
               <option value="D">D등급 (쉬움)</option>
               <option value="C">C등급 (보통)</option>
               <option value="B" selected>B등급 (어려움)</option>
@@ -883,36 +884,41 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
           <div>
             <label style="font-size:11px; color:var(--text-muted);">EXP (최대 2500)</label>
-            <input type="number" id="cqExp" value="350" min="1" max="2500" placeholder="최대 2500" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+            <input type="number" id="cqExp" value="500" min="1" max="2500" placeholder="최대 2500" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
           </div>
           <div>
             <label style="font-size:11px; color:var(--text-muted);">골드 (최대 2500)</label>
-            <input type="number" id="cqGold" value="120" min="0" max="2500" placeholder="최대 2500" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+            <input type="number" id="cqGold" value="160" min="0" max="2500" placeholder="최대 2500" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
           </div>
           <div>
             <label style="font-size:11px; color:var(--text-muted);">키 성장치</label>
-            <input type="number" id="cqGrowth" value="10" min="1" max="30" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+            <input type="number" id="cqGrowth" value="15" min="1" max="30" style="width:100%; padding:8px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+          </div>
+          <div style="grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#38bdf8; margin-top:-2px;">
+            <span>✨ 난이도 등급에 맞춘 권장 보상이 자동 대입됩니다</span>
+            <button type="button" onclick="quests.applyTierDefaultRewards()" style="background:none; border:none; color:#fde047; font-size:11px; cursor:pointer; text-decoration:underline;">[등급 추천값 적용]</button>
           </div>
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
           <div>
             <label style="font-size:12px; color:var(--text-muted);">완료 방식</label>
-            <select id="cqType" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+            <select id="cqType" onchange="quests.onCustomQuestTypeChange(this.value)" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
               <option value="check">원클릭 확인</option>
               <option value="counter">카운터 (횟수)</option>
+              <option value="timer">타이머 (시간)</option>
             </select>
           </div>
           <div>
-            <label style="font-size:12px; color:var(--text-muted);">목표치</label>
-            <input type="number" id="cqCount" placeholder="예: 50" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
+            <label id="cqCountLabel" style="font-size:12px; color:var(--text-muted);">목표치 (선택)</label>
+            <input type="number" id="cqCount" placeholder="원클릭 즉시 완료" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
           </div>
           <div>
-            <label style="font-size:12px; color:var(--text-muted);">단위</label>
+            <label id="cqUnitLabel" style="font-size:12px; color:var(--text-muted);">단위</label>
             <input type="text" id="cqUnit" value="회" placeholder="예: 회, 분, 세트" style="width:100%; padding:10px; background:#0a0e1a; border:1px solid #334155; border-radius:6px; color:#fff;">
           </div>
         </div>
         <div style="display:flex; gap:10px; margin-top:12px;">
-          <button type="submit" class="btn btn-primary" style="flex:1; padding:12px;">퀘스트 등록</button>
+          <button type="submit" id="cqSubmitBtn" class="btn btn-primary" style="flex:1; padding:12px;">퀘스트 등록</button>
           <button type="button" class="btn btn-outline-cyan" style="padding:12px;" onclick="quests.closeCustomQuestModal()">취소</button>
         </div>
       </form>

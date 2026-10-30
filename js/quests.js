@@ -13,12 +13,17 @@ class QuestManager {
     this.counterCurrentValue = 0;
     this.pendingQuestId = null;
     this.selectedDeleteQuestId = null;
+    this.editingQuestId = null;
+    this._isExpUserEdited = false;
+    this._isGoldUserEdited = false;
+    this._isGrowthUserEdited = false;
   }
 
   init() {
     this.renderCategoryTabs();
     this.renderCurrentView();
     this.startDailyResetCountdown();
+    this.setupCustomQuestInputWatchers();
   }
 
   startDailyResetCountdown() {
@@ -186,7 +191,7 @@ class QuestManager {
           </button>
         `;
       } else if (quest.type === 'timer') {
-        const minutes = Math.round(quest.targetSeconds / 60);
+        const minutes = Math.round((quest.targetSeconds || (quest.targetCount ? quest.targetCount * 60 : 1800)) / 60);
         actionHtml = `
           <button class="btn btn-sm btn-outline-cyan" onclick="quests.openTimerModal('${quest.id}')">
             타이머 시작 (${minutes}분)
@@ -204,13 +209,22 @@ class QuestManager {
       }
     }
 
+    const isCustom = quest.id && quest.id.startsWith('custom_');
+    const editBtnHtml = isCustom ? `
+      <button type="button" class="btn btn-xs btn-outline-cyan" style="font-size: 11px; padding: 2px 7px; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; background: rgba(56, 189, 248, 0.1); cursor:pointer;" onclick="quests.openEditCustomQuestModal('${quest.id}', event)" title="이 퀘스트 수정하기">
+        ✏️ 수정
+      </button>
+    ` : '';
+
     card.innerHTML = `
       <div class="quest-card-header">
-        <div class="quest-badge-wrap">
+        <div class="quest-badge-wrap" style="display:flex; align-items:center; gap:6px;">
           <span class="quest-tier-badge" style="background:${tierInfo.bg}; color:${tierInfo.color}; border: 1px solid ${tierInfo.border}">
             ${tierInfo.name}
           </span>
           <span class="quest-category-badge">${quest.categoryName || '도전과제'}</span>
+          ${isCustom ? `<span style="font-size:10px; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.12); padding:1px 5px; border-radius:3px; border:1px solid rgba(56,189,248,0.3);">⭐ 나만의</span>` : ''}
+          ${editBtnHtml}
         </div>
         <div class="quest-rewards-preview">
           <span class="reward-exp">+${quest.exp} EXP</span>
@@ -447,7 +461,7 @@ class QuestManager {
               </div>
             `;
           } else if (quest.type === 'timer') {
-            const minutes = Math.round(quest.targetSeconds / 60);
+            const minutes = Math.round((quest.targetSeconds || (quest.targetCount ? quest.targetCount * 60 : 1800)) / 60);
             actionHtml = `
               <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
                 <button type="button" class="btn btn-xs btn-outline-cyan" style="font-size: 11px; padding: 3px 7px;" onclick="quests.openTimerModal('${quest.id}')">
@@ -466,6 +480,11 @@ class QuestManager {
             `;
           }
 
+          const isCustom = quest.id && quest.id.startsWith('custom_');
+          const dayEditBtn = isCustom ? `
+            <button type="button" style="background:none; border:none; color:#38bdf8; font-size:12px; cursor:pointer; padding:0 3px;" title="퀘스트 수정" onclick="quests.openEditCustomQuestModal('${quest.id}', event)">✏️</button>
+          ` : '';
+
           return `
             <div class="day-quest-item ${isCompleted ? 'completed' : ''}">
               <div class="day-quest-item-top">
@@ -477,7 +496,10 @@ class QuestManager {
                     ${quest.title}
                   </strong>
                 </div>
-                <button type="button" class="day-quest-remove-btn" title="이 요일에서 제외" onclick="quests.removeQuestFromDay('${d.key}', '${quest.id}')">✕</button>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  ${dayEditBtn}
+                  <button type="button" class="day-quest-remove-btn" title="이 요일에서 제외" onclick="quests.removeQuestFromDay('${d.key}', '${quest.id}')">✕</button>
+                </div>
               </div>
               <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                 ${quest.description}
@@ -959,22 +981,227 @@ class QuestManager {
     el.textContent = `${hStr}${mStr}:${sStr}`;
   }
 
-  // --- Custom Quest Creator Modal ---
+  // --- Custom Quest Creator & Editor Modal ---
+
+  setupCustomQuestInputWatchers() {
+    if (typeof document === 'undefined') return;
+    const expEl = document.getElementById('cqExp');
+    const goldEl = document.getElementById('cqGold');
+    const growthEl = document.getElementById('cqGrowth');
+    if (expEl) expEl.addEventListener('input', () => { this._isExpUserEdited = true; });
+    if (goldEl) goldEl.addEventListener('input', () => { this._isGoldUserEdited = true; });
+    if (growthEl) growthEl.addEventListener('input', () => { this._isGrowthUserEdited = true; });
+  }
+
+  onCustomQuestTierChange(tier) {
+    const rewards = {
+      D: { exp: 180, gold: 60, growth: 5 },
+      C: { exp: 320, gold: 100, growth: 10 },
+      B: { exp: 500, gold: 160, growth: 15 },
+      A: { exp: 850, gold: 280, growth: 22 },
+      S: { exp: 1400, gold: 450, growth: 30 }
+    };
+    const r = rewards[tier] || rewards.B;
+    const expEl = document.getElementById('cqExp');
+    const goldEl = document.getElementById('cqGold');
+    const growthEl = document.getElementById('cqGrowth');
+
+    if (expEl && !this._isExpUserEdited) {
+      expEl.value = r.exp;
+    }
+    if (goldEl && !this._isGoldUserEdited) {
+      goldEl.value = r.gold;
+    }
+    if (growthEl && !this._isGrowthUserEdited) {
+      growthEl.value = r.growth;
+    }
+  }
+
+  applyTierDefaultRewards() {
+    sound.playClick();
+    const tierSelect = document.getElementById('cqTier');
+    const tier = (tierSelect && tierSelect.value) || 'B';
+    const rewards = {
+      D: { exp: 180, gold: 60, growth: 5 },
+      C: { exp: 320, gold: 100, growth: 10 },
+      B: { exp: 500, gold: 160, growth: 15 },
+      A: { exp: 850, gold: 280, growth: 22 },
+      S: { exp: 1400, gold: 450, growth: 30 }
+    };
+    const r = rewards[tier] || rewards.B;
+    const expEl = document.getElementById('cqExp');
+    const goldEl = document.getElementById('cqGold');
+    const growthEl = document.getElementById('cqGrowth');
+
+    if (expEl) expEl.value = r.exp;
+    if (goldEl) goldEl.value = r.gold;
+    if (growthEl) growthEl.value = r.growth;
+
+    this._isExpUserEdited = false;
+    this._isGoldUserEdited = false;
+    this._isGrowthUserEdited = false;
+
+    if (typeof ui !== 'undefined' && ui.showToast) {
+      ui.showToast(`✨ [${tier}등급] 추천 보상 적용 완료! (EXP ${r.exp} · ${r.gold} G)`, 'info');
+    }
+  }
+
+  onCustomQuestTypeChange(type) {
+    const countLabel = document.getElementById('cqCountLabel');
+    const countInput = document.getElementById('cqCount');
+    const unitLabel = document.getElementById('cqUnitLabel');
+    const unitInput = document.getElementById('cqUnit');
+
+    if (type === 'timer') {
+      if (countLabel) countLabel.textContent = '목표 시간 (분)';
+      if (countInput) {
+        countInput.placeholder = '예: 30 (분 단위)';
+        if (!countInput.value || countInput.value === '50') countInput.value = '30';
+      }
+      if (unitLabel) unitLabel.textContent = '단위';
+      if (unitInput) {
+        unitInput.value = '분';
+        unitInput.placeholder = '분';
+      }
+    } else if (type === 'counter') {
+      if (countLabel) countLabel.textContent = '목표치 (횟수)';
+      if (countInput) {
+        countInput.placeholder = '예: 50';
+        if (!countInput.value || countInput.value === '30') countInput.value = '50';
+      }
+      if (unitLabel) unitLabel.textContent = '단위';
+      if (unitInput) {
+        if (unitInput.value === '분') unitInput.value = '회';
+        unitInput.placeholder = '예: 회, 세트';
+      }
+    } else {
+      // check
+      if (countLabel) countLabel.textContent = '목표치 (선택)';
+      if (countInput) countInput.placeholder = '원클릭 즉시 완료';
+      if (unitLabel) unitLabel.textContent = '단위';
+      if (unitInput && unitInput.value === '분') unitInput.value = '회';
+    }
+  }
 
   openCustomQuestModal() {
     sound.playClick();
-    document.getElementById('customQuestModal').classList.remove('hidden');
+    this.editingQuestId = null;
+    this._isExpUserEdited = false;
+    this._isGoldUserEdited = false;
+    this._isGrowthUserEdited = false;
+
+    const modal = document.getElementById('customQuestModal');
+    const titleEl = document.getElementById('customQuestModalTitle');
+    const submitBtn = document.getElementById('cqSubmitBtn');
+    const editIdInput = document.getElementById('cqEditId');
+    const form = document.getElementById('customQuestForm');
+
+    if (form) form.reset();
+    if (editIdInput) editIdInput.value = '';
+    if (titleEl) titleEl.textContent = '+ 나만의 현실 도전과제 생성';
+    if (submitBtn) submitBtn.textContent = '퀘스트 등록';
+
+    const tierSelect = document.getElementById('cqTier');
+    if (tierSelect) {
+      tierSelect.value = 'B';
+      this.onCustomQuestTierChange('B');
+    }
+    const typeSelect = document.getElementById('cqType');
+    if (typeSelect) {
+      typeSelect.value = 'check';
+      this.onCustomQuestTypeChange('check');
+    }
+
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  openEditCustomQuestModal(questId, event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    sound.playClick();
+
+    const allQuests = this.getAllQuests();
+    const quest = allQuests.find(q => q.id === questId);
+    if (!quest) return;
+
+    this.editingQuestId = questId;
+    this._isExpUserEdited = true; // Retain current quest values initially
+    this._isGoldUserEdited = true;
+    this._isGrowthUserEdited = true;
+
+    const modal = document.getElementById('customQuestModal');
+    const titleEl = document.getElementById('customQuestModalTitle');
+    const submitBtn = document.getElementById('cqSubmitBtn');
+    const editIdInput = document.getElementById('cqEditId');
+
+    if (titleEl) titleEl.textContent = '✏️ 나만의 현실 도전과제 수정';
+    if (submitBtn) submitBtn.textContent = '수정 완료';
+    if (editIdInput) editIdInput.value = questId;
+
+    const titleInput = document.getElementById('cqTitle');
+    const descInput = document.getElementById('cqDesc');
+    const catSelect = document.getElementById('cqCategory');
+    const tierSelect = document.getElementById('cqTier');
+    const expInput = document.getElementById('cqExp');
+    const goldInput = document.getElementById('cqGold');
+    const growthInput = document.getElementById('cqGrowth');
+    const typeSelect = document.getElementById('cqType');
+    const countInput = document.getElementById('cqCount');
+    const unitInput = document.getElementById('cqUnit');
+
+    if (titleInput) titleInput.value = quest.title || '';
+    if (descInput) descInput.value = quest.description || '';
+    if (catSelect) catSelect.value = quest.category || 'height';
+    if (tierSelect) tierSelect.value = quest.tier || 'B';
+    if (expInput) expInput.value = quest.exp !== undefined ? quest.exp : 500;
+    if (goldInput) goldInput.value = quest.gold !== undefined ? quest.gold : 160;
+    if (growthInput) growthInput.value = quest.growthPoints !== undefined ? quest.growthPoints : 15;
+
+    const qType = quest.type || 'check';
+    if (typeSelect) typeSelect.value = qType;
+    this.onCustomQuestTypeChange(qType);
+
+    if (qType === 'timer') {
+      const mins = Math.round((quest.targetSeconds || (quest.targetCount ? quest.targetCount * 60 : 1800)) / 60);
+      if (countInput) countInput.value = mins || 30;
+      if (unitInput) unitInput.value = '분';
+    } else if (qType === 'counter') {
+      if (countInput) countInput.value = quest.targetCount || 50;
+      if (unitInput) unitInput.value = quest.unit || '회';
+    } else {
+      if (countInput) countInput.value = quest.targetCount || '';
+      if (unitInput) unitInput.value = quest.unit || '회';
+    }
+
+    if (modal) modal.classList.remove('hidden');
   }
 
   closeCustomQuestModal() {
-    document.getElementById('customQuestModal').classList.add('hidden');
+    this.editingQuestId = null;
+    const modal = document.getElementById('customQuestModal');
+    if (modal) modal.classList.add('hidden');
   }
 
   saveCustomQuest(formData) {
     const newQuest = state.addCustomQuest(formData);
     this.closeCustomQuestModal();
-    this.renderQuestList();
-    ui.showToast(`나만의 퀘스트 [${newQuest.title}] 등록 완료!`);
+    this.renderCurrentView();
+    if (typeof ui !== 'undefined' && ui.renderAttendanceCalendar) {
+      ui.renderAttendanceCalendar();
+    }
+    ui.showToast(`나만의 퀘스트 [${newQuest.title}] 등록 완료!`, 'success');
+  }
+
+  updateCustomQuest(questId, formData) {
+    const updated = state.updateCustomQuest(questId, formData);
+    this.closeCustomQuestModal();
+    this.renderCurrentView();
+    if (typeof ui !== 'undefined' && ui.renderAttendanceCalendar) {
+      ui.renderAttendanceCalendar();
+    }
+    ui.showToast(`✨ [${(updated && updated.title) || '퀘스트'}] 수정이 완료되었습니다!`, 'success');
   }
 
   // --- Quest Deletion Modal ---
@@ -1031,9 +1258,12 @@ class QuestManager {
                 보상: EXP +${q.exp} | 골드 +${q.gold} | 키 성장 +${q.growthPoints || 0}
               </div>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-danger" style="border-color:#ef4444; color:#ef4444; font-size:11px; padding:5px 10px; flex-shrink:0;">
-              선택
-            </button>
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+              ${isCustom ? `<button type="button" class="btn btn-sm btn-outline-cyan" style="font-size:11px; padding:5px 8px;" onclick="event.stopPropagation(); quests.closeDeleteQuestModal(); quests.openEditCustomQuestModal('${q.id}', event);">✏️ 수정</button>` : ''}
+              <button type="button" class="btn btn-sm btn-outline-danger" style="border-color:#ef4444; color:#ef4444; font-size:11px; padding:5px 10px;">
+                선택
+              </button>
+            </div>
           `;
           item.onclick = () => this.onSelectQuestToDelete(q.id);
           previewList.appendChild(item);

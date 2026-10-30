@@ -630,9 +630,9 @@ class GameState {
       }
       if (hdrCloudStatus) {
         hdrCloudStatus.textContent = `👀 ${this.spectatorUserId} (관전)`;
-        hdrCloudStatus.style.color = '#f59e0b';
+        if (hdrCloudStatus.style) hdrCloudStatus.style.color = '#f59e0b';
       }
-      if (hdrCloudBtn) {
+      if (hdrCloudBtn && hdrCloudBtn.style) {
         hdrCloudBtn.style.borderColor = 'rgba(245, 158, 11, 0.6)';
         hdrCloudBtn.style.background = 'rgba(245, 158, 11, 0.15)';
       }
@@ -649,18 +649,18 @@ class GameState {
     if (this.cloudSession && this.cloudSession.userId) {
       if (hdrCloudStatus) {
         hdrCloudStatus.textContent = `🟢 ${this.cloudSession.userId}`;
-        hdrCloudStatus.style.color = '#34d399';
+        if (hdrCloudStatus.style) hdrCloudStatus.style.color = '#34d399';
       }
-      if (hdrCloudBtn) {
+      if (hdrCloudBtn && hdrCloudBtn.style) {
         hdrCloudBtn.style.borderColor = 'rgba(52, 211, 153, 0.5)';
         hdrCloudBtn.style.background = 'rgba(16, 185, 129, 0.14)';
       }
     } else {
       if (hdrCloudStatus) {
         hdrCloudStatus.textContent = '☁️ 로그인';
-        hdrCloudStatus.style.color = '#00e5ff';
+        if (hdrCloudStatus.style) hdrCloudStatus.style.color = '#00e5ff';
       }
-      if (hdrCloudBtn) {
+      if (hdrCloudBtn && hdrCloudBtn.style) {
         hdrCloudBtn.style.borderColor = 'rgba(0, 229, 255, 0.5)';
         hdrCloudBtn.style.background = 'rgba(0, 229, 255, 0.12)';
       }
@@ -1488,7 +1488,7 @@ class GameState {
       categoryName: questData.categoryName || "신체 & 키 성장",
       tier: questData.tier || "B",
       exp: Math.min(2500, Math.max(1, parseInt(questData.exp) || 300)),
-      gold: Math.min(2500, Math.max(0, parseInt(questData.gold) || 100)),
+      gold: Math.min(2500, Math.max(0, parseInt(questData.gold) !== undefined ? parseInt(questData.gold) : 100)),
       growthPoints: Math.min(30, Math.max(1, parseInt(questData.growthPoints) || 10)),
       type: questData.type || "check",
       targetCount: questData.targetCount ? parseInt(questData.targetCount) : null,
@@ -1497,9 +1497,38 @@ class GameState {
       icon: questData.icon || "star"
     };
 
+    if (!this.data.quests.customQuests) this.data.quests.customQuests = [];
     this.data.quests.customQuests.push(newQuest);
-    this.save();
+    this.save(true);
     return newQuest;
+  }
+
+  updateCustomQuest(questId, updatedData) {
+    if (!questId || !this.data.quests || !this.data.quests.customQuests) return null;
+    const idx = this.data.quests.customQuests.findIndex(q => q.id === questId);
+    if (idx === -1) return null;
+
+    const existing = this.data.quests.customQuests[idx];
+    const updated = {
+      ...existing,
+      title: (updatedData.title !== undefined ? updatedData.title : existing.title).trim(),
+      description: (updatedData.description !== undefined ? updatedData.description : existing.description).trim(),
+      category: updatedData.category || existing.category,
+      categoryName: updatedData.categoryName || existing.categoryName,
+      tier: updatedData.tier || existing.tier,
+      exp: Math.min(2500, Math.max(1, parseInt(updatedData.exp) || existing.exp || 300)),
+      gold: Math.min(2500, Math.max(0, parseInt(updatedData.gold) !== undefined ? parseInt(updatedData.gold) : (existing.gold !== undefined ? existing.gold : 100))),
+      growthPoints: Math.min(30, Math.max(1, parseInt(updatedData.growthPoints) || existing.growthPoints || 10)),
+      type: updatedData.type || existing.type,
+      targetCount: updatedData.targetCount ? parseInt(updatedData.targetCount) : null,
+      targetSeconds: updatedData.targetSeconds ? parseInt(updatedData.targetSeconds) : null,
+      unit: updatedData.unit || existing.unit || "회",
+      icon: updatedData.icon || existing.icon || "star"
+    };
+
+    this.data.quests.customQuests[idx] = updated;
+    this.save(true);
+    return updated;
   }
 
   deleteQuest(questId) {

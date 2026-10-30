@@ -1764,6 +1764,9 @@ class UIManager {
             return;
           }
 
+          const editIdInput = document.getElementById('cqEditId');
+          const editId = (editIdInput && editIdInput.value) || (typeof quests !== 'undefined' && quests.editingQuestId);
+
           const descInput = document.getElementById('cqDesc');
           const catSelect = document.getElementById('cqCategory');
           const tierSelect = document.getElementById('cqTier');
@@ -1774,25 +1777,49 @@ class UIManager {
           const countInput = document.getElementById('cqCount');
           const unitInput = document.getElementById('cqUnit');
 
+          const qType = typeSelect ? typeSelect.value : 'check';
+          let targetCountVal = null;
+          let targetSecondsVal = null;
+          let unitVal = (unitInput && unitInput.value.trim()) ? unitInput.value.trim() : '회';
+
+          if (qType === 'timer') {
+            const targetMins = parseInt(countInput ? countInput.value : 30) || 30;
+            targetSecondsVal = targetMins * 60;
+            targetCountVal = targetMins;
+            unitVal = '분';
+          } else if (qType === 'counter') {
+            targetCountVal = (countInput && countInput.value) ? parseInt(countInput.value) : 50;
+            unitVal = unitVal || '회';
+          } else {
+            targetCountVal = null;
+            targetSecondsVal = null;
+            unitVal = '회';
+          }
+
           const data = {
             title: title,
             description: (descInput && descInput.value.trim()) || '나만의 현실 수련 도전과제',
             category: catSelect ? catSelect.value : 'height',
             categoryName: catSelect ? catSelect.selectedOptions[0].text : '신체 & 키 성장',
             tier: tierSelect ? tierSelect.value : 'B',
-            exp: Math.min(2500, Math.max(1, parseInt(expInput ? expInput.value : 350) || 350)),
-            gold: Math.min(2500, Math.max(0, parseInt(goldInput ? goldInput.value : 120) || 120)),
-            growthPoints: parseInt(growthInput ? growthInput.value : 10) || 10,
-            type: typeSelect ? typeSelect.value : 'check',
-            targetCount: (countInput && countInput.value) ? parseInt(countInput.value) : null,
-            unit: (unitInput && unitInput.value.trim()) ? unitInput.value.trim() : '회'
+            exp: Math.min(2500, Math.max(1, parseInt(expInput ? expInput.value : 500) || 500)),
+            gold: Math.min(2500, Math.max(0, parseInt(goldInput ? goldInput.value : 160) || 160)),
+            growthPoints: Math.min(30, Math.max(1, parseInt(growthInput ? growthInput.value : 15) || 15)),
+            type: qType,
+            targetCount: targetCountVal,
+            targetSeconds: targetSecondsVal,
+            unit: unitVal
           };
 
-          quests.saveCustomQuest(data);
+          if (editId) {
+            quests.updateCustomQuest(editId, data);
+          } else {
+            quests.saveCustomQuest(data);
+          }
           customQuestForm.reset();
         } catch (err) {
           console.error("Custom quest registration error:", err);
-          alert("퀘스트 등록 처리 중 오류가 발생했습니다: " + err.message);
+          alert("퀘스트 저장 처리 중 오류가 발생했습니다: " + err.message);
         }
       });
     }
