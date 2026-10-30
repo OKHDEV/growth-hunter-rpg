@@ -39,7 +39,7 @@ class GameState {
     this.PLAYER_CARDS = [
       {
         id: 'card_default',
-        name: '초보 각성자 (헌터 오경호)',
+        name: '초보 각성자 (성장형 헌터)',
         tag: '균형 · 수련',
         badge: '초보 각성자',
         image: 'assets/player/hunter.jpg',
@@ -683,7 +683,7 @@ class GameState {
       const a = document.createElement("a");
       const dateStr = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `성장형오경호_수련데이터_${dateStr}.json`;
+      a.download = `성장형헌터_수련데이터_${dateStr}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -3013,7 +3013,7 @@ class GameState {
           this.data = this.getDefaultState();
         }
 
-        // User request: "회원가입 할때 아이디를 오경호 들어간 이름칸에 아이디를 넣자"
+        // 회원가입 할 때 플레이어 닉네임 기본값을 아이디로 설정
         this.data.player.name = userId;
         this.data.ownerAccountId = userId;
         this.saveCloudSession({
