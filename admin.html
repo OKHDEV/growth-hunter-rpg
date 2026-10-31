@@ -937,6 +937,7 @@
 
     let rawAccountsRegistry = {};
     let cachedUserSaves = {}; // userId -> saveJson
+    let cachedUserLatestActive = {}; // userId -> latest activity timestamp
 
     function checkAdminAuth() {
       try {
@@ -1080,6 +1081,50 @@
       return `${year}. ${month}. ${day}. ${formatKoreanTime(d)}`;
     }
 
+    function resolveUserLatestActiveTs(uid, save, accInfo) {
+      if (cachedUserLatestActive[uid]) {
+        return cachedUserLatestActive[uid];
+      }
+
+      let latestLogTs = 0;
+      if (save && Array.isArray(save.activityLog) && save.activityLog.length > 0) {
+        for (const item of save.activityLog) {
+          if (item && item.ts) {
+            const t = Number(item.ts);
+            if (!isNaN(t) && t > latestLogTs) {
+              latestLogTs = t;
+            }
+          }
+        }
+      }
+
+      let lastSavedTs = 0;
+      if (save && save.lastSaved) {
+        const d = new Date(save.lastSaved).getTime();
+        if (!isNaN(d) && d > 0) lastSavedTs = d;
+      }
+
+      let accSyncTs = 0;
+      if (accInfo && accInfo.ts) {
+        const t = Number(accInfo.ts);
+        if (!isNaN(t) && t > 0) accSyncTs = t;
+      }
+
+      const highestSystemTs = Math.max(lastSavedTs, accSyncTs);
+
+      // If we have an activityLog entry:
+      // If it's the latest, or within 15 minutes of system sync (same session), use latestLogTs
+      // so it matches the activity modal's timestamp exactly!
+      if (latestLogTs > 0) {
+        if (highestSystemTs <= latestLogTs || (highestSystemTs - latestLogTs <= 15 * 60 * 1000)) {
+          return latestLogTs;
+        }
+        return highestSystemTs;
+      }
+
+      return highestSystemTs;
+    }
+
     function getBossStageText(raid) {
       if (!raid || !Array.isArray(raid.clearedStages) || raid.clearedStages.length === 0) {
         return '';
@@ -1208,11 +1253,24 @@
           if (accInfo.deleted) continue;
 
           let save = cachedUserSaves[uid] || null;
+          const isStale = save && (
+            (accInfo.bk && save._loadedBk && save._loadedBk !== accInfo.bk) ||
+            (accInfo.pk && save._loadedPk && save._loadedPk !== accInfo.pk) ||
+            (accInfo.ts && save._loadedAccTs && accInfo.ts > save._loadedAccTs)
+          );
+          if (isStale) {
+            save = null;
+            delete cachedUserSaves[uid];
+          }
+
           if (!save && accInfo.bk) {
             try {
               const r = await fetch(`${BYTEBIN_URL}/${accInfo.bk}`, { signal: AbortSignal.timeout(4000) });
               if (r.ok) {
                 save = await r.json();
+                save._loadedBk = accInfo.bk;
+                save._loadedPk = accInfo.pk;
+                save._loadedAccTs = accInfo.ts;
                 cachedUserSaves[uid] = save;
               }
             } catch(e) {}
@@ -1222,6 +1280,9 @@
               const r = await fetch(`${PASTES_URL}/${accInfo.pk}`, { signal: AbortSignal.timeout(4000) });
               if (r.ok) {
                 save = await r.json();
+                save._loadedBk = accInfo.bk;
+                save._loadedPk = accInfo.pk;
+                save._loadedAccTs = accInfo.ts;
                 cachedUserSaves[uid] = save;
               }
             } catch(e) {}
@@ -1230,10 +1291,11 @@
           if (save) {
             const hexId = userIdToHex(uid);
             const activeValEl = document.getElementById(`lastActiveVal_${hexId}`);
-            if (activeValEl && save.lastSaved) {
-              const d = new Date(save.lastSaved);
-              const formatted = !isNaN(d.getTime()) ? formatKoreanDateTime(d) : save.lastSaved;
-              activeValEl.textContent = formatted;
+            if (activeValEl) {
+              const latestTs = resolveUserLatestActiveTs(uid, save, accInfo);
+              if (latestTs > 0) {
+                activeValEl.textContent = formatKoreanDateTime(latestTs);
+              }
             }
           }
 
@@ -1297,7 +1359,9 @@
         if (sortBy === 'id') {
           return a.localeCompare(b);
         }
-        return (accB.ts || 0) - (accA.ts || 0); // default: recent
+        const tsA = resolveUserLatestActiveTs(a, saveA, accA);
+        const tsB = resolveUserLatestActiveTs(b, saveB, accB);
+        return tsB - tsA; // default: recent activity
       });
 
       document.getElementById('displayedUserCount').textContent = userIds.length;
@@ -1318,12 +1382,12 @@
         const syncDateStr = accInfo.ts ? formatKoreanDateTime(accInfo.ts) : '기록 없음';
 
         const save = cachedUserSaves[uid];
+        const latestTs = resolveUserLatestActiveTs(uid, save, accInfo);
         let lastActiveStr = '확인 중...';
-        if (save && save.lastSaved) {
-          const d = new Date(save.lastSaved);
-          lastActiveStr = !isNaN(d.getTime()) ? formatKoreanDateTime(d) : save.lastSaved;
+        if (latestTs > 0) {
+          lastActiveStr = formatKoreanDateTime(latestTs);
         } else if (accInfo.ts) {
-          lastActiveStr = '동기화 데이터 분석 중...';
+          lastActiveStr = formatKoreanDateTime(accInfo.ts);
         } else {
           lastActiveStr = '기록 없음';
         }
@@ -1420,6 +1484,17 @@
     async function openSpectatorMode(userId, bk, pk) {
       const hexId = userIdToHex(userId);
       let save = cachedUserSaves[userId];
+      const accInfo = rawAccountsRegistry[userId] || {};
+      const isStale = save && (
+        (bk && save._loadedBk && save._loadedBk !== bk) ||
+        (pk && save._loadedPk && save._loadedPk !== pk) ||
+        (accInfo.ts && save._loadedAccTs && accInfo.ts > save._loadedAccTs)
+      );
+      if (isStale) {
+        save = null;
+        delete cachedUserSaves[userId];
+        delete cachedUserLatestActive[userId];
+      }
 
       if (!save) {
         const btn = event ? event.currentTarget : null;
@@ -1515,6 +1590,17 @@
       detailContainer.innerHTML = '<div style="color:#38bdf8; font-size:0.9rem;">⏳ 유저 상세 데이터를 서버에서 로드하는 중...</div>';
 
       let saveJson = cachedUserSaves[userId] || null;
+      const accInfo = rawAccountsRegistry[userId] || {};
+      const isStale = saveJson && (
+        (bk && saveJson._loadedBk && saveJson._loadedBk !== bk) ||
+        (pk && saveJson._loadedPk && saveJson._loadedPk !== pk) ||
+        (accInfo.ts && saveJson._loadedAccTs && accInfo.ts > saveJson._loadedAccTs)
+      );
+      if (isStale) {
+        saveJson = null;
+        delete cachedUserSaves[userId];
+        delete cachedUserLatestActive[userId];
+      }
 
       // 1. Try Bytebin
       if (!saveJson && bk) {
@@ -2328,6 +2414,7 @@
         ));
 
         delete cachedUserSaves[userId];
+        delete cachedUserLatestActive[userId];
 
         alert(`🗑️ [${userId}] 계정 데이터가 성공적으로 삭제되었습니다.\n\n접속 중인 기기에서는 즉시 자동 로그아웃 처리되며, 삭제된 동일 아이디로 새로 회원가입이 가능합니다.`);
         filterAccountsList();
@@ -2674,8 +2761,15 @@
       document.getElementById('actSummaryTotalEvents').textContent = `${totalEvents}회`;
       document.getElementById('actSummaryActiveDays').textContent = `${activeDays}일`;
       if (allMeaningfulEvents.length > 0) {
+        const latestTs = allMeaningfulEvents[allMeaningfulEvents.length - 1].ts;
+        cachedUserLatestActive[userId] = latestTs;
+        const hexId = userIdToHex(userId);
+        const activeValEl = document.getElementById(`lastActiveVal_${hexId}`);
+        if (activeValEl) {
+          activeValEl.textContent = formatKoreanDateTime(latestTs);
+        }
         document.getElementById('actSummaryFirstDate').textContent = formatKoreanDateTime(allMeaningfulEvents[0].ts);
-        document.getElementById('actSummaryLastDate').textContent = formatKoreanDateTime(allMeaningfulEvents[allMeaningfulEvents.length - 1].ts);
+        document.getElementById('actSummaryLastDate').textContent = formatKoreanDateTime(latestTs);
       } else {
         document.getElementById('actSummaryFirstDate').textContent = '기록 없음';
         document.getElementById('actSummaryLastDate').textContent = '기록 없음';
