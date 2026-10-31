@@ -593,10 +593,10 @@ const TITLES_DATA = {
     rarity: "mythic",
     reqLevel: 100,
     desc: "제100의 벽, 절대 거신 오메가 크로노스를 굴복시키고 신의 반열에 오른 전설.",
-    bonusText: "공격력 +5,000, 방어력 +2,500, 전 스탯 +100, 최대 체력 +10,000, 치명타율 +20% | EXP +50% / 골드 +40%",
-    expMultiplier: 1.50,
-    goldMultiplier: 1.40,
-    stats: { atk: 5000, def: 2500, str: 100, int: 100, end: 100, gro: 100, maxHp: 10000, crit: 0.20 },
+    bonusText: "공격력 +240, 방어력 +150, 전 스탯 +25, 최대 체력 +2,000, 치명타율 +10% | EXP +40% / 골드 +35%",
+    expMultiplier: 1.40,
+    goldMultiplier: 1.35,
+    stats: { atk: 240, def: 150, str: 25, int: 25, end: 25, gro: 25, maxHp: 2000, crit: 0.10 },
     unlockHint: "100단계 절대 거신 오메가 크로노스 격파"
   },
   "한계 초월의 절대 각성자": {
@@ -604,10 +604,10 @@ const TITLES_DATA = {
     rarity: "mythic",
     reqLevel: 80,
     desc: "Stage 50 크로노스를 꺾고 목표 신장을 완벽히 쟁취한 전설.",
-    bonusText: "공격력 +1,500, 방어력 +800, 전 스탯 +80, 최대 체력 +5,000, 치명타율 +15% | EXP +35% / 골드 +30%",
-    expMultiplier: 1.35,
-    goldMultiplier: 1.30,
-    stats: { atk: 1500, def: 800, str: 80, int: 80, end: 80, gro: 80, maxHp: 5000, crit: 0.15 },
+    bonusText: "공격력 +180, 방어력 +110, 전 스탯 +20, 최대 체력 +1,500, 치명타율 +8% | EXP +30% / 골드 +25%",
+    expMultiplier: 1.30,
+    goldMultiplier: 1.25,
+    stats: { atk: 180, def: 110, str: 20, int: 20, end: 20, gro: 20, maxHp: 1500, crit: 0.08 },
     unlockHint: "목표 신장 달성 & Stage 50 보스 격파"
   },
   "시공간의 초월자": {
@@ -615,10 +615,10 @@ const TITLES_DATA = {
     rarity: "mythic",
     reqLevel: 75,
     desc: "미루기와 스마트폰의 알고리즘을 소멸시키고 절대 집중의 경지에 이른 자.",
-    bonusText: "공격력 +1,200, 방어력 +600, 전 스탯 +60, 최대 체력 +4,000, 치명타율 +15% | EXP +30% / 골드 +25%",
-    expMultiplier: 1.30,
-    goldMultiplier: 1.25,
-    stats: { atk: 1200, def: 600, str: 60, int: 70, end: 60, gro: 60, maxHp: 4000, crit: 0.15 },
+    bonusText: "공격력 +160, 방어력 +95, 전 스탯 +18, 최대 체력 +1,300, 치명타율 +7% | EXP +28% / 골드 +22%",
+    expMultiplier: 1.28,
+    goldMultiplier: 1.22,
+    stats: { atk: 160, def: 95, str: 18, int: 20, end: 18, gro: 18, maxHp: 1300, crit: 0.07 },
     unlockHint: "연속 30일 일일 퀘스트 올클리어 달성"
   },
 
@@ -628,21 +628,32 @@ const TITLES_DATA = {
     rarity: "legendary",
     reqLevel: 60,
     desc: "Stage 40 스켈레톤 킹을 굴복시키고 골격을 완벽히 개조한 자.",
-    bonusText: "공격력 +500, 방어력 +250, 전 스탯 +40, 최대 체력 +2,500, 치명타율 +10% | EXP +24% / 골드 +20%",
+    bonusText: "공격력 +130, 방어력 +80, STR +15, END +15, 최대 체력 +950, 치명타율 +6% | EXP +24% / 골드 +20%",
     expMultiplier: 1.24,
     goldMultiplier: 1.20,
-    stats: { atk: 500, def: 250, str: 45, int: 35, end: 45, gro: 40, maxHp: 2500, crit: 0.10 },
+    stats: { atk: 130, def: 80, str: 15, int: 10, end: 15, gro: 15, maxHp: 950, crit: 0.06 },
     unlockHint: "Stage 40 스켈레톤 킹 격파"
+  },
+  "골격 파괴의 거인 (177cm)": {
+    name: "골격 파괴의 거인 (177cm)",
+    rarity: "legendary",
+    reqLevel: 60,
+    desc: "Stage 40 스켈레톤 킹을 굴복시키고 골격을 완벽히 개조한 자.",
+    bonusText: "공격력 +130, 방어력 +80, STR +15, END +15, 최대 체력 +950, 치명타율 +6% | EXP +24% / 골드 +20%",
+    expMultiplier: 1.24,
+    goldMultiplier: 1.20,
+    stats: { atk: 130, def: 80, str: 15, int: 10, end: 15, gro: 15, maxHp: 950, crit: 0.06 },
+    unlockHint: "신장 177.0cm 달성 & Stage 40 격파"
   },
   "황금 신장의 수호신": {
     name: "황금 신장의 수호신",
     rarity: "legendary",
     reqLevel: 55,
     desc: "목표 신장의 완성까지 단 한 걸음, 황금 골격을 증명한 자.",
-    bonusText: "공격력 +450, 방어력 +220, 전 스탯 +35, 키 성장 속도 +50%, 최대 체력 +2,000 | EXP +22% / 골드 +18%",
+    bonusText: "공격력 +120, 방어력 +75, 전 스탯 +14, 최대 체력 +900, 치명타율 +5% | EXP +22% / 골드 +18%",
     expMultiplier: 1.22,
     goldMultiplier: 1.18,
-    stats: { atk: 450, def: 220, str: 35, int: 35, end: 35, gro: 50, maxHp: 2000 },
+    stats: { atk: 120, def: 75, str: 14, int: 14, end: 14, gro: 20, maxHp: 900, crit: 0.05 },
     unlockHint: "Stage 49 에이펙스 격파"
   },
   "백절불굴의 투신": {
@@ -650,10 +661,10 @@ const TITLES_DATA = {
     rarity: "legendary",
     reqLevel: 50,
     desc: "수천 번의 좌절을 딛고 극한의 끈기로 일어선 불멸의 투신.",
-    bonusText: "공격력 +400, 방어력 +200, STR +40, END +40, 최대 체력 +2,200 | EXP +20% / 골드 +16%",
+    bonusText: "공격력 +110, 방어력 +70, STR +13, END +13, 최대 체력 +800 | EXP +20% / 골드 +16%",
     expMultiplier: 1.20,
     goldMultiplier: 1.16,
-    stats: { atk: 400, def: 200, str: 40, end: 40, gro: 30, maxHp: 2200 },
+    stats: { atk: 110, def: 70, str: 13, end: 13, gro: 10, maxHp: 800, crit: 0.05 },
     unlockHint: "Stage 44 인빅터스 격파"
   },
   "스켈레톤 킹 격파자": {
@@ -661,10 +672,10 @@ const TITLES_DATA = {
     rarity: "legendary",
     reqLevel: 45,
     desc: "뼈마디의 절규를 딛고 173cm의 한계를 깨부순 영웅.",
-    bonusText: "공격력 +350, 방어력 +180, STR +40, END +35, 최대 체력 +1,800 | EXP +18% / 골드 +15%",
+    bonusText: "공격력 +100, 방어력 +65, STR +12, END +12, 최대 체력 +750 | EXP +18% / 골드 +15%",
     expMultiplier: 1.18,
     goldMultiplier: 1.15,
-    stats: { atk: 350, def: 180, str: 40, end: 35, maxHp: 1800 },
+    stats: { atk: 100, def: 65, str: 12, end: 12, maxHp: 750, crit: 0.05 },
     unlockHint: "Stage 40 보스 격파"
   },
 
@@ -674,10 +685,10 @@ const TITLES_DATA = {
     rarity: "epic",
     reqLevel: 40,
     desc: "Stage 30 심연룡을 베고 번아웃을 극복한 자.",
-    bonusText: "공격력 +220, 방어력 +120, INT +35, 최대 체력 +1,200 | EXP +15% / 골드 +12%",
+    bonusText: "공격력 +75, 방어력 +45, INT +10, STR +8, 최대 체력 +550 | EXP +15% / 골드 +12%",
     expMultiplier: 1.15,
     goldMultiplier: 1.12,
-    stats: { atk: 220, def: 120, int: 35, str: 25, end: 25, maxHp: 1200 },
+    stats: { atk: 75, def: 45, int: 10, str: 8, end: 8, maxHp: 550, crit: 0.04 },
     unlockHint: "신장 176.0cm 달성 & Stage 30 격파"
   },
   "심연의 정복자": {
@@ -685,10 +696,10 @@ const TITLES_DATA = {
     rarity: "epic",
     reqLevel: 35,
     desc: "무기력과 패배주의의 심연룡 아비스를 베어버린 자.",
-    bonusText: "공격력 +180, 방어력 +100, INT +30, 최대 체력 +1,000, 치명타율 +6% | EXP +14% / 골드 +11%",
+    bonusText: "공격력 +68, 방어력 +42, INT +9, 최대 체력 +500, 치명타율 +4% | EXP +14% / 골드 +11%",
     expMultiplier: 1.14,
     goldMultiplier: 1.11,
-    stats: { atk: 180, def: 100, int: 30, str: 20, maxHp: 1000, crit: 0.06 },
+    stats: { atk: 68, def: 42, int: 9, str: 7, maxHp: 500, crit: 0.04 },
     unlockHint: "Stage 30 아비스 격파"
   },
   "성장판 해방자 (174cm)": {
@@ -696,10 +707,10 @@ const TITLES_DATA = {
     rarity: "epic",
     reqLevel: 30,
     desc: "Stage 20 그라비타스를 꺾고 척추를 세운 자.",
-    bonusText: "공격력 +150, 방어력 +80, STR +25, 키 성장 속도 +30%, 최대 체력 +800 | EXP +12% / 골드 +10%",
+    bonusText: "공격력 +52, 방어력 +32, STR +6, GRO +8, 최대 체력 +380 | EXP +12% / 골드 +10%",
     expMultiplier: 1.12,
     goldMultiplier: 1.10,
-    stats: { atk: 150, def: 80, str: 25, gro: 30, maxHp: 800 },
+    stats: { atk: 52, def: 32, str: 6, gro: 8, maxHp: 380, crit: 0.03 },
     unlockHint: "신장 174.0cm 달성 & Stage 20 격파"
   },
   "척추 기립의 대천사": {
@@ -707,10 +718,10 @@ const TITLES_DATA = {
     rarity: "epic",
     reqLevel: 30,
     desc: "구부러졌던 모든 뼈를 곧추세워 하늘을 찌르는 자태를 증명한 자.",
-    bonusText: "공격력 +130, 방어력 +85, END +25, 키 성장 속도 +25%, 최대 체력 +750 | EXP +11% / 골드 +9%",
+    bonusText: "공격력 +45, 방어력 +30, END +6, GRO +7, 최대 체력 +340 | EXP +11% / 골드 +9%",
     expMultiplier: 1.11,
     goldMultiplier: 1.09,
-    stats: { atk: 130, def: 85, end: 25, gro: 25, maxHp: 750 },
+    stats: { atk: 45, def: 30, end: 6, gro: 7, maxHp: 340 },
     unlockHint: "코브라 전신 스트레칭 20회 완료"
   },
   "도파민의 종결자": {
@@ -718,10 +729,10 @@ const TITLES_DATA = {
     rarity: "epic",
     reqLevel: 25,
     desc: "숏폼과 쾌락 알고리즘의 유혹을 완전히 단절한 전두엽 각성자.",
-    bonusText: "공격력 +120, 방어력 +60, INT +30, 치명타율 +8%, 최대 체력 +600 | EXP +10% / 골드 +8%",
+    bonusText: "공격력 +42, 방어력 +26, INT +7, 치명타율 +4%, 최대 체력 +300 | EXP +10% / 골드 +8%",
     expMultiplier: 1.10,
     goldMultiplier: 1.08,
-    stats: { atk: 120, def: 60, int: 30, crit: 0.08, maxHp: 600 },
+    stats: { atk: 42, def: 26, int: 7, crit: 0.04, maxHp: 300 },
     unlockHint: "디톡스 퀘스트 누적 15회 완료"
   },
 
@@ -731,10 +742,10 @@ const TITLES_DATA = {
     rarity: "rare",
     reqLevel: 20,
     desc: "Stage 10 대마신을 쓰러뜨리고 전두엽 집중력을 되찾은 자.",
-    bonusText: "공격력 +80, 방어력 +45, INT +20, 치명타율 +6%, 최대 체력 +450 | EXP +8% / 골드 +7%",
+    bonusText: "공격력 +26, 방어력 +16, INT +4, 치명타율 +3%, 최대 체력 +190 | EXP +8% / 골드 +7%",
     expMultiplier: 1.08,
     goldMultiplier: 1.07,
-    stats: { atk: 80, def: 45, int: 20, crit: 0.06, maxHp: 450 },
+    stats: { atk: 26, def: 16, int: 4, crit: 0.03, maxHp: 190 },
     unlockHint: "Stage 10 도파미너스 격파"
   },
   "나태 분쇄자": {
@@ -742,10 +753,10 @@ const TITLES_DATA = {
     rarity: "rare",
     reqLevel: 15,
     desc: "Stage 1 슬로스를 격파하고 미루기를 극복한 자.",
-    bonusText: "공격력 +65, 방어력 +35, STR +15, 최대 체력 +400 | EXP +6% / 골드 +5%",
+    bonusText: "공격력 +8, 방어력 +5, STR +2, 최대 체력 +60 | EXP +6% / 골드 +5%",
     expMultiplier: 1.06,
     goldMultiplier: 1.05,
-    stats: { atk: 65, def: 35, str: 15, maxHp: 400 },
+    stats: { atk: 8, def: 5, str: 2, maxHp: 60 },
     unlockHint: "Stage 1 슬로스 격파"
   },
   "줄넘기 한계 도약자": {
@@ -753,10 +764,10 @@ const TITLES_DATA = {
     rarity: "rare",
     reqLevel: 5,
     desc: "성장판에 강력한 수직 자극을 가하며 2,000회의 도약을 달성한 헌터.",
-    bonusText: "공격력 +40, 방어력 +25, STR +15, END +15, 최대 체력 +300 | EXP +5% / 골드 +4%",
+    bonusText: "공격력 +10, 방어력 +6, STR +2, END +2, 최대 체력 +70 | EXP +5% / 골드 +4%",
     expMultiplier: 1.05,
     goldMultiplier: 1.04,
-    stats: { atk: 40, def: 25, str: 15, end: 15, maxHp: 300 },
+    stats: { atk: 10, def: 6, str: 2, end: 2, maxHp: 70 },
     unlockHint: "줄넘기 2,000회 퀘스트 완료"
   },
   "줄넘기 3,500회 극한 달성자": {
@@ -764,10 +775,10 @@ const TITLES_DATA = {
     rarity: "rare",
     reqLevel: 15,
     desc: "한계를 넘어 무릎과 종아리에 불이 붙도록 도약한 헌터.",
-    bonusText: "공격력 +60, 방어력 +40, STR +25, END +25, 최대 체력 +500 | EXP +7% / 골드 +6%",
+    bonusText: "공격력 +16, 방어력 +10, STR +3, END +3, 최대 체력 +110, 치명타율 +2% | EXP +7% / 골드 +6%",
     expMultiplier: 1.07,
     goldMultiplier: 1.06,
-    stats: { atk: 60, def: 40, str: 25, end: 25, maxHp: 500 },
+    stats: { atk: 16, def: 10, str: 3, end: 3, maxHp: 110, crit: 0.02 },
     unlockHint: "줄넘기 3,500회 퀘스트 완료"
   },
   "성장 골든타임의 수호자": {
@@ -775,10 +786,10 @@ const TITLES_DATA = {
     rarity: "rare",
     reqLevel: 10,
     desc: "매일 밤 11시 전 딥슬립 골든타임을 사수하여 호르몬을 깨운 자.",
-    bonusText: "공격력 +50, 방어력 +45, END +20, 최대 체력 +450, 키 성장 속도 +15% | EXP +6% / 골드 +5%",
+    bonusText: "공격력 +11, 방어력 +9, END +3, GRO +3, 최대 체력 +90 | EXP +6% / 골드 +5%",
     expMultiplier: 1.06,
     goldMultiplier: 1.05,
-    stats: { atk: 50, def: 45, end: 20, gro: 15, maxHp: 450 },
+    stats: { atk: 11, def: 9, end: 3, gro: 3, maxHp: 90 },
     unlockHint: "골든타임 취침 퀘스트 7회 완료"
   },
   "디톡스 24시간 철인": {
@@ -786,10 +797,10 @@ const TITLES_DATA = {
     rarity: "rare",
     reqLevel: 10,
     desc: "쇼츠/릴스/틱톡의 늪에서 24시간 동안 완벽히 생존한 자.",
-    bonusText: "공격력 +55, 방어력 +30, INT +20, 치명타율 +5%, 최대 체력 +350 | EXP +6% / 골드 +5%",
+    bonusText: "공격력 +13, 방어력 +8, INT +3, 최대 체력 +85, 치명타율 +2% | EXP +6% / 골드 +5%",
     expMultiplier: 1.06,
     goldMultiplier: 1.05,
-    stats: { atk: 55, def: 30, int: 20, crit: 0.05, maxHp: 350 },
+    stats: { atk: 13, def: 8, int: 3, crit: 0.02, maxHp: 85 },
     unlockHint: "숏폼 24시간 완전 금지 완료"
   },
 
@@ -799,21 +810,21 @@ const TITLES_DATA = {
     rarity: "normal",
     reqLevel: 1,
     desc: "목표 신장을 향해 첫 발을 내딛은 성장 수련자.",
-    bonusText: "공격력 +15, 방어력 +10, STR +5, END +5, 최대 체력 +100 | 기본 밸런스 유지",
+    bonusText: "공격력 +3, 방어력 +2, STR +1, END +1, 최대 체력 +25 | 초심자의 의지",
     expMultiplier: 1.0,
     goldMultiplier: 1.0,
-    stats: { atk: 15, def: 10, str: 5, end: 5, maxHp: 100 },
+    stats: { atk: 3, def: 2, str: 1, end: 1, maxHp: 25 },
     unlockHint: "기본 지급"
   },
   "초보 수련자 (173cm)": {
-    name: "초보 수련자",
+    name: "초보 수련자 (173cm)",
     rarity: "normal",
     reqLevel: 1,
     desc: "목표 신장을 향해 첫 발을 내딛은 성장 수련자.",
-    bonusText: "공격력 +15, 방어력 +10, STR +5, END +5, 최대 체력 +100 | 기본 밸런스 유지",
+    bonusText: "공격력 +3, 방어력 +2, STR +1, END +1, 최대 체력 +25 | 초심자의 의지",
     expMultiplier: 1.0,
     goldMultiplier: 1.0,
-    stats: { atk: 15, def: 10, str: 5, end: 5, maxHp: 100 },
+    stats: { atk: 3, def: 2, str: 1, end: 1, maxHp: 25 },
     unlockHint: "기본 지급"
   },
   "줄넘기 입문자": {
@@ -821,10 +832,10 @@ const TITLES_DATA = {
     rarity: "normal",
     reqLevel: 1,
     desc: "성장판 자극을 위해 매일 줄을 넘기 시작한 초보 헌터.",
-    bonusText: "공격력 +25, 방어력 +15, STR +10, 최대 체력 +150 | EXP +3% / 골드 +2%",
+    bonusText: "공격력 +5, 방어력 +3, STR +1, 최대 체력 +35 | EXP +3% / 골드 +2%",
     expMultiplier: 1.03,
     goldMultiplier: 1.02,
-    stats: { atk: 25, def: 15, str: 10, maxHp: 150 },
+    stats: { atk: 5, def: 3, str: 1, maxHp: 35 },
     unlockHint: "줄넘기 1,000회 1회 완료"
   },
   "자세 교정 수련생": {
@@ -832,10 +843,10 @@ const TITLES_DATA = {
     rarity: "normal",
     reqLevel: 1,
     desc: "구부정한 척추와 거북목을 펴기 시작한 헌터.",
-    bonusText: "공격력 +20, 방어력 +25, END +10, 키 성장 속도 +10%, 최대 체력 +150 | EXP +3% / 골드 +2%",
+    bonusText: "공격력 +4, 방어력 +4, END +1, GRO +1, 최대 체력 +35 | EXP +3% / 골드 +2%",
     expMultiplier: 1.03,
     goldMultiplier: 1.02,
-    stats: { atk: 20, def: 25, end: 10, gro: 10, maxHp: 150 },
+    stats: { atk: 4, def: 4, end: 1, gro: 1, maxHp: 35 },
     unlockHint: "코브라 스트레칭 1회 완료"
   },
   "성장 영양 보급자": {
@@ -843,10 +854,10 @@ const TITLES_DATA = {
     rarity: "normal",
     reqLevel: 1,
     desc: "골격 합성을 위해 칼슘 우유와 단백질을 챙겨 먹는 헌터.",
-    bonusText: "공격력 +20, 방어력 +20, STR +8, END +10, 최대 체력 +200 | EXP +4% / 골드 +3%",
+    bonusText: "공격력 +4, 방어력 +4, STR +1, END +1, 최대 체력 +40 | EXP +4% / 골드 +3%",
     expMultiplier: 1.04,
     goldMultiplier: 1.03,
-    stats: { atk: 20, def: 20, str: 8, end: 10, maxHp: 200 },
+    stats: { atk: 4, def: 4, str: 1, end: 1, maxHp: 40 },
     unlockHint: "영양 섭취 퀘스트 1회 완료"
   }
 };
@@ -881,10 +892,10 @@ function getTitleMetadata(tName) {
   const expPct = Math.round((expMult - 1) * 100);
   const goldPct = Math.round((goldMult - 1) * 100);
   const reqLvl = Math.min(100, Math.round(10 + (stage - 1) * 1.85));
-  const atk = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.55) * 4);
-  const def = Math.round(15 + (stage - 1) * 12 + Math.pow(stage, 1.45) * 2.2);
-  const allStats = Math.round(5 + (stage - 1) * 3 + Math.pow(stage, 1.35));
-  const maxHp = Math.round(150 + (stage - 1) * 120 + Math.pow(stage, 1.7) * 12);
+  const atk = Math.round(5 + (stage - 1) * 2.8 + Math.pow(stage, 1.15) * 0.4);
+  const def = Math.round(3 + (stage - 1) * 1.8 + Math.pow(stage, 1.1) * 0.25);
+  const allStats = Math.max(1, Math.round(1 + (stage - 1) * 0.35 + Math.pow(stage, 1.05) * 0.05));
+  const maxHp = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.25) * 2.5);
 
   return {
     name: tName,
@@ -907,10 +918,10 @@ function registerAll50BossTitles() {
     const rarity = stage >= 40 ? "mythic" : (stage >= 20 ? "legendary" : (stage >= 5 ? "epic" : "rare"));
     const reqLvl = Math.min(100, Math.round(10 + (stage - 1) * 1.85));
 
-    const atk = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.55) * 4);
-    const def = Math.round(15 + (stage - 1) * 12 + Math.pow(stage, 1.45) * 2.2);
-    const allStats = Math.round(5 + (stage - 1) * 3 + Math.pow(stage, 1.35));
-    const maxHp = Math.round(150 + (stage - 1) * 120 + Math.pow(stage, 1.7) * 12);
+    const atk = Math.round(5 + (stage - 1) * 2.8 + Math.pow(stage, 1.15) * 0.4);
+    const def = Math.round(3 + (stage - 1) * 1.8 + Math.pow(stage, 1.1) * 0.25);
+    const allStats = Math.max(1, Math.round(1 + (stage - 1) * 0.35 + Math.pow(stage, 1.05) * 0.05));
+    const maxHp = Math.round(30 + (stage - 1) * 25 + Math.pow(stage, 1.25) * 2.5);
 
     const expMult = parseFloat((1.02 + stage * 0.0055).toFixed(2));
     const goldMult = parseFloat((1.01 + stage * 0.0048).toFixed(2));
