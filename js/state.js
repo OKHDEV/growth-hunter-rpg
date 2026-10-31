@@ -1742,27 +1742,21 @@ class GameState {
 
     // Grants rewards:
     // First Clear: 100% full EXP, Gold, Growth Points, Item, Title!
-    // Repeat Clear: 25% Training EXP & Gold for practice, 0 Growth Points (Real-life height requires real-life daily habit completion!)
-    let awardedExp = boss.rewards.exp;
-    let awardedGold = boss.rewards.gold;
-    let awardedGrowth = boss.rewards.growthPoints;
+    // Repeat Clear: 0 EXP, 0 Gold, 0 Growth Points, No Items/Titles ("똑같은 보스 또 깨면 보상 안주게")
+    const awardedExp = isFirstClear ? boss.rewards.exp : 0;
+    const awardedGold = isFirstClear ? boss.rewards.gold : 0;
+    const awardedGrowth = isFirstClear ? boss.rewards.growthPoints : 0;
 
-    if (!isFirstClear) {
-      awardedExp = Math.max(30, Math.round(boss.rewards.exp * 0.25));
-      awardedGold = Math.max(20, Math.round(boss.rewards.gold * 0.25));
-      awardedGrowth = 0; // Growth Points awarded strictly on first milestone breakthrough!
-    }
-
-    const expResult = this.addExp(awardedExp);
-    const goldResult = this.addGold(awardedGold);
+    const expResult = awardedExp > 0 ? this.addExp(awardedExp) : { expAdded: 0, leveledUp: false, newLevel: this.data.player.level };
+    const goldResult = awardedGold > 0 ? this.addGold(awardedGold) : { goldAdded: 0 };
     if (awardedGrowth > 0) {
       this.addGrowthPoints(awardedGrowth);
     }
-    const isNewItem = this.addToInventory(boss.rewards.item);
-    const isNewTitle = this.unlockTitle(boss.rewards.title);
+    const isNewItem = isFirstClear ? this.addToInventory(boss.rewards.item) : false;
+    const isNewTitle = isFirstClear ? this.unlockTitle(boss.rewards.title) : false;
 
-    // Check newly unlocked cards (e.g. Stage 100 Boss sovereign card)
-    const newlyUnlockedCards = this.checkCardUnlocks(false);
+    // Check newly unlocked cards (e.g. Stage 100 Boss sovereign card) strictly on first clear
+    const newlyUnlockedCards = isFirstClear ? this.checkCardUnlocks(false) : [];
 
     this.save(true);
     this.logUserActivity('boss_defeat');

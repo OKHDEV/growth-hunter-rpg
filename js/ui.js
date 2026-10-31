@@ -1422,11 +1422,14 @@ class UIManager {
             <span>방어력: ${boss.def.toLocaleString()}</span>
           </div>
           <div class="boss-rewards-box">
-            <div class="reward-title">토벌 보상:</div>
+            <div class="reward-title">${isCleared ? '토벌 보상 (최초 획득 완료):' : '토벌 보상:'}</div>
             <div class="reward-tags">
-              <span class="badge-item">${boss.rewards.item.name}</span>
-              <span class="badge-exp">+${boss.rewards.exp.toLocaleString()} EXP</span>
-              <span class="badge-growth">+${boss.rewards.growthPoints.toLocaleString()} 키 성장치</span>
+              ${isCleared
+                ? '<span class="badge-item" style="color:#94a3b8; border-color:rgba(255,255,255,0.15); background:rgba(255,255,255,0.03);">보상 획득 완료 (재도전 시 보상 없음)</span>'
+                : `<span class="badge-item">${boss.rewards.item.name}</span>
+                   <span class="badge-exp">+${boss.rewards.exp.toLocaleString()} EXP</span>
+                   <span class="badge-growth">+${boss.rewards.growthPoints.toLocaleString()} 키 성장치</span>`
+              }
             </div>
           </div>
           <button class="btn btn-raid-start ${isUnlocked ? '' : 'disabled'} ${boss.isSecretFinal ? 'btn-omega-challenge' : ''}" style="${v && !boss.isSecretFinal && isUnlocked ? `background: linear-gradient(135deg, ${v.color}, ${v.subColor}); box-shadow: 0 4px 16px ${v.color}55;` : ''}" ${isUnlocked ? '' : 'disabled'} onclick="ui.startBossRaid('${boss.id}')">
@@ -1971,23 +1974,38 @@ class UIManager {
 
     if (gradeEl) gradeEl.textContent = grade;
     if (bossNameEl) bossNameEl.textContent = `Stage ${boss.stage}: ${boss.name}`;
+    const isFirstClear = result ? result.isFirstClear !== false : true;
     const mults = result && result.titleMultipliers;
-    const finalExp = (result && result.expResult && result.expResult.expAdded) ? result.expResult.expAdded : boss.rewards.exp;
-    const finalGold = (result && result.goldResult && result.goldResult.goldAdded) ? result.goldResult.goldAdded : boss.rewards.gold;
+    const finalExp = (result && result.expResult && result.expResult.expAdded) ? result.expResult.expAdded : (isFirstClear ? boss.rewards.exp : 0);
+    const finalGold = (result && result.goldResult && result.goldResult.goldAdded) ? result.goldResult.goldAdded : (isFirstClear ? boss.rewards.gold : 0);
 
     if (expEl) {
-      expEl.textContent = (mults && mults.expMultiplier > 1) 
-        ? `+${finalExp.toLocaleString()} EXP (칭호 x${mults.expMultiplier})` 
-        : `+${finalExp.toLocaleString()} EXP`;
+      if (!isFirstClear) {
+        expEl.textContent = `+0 EXP (이미 토벌 완료 · 보상 없음)`;
+        expEl.style.color = '#94a3b8';
+      } else {
+        expEl.textContent = (mults && mults.expMultiplier > 1) 
+          ? `+${finalExp.toLocaleString()} EXP (칭호 x${mults.expMultiplier})` 
+          : `+${finalExp.toLocaleString()} EXP`;
+        expEl.style.color = 'var(--cyan-neon)';
+      }
     }
+
     if (goldEl) {
-      goldEl.textContent = (mults && mults.goldMultiplier > 1) 
-        ? `+${finalGold.toLocaleString()} G (칭호 x${mults.goldMultiplier})` 
-        : `+${finalGold.toLocaleString()} G`;
+      if (!isFirstClear) {
+        goldEl.textContent = `+0 G (이미 토벌 완료 · 보상 없음)`;
+        goldEl.style.color = '#94a3b8';
+      } else {
+        goldEl.textContent = (mults && mults.goldMultiplier > 1) 
+          ? `+${finalGold.toLocaleString()} G (칭호 x${mults.goldMultiplier})` 
+          : `+${finalGold.toLocaleString()} G`;
+        goldEl.style.color = 'var(--gold-mythic)';
+      }
     }
+
     if (growthEl) {
-      if (result && result.isFirstClear === false) {
-        growthEl.textContent = `0 키 성장치 (재도전 수련 완료 · 일일 퀘스트로 키를 키우세요!)`;
+      if (!isFirstClear) {
+        growthEl.textContent = `+0 pt (이미 토벌 완료 · 일일 퀘스트로 키를 키우세요!)`;
         growthEl.style.color = '#94a3b8';
       } else {
         growthEl.textContent = `+${boss.rewards.growthPoints} 키 성장치 (+${(boss.rewards.growthPoints / 1000 * 0.1).toFixed(3)}cm) [최초 토벌 돌파 보너스]`;
@@ -1995,59 +2013,73 @@ class UIManager {
       }
     }
 
-    const isFirstClear = result ? result.isFirstClear !== false : true;
     const hasItem = boss.rewards && boss.rewards.item;
     const hasTitle = boss.rewards && boss.rewards.title;
-    const isNewItem = result ? result.isNewItem : isFirstClear;
-    const isNewTitle = result ? result.isNewTitle : isFirstClear;
 
     if (dropTitleEl) {
-      dropTitleEl.innerHTML = hasTitle
-        ? `<span style="color:var(--gold-mythic); font-weight:800;">👑 [${boss.rewards.title}]</span>`
-        : `<span style="color:#94a3b8;">없음</span>`;
+      if (!isFirstClear) {
+        dropTitleEl.innerHTML = `<span style="color:#94a3b8;">이미 획득 완료 (재도전 시 추가 지급 없음)</span>`;
+      } else {
+        dropTitleEl.innerHTML = hasTitle
+          ? `<span style="color:var(--gold-mythic); font-weight:800;">👑 [${boss.rewards.title}]</span>`
+          : `<span style="color:#94a3b8;">없음</span>`;
+      }
     }
 
     if (dropItemEl) {
-      dropItemEl.innerHTML = hasItem
-        ? `<span style="color:var(--cyan-neon); font-weight:800;">⚔️ ${boss.rewards.item.name} (${this.getSlotName(boss.rewards.item.slot)})</span>`
-        : `<span style="color:#94a3b8;">없음</span>`;
+      if (!isFirstClear) {
+        dropItemEl.innerHTML = `<span style="color:#94a3b8;">이미 획득 완료 (재도전 시 추가 지급 없음)</span>`;
+      } else {
+        dropItemEl.innerHTML = hasItem
+          ? `<span style="color:var(--cyan-neon); font-weight:800;">⚔️ ${boss.rewards.item.name} (${this.getSlotName(boss.rewards.item.slot)})</span>`
+          : `<span style="color:#94a3b8;">없음</span>`;
+      }
     }
 
-    // Queue Loot Item (전리품 안내 팝업)
-    if (hasItem) {
-      this.queueRewardModal({
-        type: 'item',
-        item: boss.rewards.item,
-        source: `🏆 Stage ${boss.stage} [${boss.name}] 격파 전리품`
-      });
+    const btnConfirm = document.getElementById('btnVictoryConfirm');
+    if (btnConfirm) {
+      btnConfirm.textContent = isFirstClear ? '확인 (보상 받기)' : '확인 (전투 종료)';
     }
 
-    // Queue Title (호칭 안내 팝업)
-    if (hasTitle) {
-      this.queueRewardModal({
-        type: 'title',
-        titleName: boss.rewards.title,
-        source: `👑 Stage ${boss.stage} [${boss.name}] 토벌 칭호`
-      });
-    }
-
-    // Queue Hero Card (카드 해금 팝업)
-    if (result && result.newlyUnlockedCards && result.newlyUnlockedCards.length > 0) {
-      result.newlyUnlockedCards.forEach(card => {
+    // ONLY queue guidance reward modals if this is FIRST CLEAR!
+    // ("똑같은 보스 또 깨면 보상 안주게")
+    if (isFirstClear) {
+      // 1. Queue Loot Item (전리품 안내 팝업)
+      if (hasItem) {
         this.queueRewardModal({
-          type: 'card',
-          card: card,
-          source: boss.stage === 100 ? '👑 Stage 100 오메가 크로노스 격파' : '🏆 레이드 보스 격파 보상'
+          type: 'item',
+          item: boss.rewards.item,
+          source: `🏆 Stage ${boss.stage} [${boss.name}] 격파 전리품`
         });
-      });
-    }
+      }
 
-    // Queue Level Up (레벨업 팝업)
-    if (result && result.expResult && result.expResult.leveledUp) {
-      this.queueRewardModal({
-        type: 'levelup',
-        expResult: result.expResult
-      });
+      // 2. Queue Title (호칭 안내 팝업)
+      if (hasTitle) {
+        this.queueRewardModal({
+          type: 'title',
+          titleName: boss.rewards.title,
+          source: `👑 Stage ${boss.stage} [${boss.name}] 토벌 칭호`
+        });
+      }
+
+      // 3. Queue Hero Card (카드 해금 팝업)
+      if (result && result.newlyUnlockedCards && result.newlyUnlockedCards.length > 0) {
+        result.newlyUnlockedCards.forEach(card => {
+          this.queueRewardModal({
+            type: 'card',
+            card: card,
+            source: boss.stage === 100 ? '👑 Stage 100 오메가 크로노스 격파' : '🏆 레이드 보스 격파 보상'
+          });
+        });
+      }
+
+      // 4. Queue Level Up (레벨업 팝업)
+      if (result && result.expResult && result.expResult.leveledUp) {
+        this.queueRewardModal({
+          type: 'levelup',
+          expResult: result.expResult
+        });
+      }
     }
 
     modal.classList.remove('hidden');
