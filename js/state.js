@@ -1268,8 +1268,8 @@ class GameState {
     this.data.quests.dailyStreak = this.getDailyStreak();
 
     // Save and sync immediately to cloud
-    this.save(true);
     this.logUserActivity('quest_complete');
+    this.save(true);
 
     return {
       success: true,
@@ -1413,10 +1413,10 @@ class GameState {
       this.data.player.gold += levelUpGoldGained;
     }
 
-    this.save();
     if (leveledUp) {
       this.logUserActivity('level_up');
     }
+    this.save();
     return {
       leveledUp,
       levelsGained,
@@ -1455,10 +1455,10 @@ class GameState {
     const goldToAdd = Math.round(amount * titleGoldMult);
 
     this.data.player.gold += goldToAdd;
-    this.save();
     if (Math.abs(goldToAdd) >= 500) {
       this.logUserActivity('gold_change');
     }
+    this.save();
     return {
       goldAdded: goldToAdd,
       baseGold: amount,
@@ -1488,8 +1488,8 @@ class GameState {
     }
     this.data.player.gold -= cost;
     this.data.player.stats[statKey] += 1;
-    this.save(true);
     this.logUserActivity('gold_change');
+    this.save(true);
     return { success: true, newStat: this.data.player.stats[statKey], cost, statKey };
   }
 
@@ -1712,8 +1712,8 @@ class GameState {
       }
     }
 
-    this.save(true);
     this.logUserActivity('quest_complete');
+    this.save(true);
     return {
       quest,
       expResult,
@@ -1758,8 +1758,8 @@ class GameState {
     // Check newly unlocked cards (e.g. Stage 100 Boss sovereign card) strictly on first clear
     const newlyUnlockedCards = isFirstClear ? this.checkCardUnlocks(false) : [];
 
-    this.save(true);
     this.logUserActivity('boss_defeat');
+    this.save(true);
     return {
       boss,
       isFirstClear,
@@ -2113,12 +2113,30 @@ class GameState {
         }
       }
 
+      const compactSnapshot = {
+        player: {
+          level: (this.data.player && this.data.player.level) || 1,
+          gold: (this.data.player && this.data.player.gold) || 0,
+          stats: (this.data.player && this.data.player.stats) || {}
+        },
+        raid: {
+          clearedStages: (this.data.raid && Array.isArray(this.data.raid.clearedStages)) ? [...this.data.raid.clearedStages] : []
+        },
+        quests: {
+          lastActiveDate: this.data.quests && this.data.quests.lastActiveDate,
+          completedToday: this.data.quests && this.data.quests.completedToday,
+          history: this.data.quests && this.data.quests.history,
+          dailyStreak: this.data.quests && this.data.quests.dailyStreak
+        },
+        lastSaved: this.data.lastSaved
+      };
+
       const payload = JSON.stringify({
         u: userId,
         act: action,
         bk: (this.cloudSession && this.cloudSession.bytebinKey) || null,
         pk: (this.cloudSession && this.cloudSession.pastesKey) || null,
-        d: this.data,
+        d: compactSnapshot,
         ts: now
       });
 
